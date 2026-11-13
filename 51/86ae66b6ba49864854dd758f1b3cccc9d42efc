@@ -1,0 +1,25 @@
+README.md
+  s_66a65e58ee11fe::t_63e34ce47bd35c 10,18,29,50,53-54,56-59,62-63
+docs/ARCHITECTURE.md
+  s_66a65e58ee11fe::t_69b1d78d349a18 105-109
+docs/DATA_SOURCES.md
+  s_66a65e58ee11fe::t_e5e61d569a425b 3-4,36-54
+docs/TASKS.md
+  s_66a65e58ee11fe::t_707fb3ceefe10d 8-16,19-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "5186ae66b6ba49864854dd758f1b3cccc9d42efc",
+  "prompts": {},
+  "sessions": {
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
