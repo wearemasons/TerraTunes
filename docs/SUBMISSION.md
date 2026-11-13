@@ -11,7 +11,7 @@
 
 ## The opening film (0:00 – 0:18 of the app itself)
 The app now explains itself before anyone has to understand it: an animated cut scene, 16.8 s of
-picture over an 18.0 s soundtrack, four sentences, played once per session on the home page.
+picture over an 18.0 s soundtrack, four sentences, played on every home-page visit, with Skip available.
 
 | | |
 |---|---|

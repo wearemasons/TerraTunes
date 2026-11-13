@@ -36,22 +36,6 @@ const MODEL_WORD: Record<string, string> = {
   space: 'Deep space',
 }
 
-/** one showing of the film per tab: nobody wants it again on a reload */
-const FILM_SEEN = 'terratunes.film.seen'
-
-/**
- * `?replay` shows the film again in a tab that has already seen it. It exists for
- * demos, for screen-reader and caption review, and because a bug you cannot
- * reproduce on demand is a bug you cannot fix.
- */
-const wantReplay = () => {
-  try {
-    return new URLSearchParams(window.location.search).has('replay')
-  } catch {
-    return false
-  }
-}
-
 /** film = the cut scene rolling, match = frozen on the frame the page is
  *  composed like, live = the cabinet is the page again */
 type Boot = 'film' | 'match' | 'live'
@@ -92,11 +76,7 @@ export function JukeboxPage() {
   const deckRoot = useRef<HTMLDivElement>(null)
   const deckFlare = useRef<HTMLDivElement>(null)
   const deckAnims = useRef<Animation[]>([])
-  const [boot, setBoot] = useState<Boot>(() =>
-    !wantReplay() && sessionStorage.getItem(FILM_SEEN) ? 'live' : 'film',
-  )
-  /** the page only plays its own arrival animation if there was no film to sit in front of it */
-  const seenFilmAtMount = useRef(boot === 'live')
+  const [boot, setBoot] = useState<Boot>('film')
   const cradleRef = useRef<HTMLDivElement>(null)
   const discRefs = useRef<Record<string, HTMLElement | null>>({})
   const stageRef = useRef<HTMLDivElement>(null)
@@ -123,22 +103,21 @@ export function JukeboxPage() {
     })
   }, [boot])
 
-  /**
-   * Her pose is a small machine, not a mapping of the store. She sits and
-   * listens — the shape the film left her in — and only stands to point for a
-   * beat when a different record comes out of the crate, or to greet when the
-   * cabinet is woken from off. Anything held longer has her getting up and
-   * sitting down again while the visitor is trying to listen.
-   */
-  const [pose, setPose] = useState<GirlPose>('listen')
+  // Actual music playback owns sitting; the idle figure remains standing.
+  const [pose, setPose] = useState<GirlPose>('greet')
   const poseTimer = useRef(0)
   const showPose = useCallback((p: GirlPose, ms: number) => {
     if (useUI.getState().reduceMotion) return
     setPose(p)
     window.clearTimeout(poseTimer.current)
-    poseTimer.current = window.setTimeout(() => setPose('listen'), ms)
+    poseTimer.current = window.setTimeout(() => setPose(useUI.getState().isPlaying ? 'listen' : 'greet'), ms)
   }, [])
+  useEffect(() => {
+    window.clearTimeout(poseTimer.current)
+    setPose(isPlaying ? 'listen' : 'greet')
+  }, [isPlaying])
   useEffect(() => () => window.clearTimeout(poseTimer.current), [])
+  useEffect(() => { useUI.setState({ arrived: false }) }, [])
 
   // while the film is up, the page behind it is unreachable, not merely covered
   useEffect(() => {
@@ -395,9 +374,8 @@ export function JukeboxPage() {
   /** the picture has reached the frame the live cabinet is drawn to match */
   const reachMatch = useCallback(() => setBoot('match'), [])
 
-  /** the film is gone: remember the showing, and say what they can do now */
+  /** The film is gone; invite interaction with the standing character. */
   const finishFilm = useCallback(() => {
-    sessionStorage.setItem(FILM_SEEN, '1')
     setBoot('live')
     announce(
       'The Earth Information Jukebox. The Earth is lit in the dome and the cabinet is warm. Press the jewel on the speaker to put a record on the turntable and drop the needle.',
@@ -426,7 +404,7 @@ export function JukeboxPage() {
   const scene = arrived ? sceneFor(dataset.model, dataset.id) : ARRIVAL_SCENE
 
   return (
-    <div className={`relative ${seenFilmAtMount.current ? 'stage-arrive' : ''}`}>
+    <div className="relative">
       {boot !== 'live' && <BootFilm onMatch={reachMatch} onDone={finishFilm} />}
 
       {/*
