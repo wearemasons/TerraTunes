@@ -6,7 +6,13 @@ import type { Dataset } from '../lib/types'
 import type { Spec, SpecCell } from '../lib/audio/phenomena'
 import { Spectrum } from './Spectrum'
 
-/** the one measured quantity each physical model is driven by */
+/**
+ * The measured quantity this record's view highlights. Since mapping_version 14 the
+ * sound is not driven by any of these individually — all three lines come from the
+ * calibrated colour-to-value measurement (its mean, its peak and its change) — but
+ * each record still has one quantity that best explains what its map is showing,
+ * and that is what the ranking below and the world animation lean on.
+ */
 const SIGNAL: Record<string, keyof SpecCell> = {
   wind: 'turbulence',
   storm: 'white',
@@ -178,49 +184,38 @@ export function NowPlaying({
               {detail?.description ?? dataset.description}
             </p>
           </div>
+          {/*
+            mapping_version 14 has no drone, no hat and no bell: three instruments,
+            each carrying one measured channel. So this row is generated from the
+            score's own instrument list rather than written out here — the API is the
+            source of truth about what the sound is made of, and if the rules change
+            again this panel cannot possibly fall out of date behind them.
+          */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-lg border border-[#d8b077]/60 bg-[#fff8ea]/80 p-2">
-              <p className="font-display text-[8px] font-bold uppercase tracking-[0.16em] text-[#2563eb]">
-                Cool / Foundation
-              </p>
-              <p className="mt-0.5 font-display text-[11.5px] font-semibold text-ink">
-                Root + Fifth Drone
-              </p>
-              <p className="mt-0.5 text-[9.5px] font-semibold leading-snug text-[#5a3f22]">
-                Lowpass-filtered 3-oscillator drone ({score?.key.root ?? 'D'}2 + 5th + tension).
-              </p>
-            </div>
-            <div className="rounded-lg border border-[#d8b077]/60 bg-[#fff8ea]/80 p-2">
-              <p className="font-display text-[8px] font-bold uppercase tracking-[0.16em] text-[#15803d]">
-                West → East Scan
-              </p>
-              <p className="mt-0.5 font-display text-[11.5px] font-semibold text-ink">
-                Lowpass Melody Pluck
-              </p>
-              <p className="mt-0.5 text-[9.5px] font-semibold leading-snug text-[#5a3f22]">
-                Theme oscillator with dynamic cutoff &amp; harmonized scale fifths.
-              </p>
-            </div>
+            {(score?.instruments ?? []).map((ins) => (
+              <div key={ins.instrument} className="rounded-lg border border-[#d8b077]/60 bg-[#fff8ea]/80 p-2">
+                <p className="font-display text-[8px] font-bold uppercase tracking-[0.16em] text-[#15803d]">
+                  {ins.instrument}
+                </p>
+                <p className="mt-0.5 font-display text-[11.5px] font-semibold leading-tight text-ink">
+                  {ins.family}
+                </p>
+                <p className="mt-0.5 text-[9.5px] font-semibold leading-snug text-[#5a3f22]">
+                  {ins.carries}. {ins.entry}. Range {ins.note_range}.
+                </p>
+              </div>
+            ))}
             <div className="rounded-lg border border-[#d8b077]/60 bg-[#fff8ea]/80 p-2">
               <p className="font-display text-[8px] font-bold uppercase tracking-[0.16em] text-[#8a5a1c]">
-                Pulse &amp; Density
+                Pulse &amp; hall
               </p>
-              <p className="mt-0.5 font-display text-[11.5px] font-semibold text-ink">
-                Rhythm Hit (Noise / Tick)
-              </p>
-              <p className="mt-0.5 text-[9.5px] font-semibold leading-snug text-[#5a3f22]">
-                6 kHz highpass noise hat or 1800→600 Hz sine tick driven by density.
-              </p>
-            </div>
-            <div className="rounded-lg border border-[#ff6b4a]/55 bg-[#fff2eb]/90 p-2">
-              <p className="font-display text-[8px] font-bold uppercase tracking-[0.16em] text-[#b91c1c]">
-                Hotspots &amp; Peaks
-              </p>
-              <p className="mt-0.5 font-display text-[11.5px] font-semibold text-ink">
-                Inharmonic Hotspot Bell
+              <p className="mt-0.5 font-display text-[11.5px] font-semibold leading-tight text-ink">
+                One note set per scan step
               </p>
               <p className="mt-0.5 text-[9.5px] font-semibold leading-snug text-[#5a3f22]">
-                3-partial bell [1, 2.76, 5.4] + steep peak surge on anomalies.
+                {score?.steps_per_frame ?? 8} steps to a frame, on a grid that never speeds up or slows
+                down, so time along the sound is position across the map. Every note rings on in a hall
+                of roughly two seconds.
               </p>
             </div>
           </div>
@@ -669,7 +664,7 @@ export function NowPlaying({
                 </div>
 
                 <p className="mt-2 font-display text-[8.5px] font-bold uppercase tracking-[0.16em] text-[#8a5a1c]">
-                  loudest cells · {String(signal)} <span className="normal-case">(and measured brightness)</span>
+                  highest cells · {String(signal)} <span className="normal-case">(and measured brightness)</span>
                 </p>
                 <ul className="mt-1 flex flex-col gap-1">
                   {topCells.map((c, i) => (

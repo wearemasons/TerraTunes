@@ -1,7 +1,14 @@
-"""What each track should *sound like*: the natural phenomenon and the thresholds that matter.
+"""What each track measures, the real-world lines that matter, and how the ensemble sings them.
 
-Auditory icons (rain, wind, fire, surf, birds…) say WHAT is happening; data drives HOW MUCH and
-WHERE. For quantities with no natural sound (pollutants), a labelled metaphor is used instead.
+Since mapping_version 14 the sound is an ensemble of three pitched instruments (plucked bass, harp,
+flute) — see `render.py` and `docs/SONIFICATION_DESIGN.md`. Nothing here selects a noise generator
+any more: `phenomenon` is the *label of the physical process the track measures* (it also drives the
+browser's visual model), and `description` is the plain-language text the API returns as
+`sound.description`, so a screen reader announces which channel each instrument carries.
+
+Values still come from the calibrated colourbar measurement; `intensity` maps a real value to the
+0..1 slice figure that nudges note level inside a 2.7 dB window, and `thresholds` are the lines with
+real-world meaning, marked by the harp lifting an octave.
 """
 
 import math
@@ -11,15 +18,40 @@ from pydantic import BaseModel, Field
 
 Phenomenon = Literal["rain", "wind", "fire", "surf", "biophony", "temperature", "haze", "traffic"]
 
+_ENSEMBLE = (
+    "An orchestra of three soloists, no drums and no weather noise: the plucked bass plays the "
+    "average value of each slice as the map is scanned west to east, the harp plays the highest "
+    "value in that slice, and the flute holds long notes tracing how the slice changed since the "
+    "previous frame, all over a string section holding the chord those lines imply. Higher values "
+    "mean higher notes, never louder ones — loudness stays level, and silence means no data."
+)
+
 PHENOMENON_INFO: dict[str, str] = {
-    "rain": "Rain: droplets get denser and louder with heavier rain; extreme cells add rumble and thunder.",
-    "wind": "Wind: the whoosh rises in pitch and gusts harder with speed; storm-force wind howls.",
-    "fire": "Fire: crackles and roar grow with the amount of smoke gas from burning.",
-    "surf": "Ocean surf: waves wash continuously; colder water sounds brighter and icier, warmer water darker.",
-    "biophony": "Birds and insects: the greener the land, the busier the chorus.",
-    "temperature": "Heat brings a cicada chorus; below freezing you hear thin icy wind and creaks.",
-    "haze": "Haze (a metaphor, no natural sound): a dull drone that gets rougher and more muffled as pollution rises.",
-    "traffic": "Traffic hum (the main source of this pollutant): a low rumble that thickens with concentration.",
+    "rain": f"Precipitation: {_ENSEMBLE} A rising bass line means wetter air over that part of the map.",
+    "wind": f"Wind speed: {_ENSEMBLE} A rising bass line means stronger wind over that part of the map.",
+    "fire": (
+        f"Smoke gas from burning: {_ENSEMBLE} A rising bass line means more carbon monoxide over that "
+        "part of the map."
+    ),
+    "surf": (
+        f"Sea surface temperature: {_ENSEMBLE} A rising bass line means warmer water, and the harp "
+        "reaches its top notes where the sea is warm enough to fuel storms."
+    ),
+    "biophony": (
+        f"Living green cover: {_ENSEMBLE} A rising bass line means greener, denser vegetation."
+    ),
+    "temperature": (
+        f"Air temperature just above the ground: {_ENSEMBLE} Cold places sit at the bottom of the "
+        "scale and hot places at the top; freezing is roughly the middle of the range on these maps."
+    ),
+    "haze": (
+        f"Fine particles and ozone (there is no natural sound for these, so the mapping is agreed "
+        f"rather than imitative): {_ENSEMBLE} A rising bass line means dirtier air."
+    ),
+    "traffic": (
+        f"Nitrogen oxides, mostly from engines: {_ENSEMBLE} A rising bass line means more pollution "
+        "over that part of the map."
+    ),
 }
 
 
@@ -31,7 +63,8 @@ class Threshold(BaseModel):
 
 
 class IntensityMap(BaseModel):
-    """Real value → 0..1 loudness/density of the phenomenon sound."""
+    """Real value → 0..1 slice figure. In v14 this only nudges note level (±2.7 dB) and the
+    visualisation; pitch comes from the calibrated value itself, via app/mapping/rules.py."""
 
     lo: float
     hi: float

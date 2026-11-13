@@ -23,15 +23,23 @@ Working end to end: nine tracks built from live NASA SVS visualizations (tempera
 
 ```
 TerraTunes/
-├─ frontend/               # frontend monorepo (bun workspaces)
-│  ├─ apps/web/            # TanStack Router app
-│  └─ packages/ui/         # shared shadcn/ui
+├─ frontend/               # the web app: one flat Vite + React 19 package
+│  ├─ src/routes/          # three pages — the jukebox, scan a frame, the method
+│  ├─ src/components/      # cabinet, painted world, opening film, data deck
+│  ├─ src/lib/             # API client, the two sonification engines, scene table
+│  ├─ public/art/          # painted backdrops, discs, character stills (webp)
+│  ├─ public/video/        # the opening film and the character loops (webm/vp9 alpha)
+│  └─ tools/               # scripts that rebuild those assets from raw sources
 ├─ backend/                # FastAPI service, SVS ingest, calibration, mapping rules
 ├─ docs/                   # plan, architecture, design, a11y, data, API, submission
 ├─ .claude/agents/         # project sub-agents
 ├─ AGENTS.md / CLAUDE.md   # rules for AI coding agents
+├─ dev.mjs                 # one command that runs the whole thing
 └─ README.md
 ```
+> The frontend is a single package on this branch. Several planning documents still
+> describe the original bun workspace (`apps/web`, `packages/ui`, shadcn); where they
+> disagree with the tree above, the tree is the truth.
 
 ## Docs
 
@@ -52,19 +60,24 @@ TerraTunes/
 Needs [Node](https://nodejs.org), [bun](https://bun.sh) and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-node dev.mjs            # installs what's missing, starts API (:8000) and web app (:3000)
+node dev.mjs            # installs what's missing, starts API (:8000) and web app (:5173)
 ```
 
 | Command | What it does |
 |---|---|
 | `node dev.mjs --open` | Same, and opens the browser |
-| `node dev.mjs --demo` | Web app only, on synthetic demo data (no Python needed) |
 | `node dev.mjs --rebuild` | Re-download the NASA visualizations (they update daily) and rebuild tracks first |
-| `API_PORT=8010 WEB_PORT=3010 node dev.mjs` | Other ports; CORS and the web app's API URL follow |
+| `node dev.mjs --skip-install` | Start what is already installed, touching nothing else |
+| `API_PORT=8010 WEB_PORT=3010 node dev.mjs` | Other ports; CORS and the `/api` proxy follow |
 
 Ctrl+C stops everything. Processed tracks are committed, so the first run needs no NASA downloads.
 
-Running the parts by hand: `cd backend && uv run fastapi dev app/main.py`, and `cd frontend && bun run dev:web` with `VITE_API_URL=http://localhost:8000` in `frontend/apps/web/.env.local`.
+There is no client-only demo mode: every sound on the site is a measurement, so the
+API is not optional.
+
+Running the parts by hand: `cd backend && uv sync && uv run uvicorn app.main:app --port 8000`,
+then `cd frontend && bun install && bun run dev`. The app calls `/api` and Vite forwards it
+to `http://127.0.0.1:8000`; point `API_TARGET` somewhere else if your API is not there.
 
 ## Credits
 

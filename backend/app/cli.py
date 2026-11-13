@@ -130,7 +130,10 @@ def render_playlist(ids: list[str], modes: "list[Mode]", fmt: "Literal['wav', 'm
                 if frame.layers:
                     for a in frame.layers.alerts:
                         if a.new or f == 0:
-                            notes.append(f"chime: {a.label} near {a.region}")
+                            # v14 has no chime: a threshold is marked by the harp
+                            # lifting an octave, which is pitch, so it is spelled
+                            # that way in the caption too
+                            notes.append(f"harp lifts an octave: {a.label} near {a.region}")
                     if frame.layers.regions:
                         r = frame.layers.regions[0]
                         notes.append(f"highest values near {r.region}")
@@ -165,7 +168,7 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("ids", nargs="*")
     r.add_argument("--mode", choices=["sweep", "overview", "both"], default="both")
     r.add_argument("--format", choices=["mp3", "wav"], default="mp3")
-    r.add_argument("--no-melody", action="store_true", help="Natural sounds and cues only")
+    r.add_argument("--no-melody", action="store_true", help="Low plucked line only - no harp, no flute")
     args = parser.parse_args(argv)
     if args.cmd == "discover":
         return discover(args.gallery)

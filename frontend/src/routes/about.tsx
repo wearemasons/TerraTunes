@@ -11,7 +11,8 @@ const METHOD = [
   {
     n: '02',
     title: 'Measure, don’t interpret',
-    body: 'Python + OpenCV divides the frame into a 6 × 12 grid and measures every cell: brightness, saturation, hue, Laplacian texture energy, gradient magnitude, and the fraction of hot / green / water / white / dark pixels. Each cell also gets a relative brightness against the frame’s own bright end, so a starfield is not silent just because space is black.',
+    body:
+      'NumPy and Pillow read the colourbar printed in the frame itself, then match every pixel to the nearest colour on that bar in CIELAB. Colour therefore becomes a position on a measured scale instead of a guess about hue. The frame is reduced to a 96 × 48 grid of median scale positions; cells whose colour is not on the bar are marked as no data, and isolated specks are cleaned away. Nothing downstream looks at hue again — every note is a claim about a value.',
   },
   {
     n: '03',

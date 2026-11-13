@@ -35,6 +35,7 @@ export interface AnalyzeResponse {
   mapping: string
   grid: { cols: number; rows: number; cells: import('./audio/phenomena').SpecCell[] }
   frame_stats: Record<string, number>
+  voices?: import('./audio/phenomena').VoicePart[]
 }
 
 export const ELEMENT_META: Record<string, { label: string; blurb: string }> = {
@@ -129,10 +130,24 @@ export interface TerraFrameScore {
   brightness: number
   rhythm_density: number
   column_notes: number[]
+  /** mapping_version 14: the three instrument lines for this frame, one MIDI per scan step.
+   *  -1 is silence. Decided in backend/app/mapping/rules.py — never re-derived here. */
+  voices: { instrument: 'bass' | 'harp' | 'flute'; notes: number[] }[]
   hotspot: { x: number; y: number; note: number; strength: number } | null
   stats: { mean: number; min: number; max: number; extreme_share: number }
   description: string
   layers: TerraFrameLayers | null
+}
+
+/** What one voice of the ensemble carries, and when it joins (audio-key material). */
+export interface TerraInstrumentInfo {
+  instrument: 'bass' | 'harp' | 'flute'
+  family: string
+  carries: string
+  entry: string
+  note_range: string
+  range_low: number
+  range_high: number
 }
 
 export interface TerraScore {
@@ -142,6 +157,7 @@ export interface TerraScore {
   key: { root: string; root_midi: number; scale: string; bpm: number }
   grid: { cols: number; rows: number }
   steps_per_frame: number
+  instruments: TerraInstrumentInfo[]
   frames: TerraFrameScore[]
   sound: TerraSoundInfo | null
 }

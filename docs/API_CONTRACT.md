@@ -1,5 +1,32 @@
 # API Contract (v0)
 
+## mapping_version 14 changes (current)
+
+`GET /tracks/{id}/score` (`TerraScore`) gained, and `docs/SONIFICATION_DESIGN.md` explains why:
+
+* `steps_per_frame` is now **8** (was 16) and each scan step is one quarter note at `key.bpm` = 120;
+  `frames[].column_notes` and `frames[].layers.column_intensity` have that length.
+* `instruments: InstrumentInfo[]` - the roster the audio key speaks:
+  `{instrument: "bass"|"harp"|"flute", family, carries, entry, note_range, range_low, range_high}`.
+* `frames[].voices: VoicePart[]` - one entry per instrument, same order as `instruments`:
+  `{instrument, notes: number[]}` with MIDI per scan step and **-1 = silence**. This is the only
+  place pitches are decided (`backend/app/mapping/rules.py`); clients play it, never re-derive it.
+* `frames[].rhythm_density` still exists (visual accent of the slice's spread) but no longer drives
+  any note count: the pulse is fixed.
+* `TrackDetail.duration_s` / `TrackSummary.duration_s` now equal `frame_count x 4.0` s, which is what
+  `/render?mode=sweep` actually writes (it used to claim 7.5 s per frame while the audio was 4 s).
+* `/render` behaviour is unchanged in shape (`mode`, `format`, `melody`, `v` cache key) but the audio
+  is completely different: three quantised instruments, steady grid, static centred imaging, a
+  Schroeder hall and the same soft-knee limiter. `melody=false` now plays the low plucked line alone
+  (there is no non-musical bed any more). Endpoint list unchanged: `/healthz`, `/tracks`,
+  `/tracks/{id}`, `/score`, `/frames/{n}`, `/frames/{n}/grid`, `/thumbnail`, `/render`.
+* The generated accessibility strings (`audio_key`, `frames[].description`, `sound.listening_guide`,
+  `transcript`) were rewritten for these instruments; `sound.description` still labels the measured
+  phenomenon, now as words rather than as a noise generator.
+* `frontend/src/lib/audio/phenomena.ts` is a documented **fallback** engine (pre-v14 physical model)
+  used only when the render stream is unavailable; the audible reference is `render.py`.
+
+
 Base URL (dev): `http://localhost:8000`. JSON, UTF-8. OpenAPI at `/docs` and `/openapi.json`; the frontend generates types from it (`openapi-typescript`). Pydantic models in `backend/app/schemas/` are the source of truth. Change them first, then this file.
 
 ## Conventions

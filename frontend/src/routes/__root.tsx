@@ -5,7 +5,7 @@ import { Accessibility, BookOpen, Disc3, VolumeX, Waves } from 'lucide-react'
 import { useUI } from '../lib/store'
 import { mechanism } from '../lib/audio/mechanism'
 import { api } from '../lib/api'
-import { sceneFor } from '../lib/world'
+import { ARRIVAL_SCENE, sceneFor } from '../lib/world'
 import { World } from '../components/World'
 
 /**
@@ -25,12 +25,16 @@ export function RootLayout() {
     selectedId,
     level,
     powered,
+    arrived,
+    filmUp,
   } = useUI()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
 
   const { data } = useQuery({ queryKey: ['datasets'], queryFn: api.datasets, staleTime: 1000 * 60 * 30 })
   const dataset = data?.find((d) => d.id === selectedId) ?? data?.[0]
-  const scene = sceneFor(dataset?.model ?? 'plume', dataset?.id)
+  // the world the opening film leaves you in, until you choose otherwise: the
+  // last frame of the film and the first frame of this page are the same place
+  const scene = arrived ? sceneFor(dataset?.model ?? 'plume', dataset?.id) : ARRIVAL_SCENE
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) setReduceMotion(true)
@@ -64,7 +68,7 @@ export function RootLayout() {
         Skip to the cabinet
       </a>
 
-      <header className="relative z-40 px-3 pt-2 sm:px-5">
+      <header className="relative z-40 px-3 pt-2 sm:px-5" inert={filmUp}>
         <div className="mx-auto flex max-w-[1500px] items-center gap-2">
           <Link to="/" className="group flex items-center gap-2 rounded-2xl px-1 py-1" aria-label="Terra Tunes — home">
             <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#6b4a20b2] bg-gradient-to-br from-[#f7dfa9] via-[#e0a95f] to-[#b57a3a] shadow-[0_2px_0_#6b4a20,0_6px_14px_-6px_rgba(20,12,4,.9)]">

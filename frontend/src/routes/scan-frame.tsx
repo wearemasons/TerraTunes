@@ -28,9 +28,8 @@ const SAMPLES = [
 ] as const
 
 /**
- * Scan any frame: upload or pick a bundled NASA frame, choose which physical
- * model should read it, and hear the result. The model is a *synthesis*
- * choice, not a musical one — the mapping is fixed and printed on screen.
+ * Scan any frame: upload or pick a bundled NASA frame, choose which calibrated
+ * score mapping should read it, and hear the resulting three-voice ensemble.
  */
 export function ScanPage() {
   const [result, setResult] = useState<(AnalyzeResponse & { id?: string }) | null>(null)
@@ -116,9 +115,8 @@ export function ScanPage() {
         </p>
         <h1 className="mt-0.5 font-display text-2xl font-semibold text-ink sm:text-3xl">Read any frame</h1>
         <p className="mt-1.5 max-w-2xl text-[12px] font-semibold leading-relaxed text-[#3a2a18bf]">
-          Drop in a NASA frame — or any image — and choose which physical process should read it.
-          The model changes the synthesis, never the measurement: the same pixels can be heard as
-          wind, fire or water, and every mapping is printed underneath.
+          Drop in a NASA frame — or any image — and choose which calibrated score mapping should read it.
+          The mapping changes which measured values feed the three voices, never the pixels themselves.
         </p>
       </header>
 

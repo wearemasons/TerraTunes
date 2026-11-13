@@ -1,4 +1,4 @@
-import type { SpecCell, SpecLayer } from './audio/phenomena'
+import type { SpecCell, SpecLayer, VoicePart } from './audio/phenomena'
 import type {
   AnalyzeResponse,
   Dataset,
@@ -298,36 +298,39 @@ export function buildColorWaves(grid: TerraGridResponse): {
 }
 
 function scoreToLayers(score: TerraScore): SpecLayer[] {
-  const frameS = 4.0
-  const layers: SpecLayer[] = []
-  score.frames.forEach((f, fi) => {
-    const t0 = fi * frameS
-    const cols = f.layers?.column_intensity ?? []
-    if (cols.length) {
-      const stepS = frameS / cols.length
-      cols.forEach((intensity, ci) => {
-        if (intensity <= 0.02) return
-        layers.push({
-          kind: 'noise',
-          model: 'turbulence',
-          t0: t0 + ci * stepS,
-          dur: stepS,
-          gain: intensity * 0.4,
-          pan: -0.85 + (1.7 * ci) / Math.max(1, cols.length - 1),
-        })
-      })
-    } else {
-      layers.push({
-        kind: 'noise',
-        model: 'body',
-        t0,
-        dur: frameS,
-        gain: f.loudness * 0.4,
-        pan: 0,
-      })
-    }
+  // Kept as an empty compatibility field: v14 scheduling is driven exclusively by voices.
+  void score
+  return []
+}
+
+const CLIENT_SCALES: Record<string, number[]> = {
+  dorian: [0, 2, 3, 5, 7, 9, 10], minor_pentatonic: [0, 3, 5, 7, 10],
+  phrygian: [0, 1, 3, 5, 7, 8, 10], whole_tone: [0, 2, 4, 6, 8, 10],
+  lydian: [0, 2, 4, 6, 7, 9, 11], major_pentatonic: [0, 2, 4, 7, 9],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10], phrygian_dominant: [0, 1, 4, 5, 7, 8, 10],
+}
+
+function clientVoices(cells: SpecCell[], model: string): VoicePart[] {
+  // Mirrors backend/app/mapping/rules.py::_slice_measures and _voices: mean→bass, peak→harp,
+  // signed frame change→flute, then voice_ladder()/quantize(). Keep these constants in sync.
+  const scaleName = model === 'ocean' ? 'dorian' : model === 'storm' ? 'phrygian' : model === 'fire' ? 'phrygian' : model === 'canopy' ? 'major_pentatonic' : 'mixolydian'
+  const intervals = CLIENT_SCALES[scaleName] ?? CLIENT_SCALES.dorian
+  const ladder = [0, 1].flatMap((octave) => intervals.map((interval) => octave * 12 + interval)).concat(24)
+  const quantize = (value: number, base: number) => base + (ladder[Math.round(Math.max(0, Math.min(1, value)) * (ladder.length - 1))] ?? 0)
+  const notes = (kind: 'mean' | 'peak') => Array.from({ length: 8 }, (_, step) => {
+    const part = cells.filter((c) => c.col >= Math.floor(step * 12 / 8) && c.col < Math.floor((step + 1) * 12 / 8))
+    if (!part.length) return -1
+    const value = kind === 'mean' ? part.reduce((sum, c) => sum + c.brightness, 0) / part.length : Math.max(...part.map((c) => c.brightness))
+    return quantize(value, kind === 'mean' ? 26 : 50)
   })
-  return layers
+  const mean = cells.length ? cells.reduce((sum, c) => sum + c.brightness, 0) / cells.length : 0
+  const peak = cells.length ? Math.max(...cells.map((c) => c.brightness)) : 0
+  return [
+    { instrument: 'bass', notes: cells.length ? notes('mean') : Array(8).fill(-1) },
+    { instrument: 'harp', notes: peak - mean >= 0.1 ? notes('peak') : Array(8).fill(-1) },
+    // A single scanned image has no previous calibrated frame, so change is intentionally silent.
+    { instrument: 'flute', notes: Array(8).fill(-1) },
+  ]
 }
 
 /** Client-side pixel analyzer for uploaded images on `/scan`. */
@@ -447,7 +450,7 @@ async function analyzeImageClient(file: File, model: string): Promise<AnalyzeRes
   }
 
   const n = cells.length || 1
-  const duration = 12
+  const duration = 4
   const layers: SpecLayer[] = []
   const layerModel = model === 'storm' ? 'droplet' : model === 'fire' ? 'crackle' : model === 'ocean' ? 'swell' : model === 'space' ? 'scan' : 'turbulence'
 
@@ -510,8 +513,9 @@ async function analyzeImageClient(file: File, model: string): Promise<AnalyzeRes
     title: file.name,
     explain: `Client-side luminance & colour measurement (${cols}×${rows} cells) read through the ${model} physical model. Uncalibrated artistic mapping.`,
     duration,
-    layers,
-    mapping: `Brightness → intensity & pitch · horizontal position → stereo pan · texture → ${model} dynamics (uncalibrated upload)`,
+    layers: [],
+    voices: clientVoices(cells, model),
+    mapping: `Brightness → bass pitch · peak brightness → harp pitch · eight west-to-east steps on a steady 0.5 s pulse (uncalibrated upload)`,
     grid: { cols, rows, cells },
     frame_stats: {
       brightness: bSum / n,

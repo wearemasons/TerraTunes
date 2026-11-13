@@ -1,47 +1,70 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Scene } from '../lib/world'
+import { SCENE_ART } from '../lib/world'
+import { useUI } from '../lib/store'
 
 /**
  * The world behind the cabinet.
  *
- * A hand-painted, Ghibli-styled backdrop per scene (storm, night, aurora, fire,
- * deep space, golden meadow), topped with live weather that is drawn rather than
- * painted: rain with individual streaks and splash rings, multi-branch
- * lightning, drifting cumulus with lit bellies, aurora curtains, ash and pollen
- * motes, fireflies, and the warm spill of the cabinet's own light. Everything is
- * a layer of the same scene, so switching discs changes the world you are
- * standing in. There is no overlaid foreground strip: the cabinet stands
- * directly on the painted ground.
+ * One hand-painted backdrop per phenomenon, cross-faded rather than swapped,
+ * topped with live weather that is drawn rather than painted: rain with
+ * individual streaks and splash rings, multi-branch lightning, drifting cumulus
+ * with lit bellies, aurora curtains, pollen and ash and blown leaves, fireflies
+ * and window lights, sea mist, heat shimmer, sun shafts and a flock of birds.
+ * Everything is a layer of the same scene, so choosing a record changes the
+ * place you are standing in — and the whole world leans, very slightly, when
+ * you move.
  */
 export function World({ scene, powered, level }: { scene: Scene; powered: boolean; level: number }) {
+  const reduceMotion = useUI((s) => s.reduceMotion)
   const [loaded, setLoaded] = useState<string | null>(null)
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
 
-  // warm the next backdrop so switching records is a dissolve, not a flash
+  // pre-warm the next backdrop so a new record dissolves instead of flashing
   useEffect(() => {
     const img = new Image()
     img.src = scene.art
   }, [scene.art])
 
+  // a shallow parallax: the sky moves least, the light on the ground most
+  useEffect(() => {
+    if (reduceMotion) return
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return
+      setTilt({ x: (e.clientX / window.innerWidth - 0.5) * 2, y: (e.clientY / window.innerHeight - 0.5) * 2 })
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => window.removeEventListener('pointermove', onMove)
+  }, [reduceMotion])
+
+  const shift = (d: number) =>
+    reduceMotion ? undefined : `translate3d(${(-tilt.x * d).toFixed(2)}%, ${(-tilt.y * d * 0.5).toFixed(2)}%, 0)`
+
+  const day = !scene.dark
+
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden>
       {/* ---- the painted backdrop, cross-faded on scene change ---- */}
-      {(['meadow', 'storm', 'night', 'aurora', 'fire', 'space'] as const).map((kind) => {
-        const on = scene.kind === kind
-        if (on && loaded !== kind) queueMicrotask(() => setLoaded(kind))
-        return (
-          <img
-            key={kind}
-            src={`/art/world-${kind}.webp`}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-[1200ms]"
-            style={{
-              opacity: on ? 1 : 0,
-              transform: on ? 'scale(1.02)' : 'scale(1)',
-              transition: 'opacity 1.2s ease, transform 9s linear',
-            }}
-          />
-        )
-      })}
+      <div className="absolute -inset-[2%]" style={{ transform: shift(0.7), transition: 'transform .5s ease-out' }}>
+        {SCENE_ART.map((art) => {
+          const on = scene.art === art
+          if (on && loaded !== art) queueMicrotask(() => setLoaded(art))
+          return (
+            <img
+              key={art}
+              src={art}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{
+                opacity: on ? 1 : 0,
+                transform: on ? 'scale(1.02)' : 'scale(1)',
+                transition: 'opacity 1.2s ease, transform 14s linear',
+              }}
+            />
+          )
+        })}
+      </div>
 
       {/* ---- a slow grade so every sky reads at the same exposure ---- */}
       <div
@@ -53,8 +76,22 @@ export function World({ scene, powered, level }: { scene: Scene; powered: boolea
         }}
       />
 
+      {/* ---- sun shafts: light coming through the weather ---- */}
+      {day && <Rays scene={scene} />}
+
       {/* ---- cumulus: painted clouds drifting in front of the art ---- */}
-      <Clouds scene={scene} />
+      <div className="absolute inset-0" style={{ transform: shift(1.5), transition: 'transform .6s ease-out' }}>
+        <Clouds scene={scene} />
+      </div>
+
+      {/* ---- birds, only where it is daylight ---- */}
+      {day && <Flock scene={scene} still={reduceMotion} />}
+
+      {/* ---- heat shimmer over dry ground ---- */}
+      {(scene.kind === 'heat' || scene.kind === 'ozone') && <Shimmer />}
+
+      {/* ---- sea mist and rain fog, low on the ground ---- */}
+      {(scene.kind === 'sea' || scene.kind === 'rain' || scene.kind === 'haze') && <Mist scene={scene} />}
 
       {/* ---- aurora curtains ---- */}
       {scene.aurora > 0 && <Aurora intensity={scene.aurora} />}
@@ -68,11 +105,11 @@ export function World({ scene, powered, level }: { scene: Scene; powered: boolea
       {/* ---- lightning: branches and a whole-sky flash ---- */}
       {scene.lightning > 0 && <Lightning perMinute={scene.lightning} />}
 
-      {/* ---- pollen, ash, sparks ---- */}
-      {scene.motes > 0 && <Motes count={scene.motes} scene={scene} />}
+      {/* ---- pollen, ash, spray, blown leaves ---- */}
+      {scene.motes > 0 && <Motes count={scene.motes} color={scene.moteColor} />}
 
-      {/* ---- fireflies ---- */}
-      {scene.fireflies > 0 && <Fireflies count={scene.fireflies} />}
+      {/* ---- fireflies, and the window lights of a city at dusk ---- */}
+      {scene.fireflies > 0 && <Fireflies count={scene.fireflies} city={scene.kind === 'traffic' || scene.kind === 'night'} />}
 
       {/* ---- the cabinet's light on the ground ---- */}
       <div
@@ -80,6 +117,7 @@ export function World({ scene, powered, level }: { scene: Scene; powered: boolea
         style={{
           background: `radial-gradient(60% 100% at 50% 100%, ${scene.glow} 0%, transparent 72%)`,
           opacity: powered ? 0.55 + Math.min(0.3, level * 1.6) : 0.1,
+          transform: shift(2.4),
         }}
       />
 
@@ -104,7 +142,7 @@ function Clouds({ scene }: { scene: Scene }) {
         const seed = (i * 97) % 100
         const top = 2 + ((seed * 7) % 44)
         const scale = 0.5 + ((seed * 13) % 70) / 100
-        const dur = 90 + ((seed * 31) % 90)
+        const dur = (90 + ((seed * 31) % 90)) / scene.cloudSpeed
         const delay = -((seed * 17) % dur)
         return (
           <div
@@ -151,7 +189,121 @@ function CloudBlob({ colour }: { colour: string }) {
   )
 }
 
-/* ------------------------------------------------------------------ aurora */
+/* -------------------------------------------------------------------- rays */
+
+/** shafts of light, raked from the top corner the art puts its sun in */
+function Rays({ scene }: { scene: Scene }) {
+  const beams = [
+    { x: 6, w: 13, o: 0.13, d: 17 },
+    { x: 22, w: 8, o: 0.1, d: 23 },
+    { x: 38, w: 16, o: 0.09, d: 19 },
+    { x: 62, w: 9, o: 0.11, d: 26 },
+    { x: 78, w: 14, o: 0.08, d: 21 },
+  ]
+  return (
+    <div className="absolute inset-0 overflow-hidden opacity-80 mix-blend-screen" style={{ filter: 'blur(6px)' }}>
+      {beams.map((b, i) => (
+        <span
+          key={i}
+          className="absolute -top-[10%] block origin-top"
+          style={{
+            left: `${b.x}%`,
+            width: `${b.w}%`,
+            height: '92%',
+            transform: 'skewX(-11deg)',
+            background: `linear-gradient(to bottom, ${scene.cloud} 0%, rgba(255,246,220,${b.o}) 42%, transparent 88%)`,
+            maskImage: 'linear-gradient(to bottom, #000 0%, transparent 92%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, #000 0%, transparent 92%)',
+            animation: `ray-breathe ${b.d}s ease-in-out infinite alternate`,
+            animationDelay: `${-i * 3.5}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------ flock */
+
+function Flock({ scene, still }: { scene: Scene; still: boolean }) {
+  const birds = [
+    { top: 16, dur: 46, delay: -8, scale: 1, drift: 6 },
+    { top: 21, dur: 58, delay: -26, scale: 0.72, drift: 4 },
+    { top: 12, dur: 71, delay: -47, scale: 0.55, drift: 8 },
+  ]
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {birds.map((b, i) => (
+        <span
+          key={i}
+          className="bird absolute left-[-6vw]"
+          style={{
+            top: `${b.top}%`,
+            width: `${18 * b.scale}px`,
+            animationDuration: `${b.dur}s`,
+            animationDelay: `${b.delay}s`,
+            animationPlayState: still ? 'paused' : 'running',
+            ['--bob' as string]: `${b.drift}px`,
+            opacity: 0.72,
+          }}
+        >
+          <svg viewBox="0 0 40 14" className="w-full" fill="none" stroke={scene.dark ? '#dbe7f0' : '#3a3126'} strokeWidth="1.6">
+            <path className="wing" d="M2 9 Q10 2 20 9 Q30 2 38 9" />
+          </svg>
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/* ---------------------------------------------------------------- shimmer */
+
+function Shimmer() {
+  return (
+    <div
+      className="absolute inset-x-0 bottom-[26%] h-[9%] opacity-40 mix-blend-overlay"
+      style={{
+        background:
+          'repeating-linear-gradient(to right, rgba(255,255,240,.0) 0 14px, rgba(255,250,225,.5) 14px 26px, rgba(255,255,240,0) 26px 40px)',
+        maskImage: 'linear-gradient(to top, #000 10%, transparent 92%)',
+        WebkitMaskImage: 'linear-gradient(to top, #000 10%, transparent 92%)',
+        filter: 'blur(3px)',
+        animation: 'shimmer 6.5s ease-in-out infinite alternate',
+      }}
+    />
+  )
+}
+
+/* ------------------------------------------------------------------- mist */
+
+function Mist({ scene }: { scene: Scene }) {
+  const bands = [
+    { bottom: 4, h: 16, dur: 34, o: 0.34, delay: 0 },
+    { bottom: 12, h: 12, dur: 47, o: 0.24, delay: -18 },
+    { bottom: 22, h: 9, dur: 61, o: 0.16, delay: -33 },
+  ]
+  return (
+    <div className="absolute inset-x-0 bottom-0 h-[34%] overflow-hidden">
+      {bands.map((b, i) => (
+        <span
+          key={i}
+          className="absolute left-[-40%] block h-full w-[180%]"
+          style={{
+            bottom: `${b.bottom}%`,
+            height: `${b.h}%`,
+            background: `radial-gradient(60% 100% at 50% 60%, ${scene.cloud} 0%, transparent 74%)`,
+            opacity: b.o,
+            filter: 'blur(10px)',
+            animation: `mist-drift ${b.dur}s linear infinite`,
+            animationDelay: `${b.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/* ----------------------------------------------------------------- aurora */
 
 function Aurora({ intensity }: { intensity: number }) {
   const curtains = [
@@ -336,8 +488,7 @@ function makeBolt() {
 
 /* ------------------------------------------------------------------- motes */
 
-function Motes({ count, scene }: { count: number; scene: Scene }) {
-  const warm = scene.kind === 'fire' ? '#d8c2a8' : '#ffe9a8'
+function Motes({ count, color }: { count: number; color: string }) {
   return (
     <div className="absolute inset-0 overflow-hidden">
       {Array.from({ length: count }, (_, i) => {
@@ -351,7 +502,7 @@ function Motes({ count, scene }: { count: number; scene: Scene }) {
               bottom: `${(seed % 40) / 2}%`,
               width: 2 + (seed % 4),
               height: 2 + (seed % 4),
-              background: warm,
+              background: color,
               opacity: 0.35 + (seed % 40) / 100,
               filter: 'blur(0.4px)',
               animation: `mote-drift ${12 + (seed % 14)}s ease-in-out infinite`,
@@ -366,23 +517,25 @@ function Motes({ count, scene }: { count: number; scene: Scene }) {
 
 /* --------------------------------------------------------------- fireflies */
 
-function Fireflies({ count }: { count: number }) {
+/** golden blinkers in summer grass; steady window lights in a city at dusk */
+function Fireflies({ count, city }: { count: number; city: boolean }) {
   return (
     <div className="absolute inset-0 overflow-hidden">
       {Array.from({ length: count }, (_, i) => {
         const seed = (i * 181) % 971
+        const top = city ? 40 + ((seed % 22) / 2) : 45 + (seed % 50) / 2
         return (
           <span
             key={i}
             className="absolute rounded-full"
             style={{
               left: `${(seed % 1000) / 10}%`,
-              top: `${45 + ((seed % 50) / 2)}%`,
-              width: 3 + (seed % 3),
-              height: 3 + (seed % 3),
-              background: '#ffe9a0',
-              boxShadow: '0 0 8px 3px rgba(255,222,130,.55)',
-              animation: `firefly ${6 + (seed % 8)}s ease-in-out infinite`,
+              top: `${top}%`,
+              width: city ? 2 : 3 + (seed % 3),
+              height: city ? 2 : 3 + (seed % 3),
+              background: city ? '#ffd8a0' : '#ffe9a0',
+              boxShadow: city ? '0 0 5px 1px rgba(255,200,120,.5)' : '0 0 8px 3px rgba(255,222,130,.55)',
+              animation: city ? `twinkle ${3 + (seed % 5)}s ease-in-out infinite` : `firefly ${6 + (seed % 8)}s ease-in-out infinite`,
               animationDelay: `${-((seed % 80) / 10)}s`,
             }}
           />

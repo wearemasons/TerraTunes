@@ -80,11 +80,14 @@ tracks:
     detail = client.get("/tracks/test-track").json()
     assert detail["sound"]["phenomenon"] == "wind"
     assert detail["sound"]["render_url"].endswith("/tracks/test-track/render")
-    assert "left ear" in detail["sound"]["listening_guide"]
+    guide = detail["sound"]["listening_guide"]
+    assert "west to east" in guide and "no drums" in guide
+    assert "left ear" not in guide  # v14: the melody no longer sweeps across the stereo field
+    assert detail["sound"]["description"].startswith("Wind speed")
 
     score = client.get("/tracks/test-track/score").json()
     layers = score["frames"][1]["layers"]
-    assert len(layers["column_intensity"]) == 16
+    assert len(layers["column_intensity"]) == 8  # steps_per_frame follows MAPPING_VERSION 14
     assert set(layers["band_intensity"]) == {"north", "tropics", "south"}
 
     audio = client.get("/tracks/test-track/render?mode=overview&format=wav&melody=false")

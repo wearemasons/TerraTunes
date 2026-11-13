@@ -66,3 +66,5 @@ Frontend work is broken into phases in [FRONTEND_PLAN.md](FRONTEND_PLAN.md); Tra
 ## Dependency order
 Data (A) → colormap (B) → score (B) → player (C) → a11y pass (D) → submission (E).
 Frontend can start in parallel against a **mock score** (`docs/examples/score.mock.json`, create on day 0).
+
+- [x] SAC26: re-voice the sonification as three instruments in a hall (mapping_version 14) - quantised bass/harp/flute lines, one note set per 0.5 s scan step, additive entry, static centred imaging, Schroeder hall (RT60 2.2 s, wet 0.30), noise/drone/tick/chime layers removed; contract (`instruments`, `voices`, 8 steps/frame), generated accessibility copy, tests and docs updated. Frontend `phenomena.ts` is now a documented fallback. Measured on real renders: onsets on-grid within 17 ms RMS, EBU LRA 0.3-3.1 LU, L/R correlation 0.98-0.99, 99 % of spectral energy on the instruments' harmonics.
