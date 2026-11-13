@@ -26,3 +26,4 @@ backend/data/exports/
 .DS_Store
 Thumbs.db
 .idea/
+backend/data/samples/

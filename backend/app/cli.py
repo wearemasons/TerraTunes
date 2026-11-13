@@ -161,6 +161,10 @@ def main(argv: list[str] | None = None) -> int:
     b = sub.add_parser("build", help="Download and process catalog tracks")
     b.add_argument("ids", nargs="*")
     sub.add_parser("list", help="List built tracks")
+    sm = sub.add_parser(
+        "samples", help="Download orchestral samples (VSCO-2 CE, CC0) and export them for the browser"
+    )
+    sm.add_argument("--force", action="store_true")
     r = sub.add_parser("render", help="Render soundscapes to data/exports/playlist (with captions)")
     r.add_argument("ids", nargs="*")
     r.add_argument("--mode", choices=["sweep", "overview", "both"], default="both")
@@ -171,6 +175,12 @@ def main(argv: list[str] | None = None) -> int:
         return discover(args.gallery)
     if args.cmd == "build":
         return build(args.ids)
+    if args.cmd == "samples":
+        from app.sonify.samples import export_web, fetch
+
+        fetch(force=args.force)
+        print(export_web(force=args.force))
+        return 0
     if args.cmd == "render":
         modes: list[Mode] = ["sweep", "overview"] if args.mode == "both" else [args.mode]
         return render_playlist(args.ids, modes, args.format, not args.no_melody)

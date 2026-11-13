@@ -31,12 +31,16 @@ export const THEME_LABELS: Record<ThemeId, string> = {
   ocean: "Oceans",
 };
 
-export const PRESET_IDS = ["musical", "clear"] as const;
+export const PRESET_IDS = ["orchestra", "clear", "musical"] as const;
 export type PresetId = (typeof PRESET_IDS)[number];
 
+/** What a track plays when the URL does not say: the Clear tone's notes on real instruments. */
+export const DEFAULT_PRESET: PresetId = "orchestra";
+
 export const PRESET_LABELS: Record<PresetId, string> = {
-  musical: "Musical",
+  orchestra: "Orchestra",
   clear: "Clear tone",
+  musical: "Musical",
 };
 
 export const MODE_IDS = ["scan", "overview", "explore"] as const;

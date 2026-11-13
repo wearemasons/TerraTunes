@@ -170,6 +170,44 @@ export class AudioEngine {
     }
   }
 
+  /** Decode a recorded note (MP3/WAV bytes) for `sample()`. */
+  async decode(bytes: ArrayBuffer): Promise<AudioBuffer> {
+    return this.ensure().decodeAudioData(bytes);
+  }
+
+  /**
+   * A recorded instrument note: plays `buffer` re-pitched by `rate`, held for `duration`, then
+   * released. Envelope on both ends, so notes never click.
+   */
+  sample(
+    buffer: AudioBuffer,
+    rate: number,
+    time: number,
+    duration: number,
+    opts: { gain: number; pan: number; attack?: number; release?: number },
+  ): void {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const attack = opts.attack ?? 0.006;
+    const release = opts.release ?? 0.3;
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.setValueAtTime(rate, time);
+    const env = ctx.createGain();
+    const peak = Math.max(0.0002, opts.gain);
+    env.gain.setValueAtTime(0, time);
+    env.gain.linearRampToValueAtTime(peak, time + attack);
+    env.gain.setValueAtTime(peak, time + Math.max(attack, duration));
+    env.gain.setTargetAtTime(0, time + Math.max(attack, duration), release / 4);
+    const pan = ctx.createStereoPanner();
+    pan.pan.setValueAtTime(Math.max(-1, Math.min(1, opts.pan)), time);
+    src.connect(env).connect(pan).connect(this.bus);
+    const end = time + Math.max(attack, duration) + release * 1.5;
+    src.start(time);
+    src.stop(Math.min(end, time + buffer.duration / rate));
+    src.onended = () => pan.disconnect();
+  }
+
   /** Start the sustained drone (root + fifth + a dissonant voice faded in by tension). */
   startDrone(wave: OscillatorType): void {
     const ctx = this.ctx;

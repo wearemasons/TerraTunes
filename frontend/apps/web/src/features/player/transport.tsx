@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@my-better-t-app/ui/com
 import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, SkipBack, Volume2, VolumeX } from "lucide-react";
 import type { ReactElement } from "react";
 
+import { INSTRUMENT_NAMES } from "@/audio/orchestra";
 import { player } from "@/audio/player";
 import { usePlayer } from "@/audio/use-player";
 import { MODE_IDS, MODE_LABELS, type ModeId, PRESET_IDS, PRESET_LABELS, type PresetId, type Score } from "@/lib/api/types";
@@ -197,10 +198,33 @@ export function Transport({
             ))}
           </ToggleGroup>
         </div>
+        {preset === "orchestra" ? <WhoPlays /> : null}
         {exploring ? (
           <p className="text-xs text-muted-foreground">Playback pauses in Explore mode. Move over the map to hear it.</p>
         ) : null}
       </div>
     </section>
+  );
+}
+
+/** Who plays what in the Orchestra sound, so a listener can tell the instruments apart. */
+function WhoPlays(): ReactElement {
+  const o = player.orchestra;
+  const name = (id: keyof typeof INSTRUMENT_NAMES) => INSTRUMENT_NAMES[id];
+  if (!player.instrumentsAvailable) {
+    return <p className="text-xs text-muted-foreground">Instruments load from the API; offline this plays the Clear tone.</p>;
+  }
+  return (
+    <div className="grid gap-1 text-xs" aria-label="Who plays what">
+      <p>
+        <span className="font-medium text-foreground">Lead · the exact data notes:</span> {name(o.lead)}
+        {o.leadOctave ? " (an octave up)" : ""}
+      </p>
+      <p className="text-muted-foreground">
+        Harmony from those notes: {name(o.bass)} (bass), {name(o.pad)} (chords), {name(o.texture)} (movement)
+        {o.accent ? <>; {name(o.accent)} on the strongest spot</> : null}.
+      </p>
+      <p className="text-muted-foreground">{o.character}.</p>
+    </div>
   );
 }

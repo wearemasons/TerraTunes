@@ -17,7 +17,7 @@ ThemeId = Literal[
     "weather",
     "ocean",
 ]
-PresetId = Literal["musical", "clear"]
+PresetId = Literal["musical", "clear", "orchestra"]
 
 
 class LegendAnchor(BaseModel):

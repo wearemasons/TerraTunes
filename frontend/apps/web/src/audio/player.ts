@@ -1,9 +1,22 @@
 // Turns a score into scheduled sound and exposes playback state to React.
 // It follows the score; it never re-derives musical decisions (see docs/ARCHITECTURE.md).
 
-import type { FrameScore, ModeId, PresetId, Score, ThemeId } from "@/lib/api/types";
+import { DEFAULT_PRESET, type FrameScore, type ModeId, type PresetId, type Score, type ThemeId } from "@/lib/api/types";
 
 import { AudioEngine, audioSupported } from "./engine";
+import {
+  type Chord,
+  chooseChord,
+  type InstrumentId,
+  instrumentsOf,
+  type Orchestration,
+  orchestrationFor,
+  rootIn,
+  SampleBank,
+  scaleChords,
+  tonesIn,
+  voiceLead,
+} from "./orchestra";
 import { type Timbre, timbreFor } from "./timbres";
 
 export type PlayerStatus = "idle" | "playing" | "paused" | "ended";
@@ -57,7 +70,7 @@ export class Player {
     frame: 0,
     frameCount: 0,
     mode: "scan",
-    preset: "musical",
+    preset: DEFAULT_PRESET,
     volume: 0.7,
     muted: false,
     supported: audioSupported,
@@ -65,13 +78,20 @@ export class Player {
   };
   private score: Score | null = null;
   private theme: ThemeId = "sea_level";
-  private timbre: Timbre = timbreFor("sea_level", "musical");
+  private timbre: Timbre = timbreFor("sea_level", DEFAULT_PRESET);
   private timer: number | null = null;
   private cursor = { frame: 0, step: 0 };
   private nextTime = 0;
   private endTime: number | null = null;
   private events: StepEvent[] = [];
   private lastNote = -1;
+  // Orchestra: the section's harmony state (see ./orchestra.ts)
+  private bank = new SampleBank(this.engine);
+  private orchestration: Orchestration = orchestrationFor("", "sea_level");
+  private chords: Chord[] = [];
+  private prevChord: Chord | null = null;
+  private halfChord: Chord | null = null;
+  private padVoicing: number[] = [];
 
   // --- store API (useSyncExternalStore) ---
   subscribe = (listener: () => void): (() => void) => {
@@ -98,6 +118,9 @@ export class Player {
     this.score = args.score;
     this.theme = args.theme;
     this.timbre = timbreFor(args.theme, this.snapshot.preset);
+    this.orchestration = orchestrationFor(args.trackId, args.theme);
+    this.chords = scaleChords(args.score.key.scale, args.score.key.root_midi);
+    if (this.snapshot.preset === "orchestra") void this.bank.load(instrumentsOf(this.orchestration));
     const frameCount = args.score.frames.length;
     const frame = Math.min(frameCount - 1, Math.max(0, sameTrack ? this.snapshot.frame : (args.frame ?? 0)));
     this.set({ trackId: args.trackId, frameCount, frame, status: sameTrack ? this.snapshot.status : "idle" });
@@ -114,6 +137,7 @@ export class Player {
   setPreset(preset: PresetId): void {
     if (preset === this.snapshot.preset) return;
     this.timbre = timbreFor(this.theme, preset);
+    if (preset === "orchestra") void this.bank.load(instrumentsOf(this.orchestration));
     this.set({ preset });
     if (this.snapshot.status === "playing") {
       this.engine.stopDrone();
@@ -250,6 +274,9 @@ export class Player {
     this.endTime = null;
     this.events = [];
     this.lastNote = -1;
+    this.prevChord = null;
+    this.halfChord = null;
+    this.padVoicing = [];
     this.startVoices();
     this.set({ status: "playing", frame, error: null });
     this.timer = window.setInterval(this.tick, TICK_MS);
@@ -304,6 +331,10 @@ export class Player {
   };
 
   private scheduleStep(frame: FrameScore, step: number, steps: number, time: number, duration: number): void {
+    if (this.snapshot.preset === "orchestra" && this.snapshot.mode !== "overview") {
+      this.scheduleOrchestraStep(frame, step, steps, time, duration);
+      return;
+    }
     const timbre = this.timbre;
     const root = (this.score?.key.root_midi ?? 50) - 12;
 
@@ -355,7 +386,105 @@ export class Player {
       this.engine.bell(frame.hotspot.note, time, pan, frame.hotspot.strength);
     }
   }
+  /** Whether recorded instruments can load (an API is configured). */
+  get instrumentsAvailable(): boolean {
+    return this.bank.available;
+  }
+
+  /** The current orchestration, for the UI ("who plays what"). */
+  get orchestra(): Orchestration {
+    return this.orchestration;
+  }
+
+  /** A recorded note if that instrument is loaded; returns false when it is not (caller decides). */
+  private playNote(inst: InstrumentId, midi: number, time: number, duration: number, opts: { gain: number; pan: number; attack?: number; release?: number }): boolean {
+    const note = this.bank.note(inst, midi);
+    if (!note) return false;
+    this.engine.sample(note.buffer, note.rate, time, duration, opts);
+    return true;
+  }
+
+  /**
+   * Orchestra, scan mode. The lead is the Clear tone exactly (same note, time, pan and re-strike rule)
+   * on a recorded instrument; the section underneath harmonises with the notes of each half-frame.
+   */
+  private scheduleOrchestraStep(frame: FrameScore, step: number, steps: number, time: number, duration: number): void {
+    const o = this.orchestration;
+    const pan = steps > 1 ? (step / (steps - 1)) * 1.6 - 0.8 : 0;
+    const note = frame.column_notes[step] ?? -1;
+
+    // Lead: the Clear tone, note for note.
+    if (note >= 0 && (note !== this.lastNote || step % 4 === 0)) {
+      const gain = 0.32 + 0.22 * frame.loudness;
+      const played = this.playNote(o.lead, note + 12 * o.leadOctave, time, duration * 1.9, { gain, pan, release: 0.3 });
+      if (!played) {
+        this.engine.pluck(note, time, duration * 1.9, { wave: "sine", gain: 0.12 + 0.22 * frame.loudness, pan, cutoff: 4000 });
+      }
+    }
+    this.lastNote = note;
+
+    // Section harmony: one chord per half-frame, chosen from the melody's own notes.
+    const half = Math.max(1, Math.floor(steps / 2));
+    if (step % half === 0) {
+      const chord = chooseChord(frame.column_notes.slice(step, step + half), this.chords, this.prevChord);
+      this.halfChord = chord;
+      if (chord) {
+        this.prevChord = chord;
+        const span = duration * half;
+        const level = 0.6 + 0.4 * frame.loudness;
+        const bass = rootIn(chord, o.bassRange[0], o.bassRange[1]);
+        if (bass !== null) this.playNote(o.bass, bass, time, span * 0.97, { gain: 0.24 * level, pan: -0.25, attack: 0.03, release: 0.5 });
+        this.padVoicing = voiceLead(chord, o.padRange[0], o.padRange[1], this.padVoicing);
+        this.padVoicing.forEach((m, i) =>
+          this.playNote(o.pad, m, time, span, { gain: 0.075 * level, pan: (i - 1) * 0.3, attack: 0.15, release: 0.8 }),
+        );
+      }
+    }
+
+    const chord = this.halfChord;
+    if (chord) {
+      const tones = tonesIn(chord.pcs, o.textureRange[0], o.textureRange[1]);
+      const mid = Math.max(0, Math.floor(tones.length / 3));
+      if (o.pattern === "arp" && step % 2 === 1 && tones.length) {
+        const run = tones.slice(mid, mid + 4);
+        const m = run[((step - 1) / 2) % run.length];
+        if (m !== undefined) this.playNote(o.texture, m, time, duration * 2.5, { gain: 0.11, pan: 0.35, release: 0.6 });
+      } else if (o.pattern === "pulse" && tones.length) {
+        const m = tones[mid + (step % 2)] ?? tones[mid];
+        if (m !== undefined) this.playNote(o.texture, m, time, duration * 0.8, { gain: step % 2 === 0 ? 0.12 : 0.08, pan: 0.3, release: 0.15 });
+      } else if (o.pattern === "ostinato" && step % 2 === 0) {
+        const root = rootIn(chord, o.textureRange[0], o.textureRange[1]);
+        if (root !== null) {
+          const fifth = tones.find((t) => t >= root + 6 && t <= root + 8) ?? root;
+          const m = step % 4 === 0 ? root : fifth;
+          this.playNote(o.texture, m, time, duration * 1.7, { gain: step % 8 === 0 ? 0.2 : 0.14, pan: 0.15, release: 0.3 });
+        }
+      }
+    }
+
+    // Accent on the frame's hotspot, at the hotspot's own pitch class.
+    if (o.accent && frame.hotspot && step === Math.min(steps - 1, Math.floor(frame.hotspot.x * steps))) {
+      this.playNote(o.accent, (ACCENT_FIT[o.accent] ?? ((m: number) => m))(frame.hotspot.note), time, duration * 3, { gain: 0.28, pan, release: 0.8 });
+    }
+  }
 }
+
+/** Move a note by whole octaves into the accent instrument's comfortable range. */
+function fitTo(lo: number, hi: number): (midi: number) => number {
+  return (midi) => {
+    let m = midi;
+    while (m < lo) m += 12;
+    while (m > hi) m -= 12;
+    return m;
+  };
+}
+
+const ACCENT_FIT: Partial<Record<InstrumentId, (midi: number) => number>> = {
+  glock: fitTo(79, 100),
+  trumpet: fitTo(62, 82),
+  horn: fitTo(50, 72),
+  violin_trem: fitTo(67, 88),
+};
 
 /** One player for the whole app: a single audio graph, a single transport. */
 export const player = new Player();
