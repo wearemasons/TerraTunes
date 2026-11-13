@@ -1,0 +1,53 @@
+frontend/src/lib/geometry.ts
+  s_2ced53c4e54664::t_69506c197bca91 30-33,36-39
+frontend/src/routes/index.tsx
+  s_2ced53c4e54664::t_d3306ca26e72e9 2-3,19-24,56-69,73-149,153,157,189,194-205,212-213,310-311,313-314,319-321,342-346,425-426,457-459,461,465-472,474-475,477-482,487,489,527-543,547
+  s_2ced53c4e54664::t_ccb856a60ddba2 483
+  s_2ced53c4e54664::t_0cbbb49bddf609 484
+  s_2ced53c4e54664::t_382cc2f26f6012 476,517
+frontend/src/lib/store.ts
+  s_2ced53c4e54664::t_cbb7b7e79a824f 59-60
+frontend/src/components/Girl.tsx
+  s_2ced53c4e54664::t_09f560dfd427a9 61
+frontend/src/styles/scene.css
+  s_2ced53c4e54664::t_c6a39f85bd2282 521
+  s_2ced53c4e54664::t_382cc2f26f6012 729-745
+  s_2ced53c4e54664::t_2fbf5963b292dc 746-754
+  s_2ced53c4e54664::t_b40ee8fe2c6b6c 551
+  s_2ced53c4e54664::t_66b71bee598c7d 687-728
+  s_2ced53c4e54664::t_38701085adf4b1 656-657,661-662
+frontend/src/components/NowPlaying.tsx
+  s_2ced53c4e54664::t_5b9e6098ae0f4e 411,548
+  s_2ced53c4e54664::t_b50f03a1057d0b 21-27,29,31-35,55-56,71,88,118-124,126-149,151-155,159-161,163-168,171-175,180-204,210,212-213,215,217-218,224,231,233,238,240-283,285-287,289-290,292-296,298-299,303-305,308,312,316-318,320-321,324-325,328,334,336,338-340,344,357,359,364-366,370,394,396-397,412,422,429-450,452-482,484,486-504,506-538,540-544,546,549-551,555,567-568,572,577-578,587,589,596,601-602,604,622,637-690,693
+  s_2ced53c4e54664::t_ccb856a60ddba2 162
+  s_2ced53c4e54664::t_0745a80c4c5b7c 3
+  s_2ced53c4e54664::t_347fc2940f2a21 209,211,239,395,547
+frontend/src/components/Cabinet.tsx
+  s_2ced53c4e54664::t_5c41417e23b5fb 109
+  s_2ced53c4e54664::t_182c9f226bb5d1 131-133
+frontend/src/components/Intro.tsx
+  s_2ced53c4e54664::t_c092c2c2892635 1,4-10,14-18,20,22-27,29,31-44,47,49,51-58,62-67,73-81,84,86-92,94-100,102-122,124-130,132-135
+frontend/src/routes/__root.tsx
+  s_2ced53c4e54664::t_c30f528da3da90 80,86-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7e24b75dd7927f6dcc6dd131c6278f8c9140c4ac",
+  "prompts": {},
+  "humans": {
+    "h_7a38498e9490a1": {
+      "author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  },
+  "sessions": {
+    "s_2ced53c4e54664": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bd9e8823-ccdb-4bd9-b939-8ef5feb71e3d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
