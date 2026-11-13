@@ -37,7 +37,13 @@ def render_file(track: StoredTrack, mode: Mode, fmt: Literal["wav", "mp3"], melo
         score = track.score("musical")
         layers = [f.layers for f in score.frames if f.layers is not None]
         audio = render(
-            track_id=track.meta.id, score=score, layers=layers, spec=track.sound, mode=mode, melody=melody
+            track_id=track.meta.id,
+            score=score,
+            layers=layers,
+            spec=track.sound,
+            mode=mode,
+            melody=melody,
+            grids=track.grids,
         )
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(path.suffix + ".tmp")

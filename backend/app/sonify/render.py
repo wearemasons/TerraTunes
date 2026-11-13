@@ -1,30 +1,67 @@
 """Compose a track's soundscape and encode it (WAV/MP3).
 
-Modes
-- sweep:    each frame lasts FRAME_S seconds; the phenomenon sound travels west→east (left→right)
-            following the scan, over a quieter whole-map bed. Data melody optional.
-- overview: each frame is a short, centred snapshot of the whole map; good for hearing change.
-
-Cues: a soft tick at each frame start (time), a rising two-tone earcon where a meaningful
-threshold is first crossed (panned to where it happens).
+Uses the rebuilt upstream pre-frontend-swap instruments (`timbres.ts` + `engine.ts` + `player.ts`):
+- Theme-specific oscillator timbres (`sine`, `triangle`, `sawtooth`, `square`) & lowpass filters
+- Sustained `[root, fifth, tension]` drone
+- West→east melodic `pluck` scan with harmonized color voices and steep peak dynamics
+- Upstream `"noise"` / `"tick"` rhythm hits (`hit`)
+- Upstream 3-partial inharmonic hotspot `bell`
 """
 
 import hashlib
 import io
 import wave
+from dataclasses import dataclass
 from typing import Literal
 
 import av
 import numpy as np
 from numpy.typing import NDArray
 
+from app.mapping.rules import scale_ladder
 from app.schemas.models import FrameLayers, Score
-from app.sonify.spec import SoundSpec
-from app.sonify.synth import SR, Synth
+from app.sonify.spec import Phenomenon, SoundSpec
+from app.sonify.synth import SR, Synth, WaveType
 
 Mode = Literal["sweep", "overview"]
 FRAME_S: dict[str, float] = {"sweep": 4.0, "overview": 2.5}
 TAIL_S = 1.5
+
+
+@dataclass(frozen=True)
+class Timbre:
+    melody: WaveType
+    drone: WaveType
+    drone_level: float
+    rhythm: Literal["noise", "tick", "none"]
+    bell: bool
+    tension: bool
+    reverb: float
+    filter_base: float
+
+
+# Exact upstream THEME_TIMBRES from frontend/apps/web/src/audio/timbres.ts mapped by phenomenon
+PHENOMENON_TIMBRES: dict[Phenomenon, Timbre] = {
+    "rain": Timbre("sine", "sine", 0.7, "noise", True, True, 0.5, 2000),
+    "wind": Timbre("triangle", "triangle", 0.8, "noise", True, True, 0.35, 1600),
+    "fire": Timbre("triangle", "sawtooth", 0.8, "tick", True, True, 0.25, 1800),
+    "surf": Timbre("sine", "sine", 1.0, "tick", True, True, 0.5, 1500),
+    "biophony": Timbre("sine", "triangle", 0.6, "noise", True, True, 0.45, 2400),
+    "temperature": Timbre("triangle", "triangle", 0.8, "noise", True, True, 0.35, 1600),
+    "traffic": Timbre("square", "sawtooth", 0.6, "tick", True, True, 0.2, 1300),
+    "haze": Timbre("triangle", "sawtooth", 0.6, "noise", True, True, 0.35, 1100),
+}
+
+
+def _midi_hz(midi: int) -> float:
+    return float(440.0 * 2 ** ((midi - 69) / 12.0))
+
+
+def _peak_curve(c: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Low on low/calm values, steep surge on high/abnormal peaks."""
+    return np.clip(c**2.4 + 1.65 * np.maximum(0.0, (c - 0.55) / 0.45) ** 2.0, 0.0, 2.2).astype(
+        np.float32
+    )
 
 
 def _seed(track_id: str, mode: str) -> int:
@@ -44,10 +81,10 @@ def _phenomenon(s: Synth, spec: SoundSpec, c: NDArray[np.float32]) -> NDArray[np
     if p == "fire":
         return s.fire(c)
     if p == "surf":
-        return s.surf(np.ones_like(c), c)  # c = warmth (0 cold … 1 warm)
+        return s.surf(np.ones_like(c), c)
     if p == "biophony":
         return s.biophony(c)
-    if p == "temperature":  # c: 0 = -40 °C, 0.5 = freezing, 0.75 = 20 °C, 1 = 40 °C
+    if p == "temperature":
         heat = np.clip((c - 0.75) / 0.25, 0, 1).astype(np.float32)
         cold = np.clip((0.5 - c) / 0.5, 0, 1).astype(np.float32)
         return s.temperature(heat, cold)
@@ -77,6 +114,7 @@ def render(
     spec: SoundSpec,
     mode: Mode = "sweep",
     melody: bool = True,
+    grids: NDArray[np.uint8] | None = None,
 ) -> NDArray[np.float32]:
     """Return stereo float32 audio, shape (2, samples), peak ≤ 0.9."""
     frame_s = FRAME_S[mode]
@@ -86,6 +124,9 @@ def render(
     out = np.zeros((2, n), dtype=np.float32)
     steps = len(layers[0].column_intensity) if layers else 16
     step_s = frame_s / steps
+    timbre = PHENOMENON_TIMBRES.get(spec.phenomenon, PHENOMENON_TIMBRES["wind"])
+    ladder = scale_ladder(score.key.scale)
+    root_drone = score.key.root_midi - 12
 
     # Whole-map bed (centred) follows each frame's overall intensity.
     bed_t = [(f + 0.5) * frame_s for f in range(frames)]
@@ -96,7 +137,6 @@ def render(
     )
 
     if mode == "sweep":
-        # Local layer: intensity of the column under the scan, panned with it.
         times, values = [], []
         for f, lf in enumerate(layers):
             for k, v in enumerate(lf.column_intensity):
@@ -105,39 +145,121 @@ def render(
         local = _curve(n, times, values)
         frac = (np.arange(n) / SR % frame_s) / frame_s
         pan = (-0.85 + 1.7 * frac).astype(np.float32)
-        out += _pan(_phenomenon(s, spec, local), pan) * 0.85
-        out += _pan(_phenomenon(s, spec, bed), 0.0) * 0.35
+        out += _pan(_phenomenon(s, spec, _peak_curve(local)), pan) * (0.15 + 0.45 * _peak_curve(local))
+        out += _pan(_phenomenon(s, spec, bed), 0.0) * (0.06 + 0.15 * _peak_curve(bed))
     else:
-        out += _pan(_phenomenon(s, spec, bed), 0.0)
+        local = bed
+        out += _pan(_phenomenon(s, spec, _peak_curve(bed)), 0.0) * (0.25 + 0.35 * _peak_curve(bed))
 
-    # Data melody: soft plucks of the score's notes (pitch = value), quiet under the soundscape.
-    if melody:
-        for f, frame in enumerate(score.frames[:frames]):
-            notes = frame.column_notes
-            if mode == "sweep":
-                last = -1
-                for k, note in enumerate(notes):
-                    if note >= 0 and (note != last or k % 4 == 0):
-                        hz = 440 * 2 ** ((note - 69) / 12)
-                        _place(
-                            out,
-                            s.pluck(hz, 0.4, 0.05),
-                            f * frame_s + k * step_s,
-                            -0.85 + 1.7 * k / max(1, steps - 1),
-                        )
-                    last = note
-            else:
+    # Upstream player.ts scheduleStep: Drone + Melody Plucks + Rhythm Hits + Hotspot Bell
+    for f, (frame, lf) in enumerate(zip(score.frames[:frames], layers, strict=False)):
+        t0 = f * frame_s
+        gate = float(np.clip(lf.intensity * 2.0, 0.0, 1.0))
+        if gate <= 0.02:
+            continue
+
+        # 1) Upstream sustained Drone ([root, fifth, tension], lowpass 250 + brightness * 1400 Hz)
+        if timbre.drone_level > 0:
+            drone_lvl = (0.025 + 0.11 * (frame.loudness**1.6)) * timbre.drone_level * gate
+            drone_grain = s.drone_slice(
+                root_drone,
+                frame_s * 1.05,
+                timbre.drone,
+                drone_lvl,
+                frame.brightness,
+                frame.tension if timbre.tension else 0.0,
+            )
+            _place(out, drone_grain, t0, 0.0)
+
+        cutoff = timbre.filter_base + frame.brightness * 3000.0
+        notes = frame.column_notes
+        cols_inten = lf.column_intensity
+        rhythm_kind: Literal["noise", "tick"] = "tick" if timbre.rhythm == "none" else timbre.rhythm
+
+        if mode == "overview":
+            if melody:
                 chord = sorted({n_ for n_ in notes if n_ >= 0})
                 for j, note in enumerate([chord[0], chord[len(chord) // 2], chord[-1]] if chord else []):
                     _place(
                         out,
-                        s.pluck(440 * 2 ** ((note - 69) / 12), 1.2, 0.05),
-                        f * frame_s + j * 0.04,
+                        s.pluck(_midi_hz(note), step_s * 3.5, (0.06 + 0.18 * frame.loudness) * 0.6, timbre.melody, cutoff),
+                        t0 + j * 0.02,
                         (j - 1) * 0.4,
                     )
+            if timbre.bell and frame.hotspot:
+                _place(
+                    out,
+                    s.bell(_midi_hz(frame.hotspot.note), frame.hotspot.strength),
+                    t0 + frame_s * 0.5,
+                    frame.hotspot.x * 1.6 - 0.8,
+                )
+            for k in range(max(1, frame.rhythm_density)):
+                _place(
+                    out,
+                    s.hit(rhythm_kind, 0.08 if k == 0 else 0.04),
+                    t0 + (k * frame_s) / max(1, frame.rhythm_density),
+                    0.0,
+                )
+            continue
+
+        # Sweep mode: west -> east step scheduling (from upstream player.ts lines 337-357)
+        last_note = -1
+        hot_step = min(steps - 1, int(frame.hotspot.x * steps)) if frame.hotspot else -1
+        for k in range(steps):
+            at_k = t0 + k * step_s
+            pan_k = (k / max(1, steps - 1)) * 1.6 - 0.8
+            note = notes[k] if k < len(notes) else -1
+            inten = cols_inten[k] if k < len(cols_inten) else frame.loudness
+            # Low values stay low; high/abnormal values surge sharply
+            melody_gain = 0.03 + 0.34 * (inten**2.2)
+
+            if melody and note >= 0 and (note != last_note or k % 4 == 0):
+                mel_wave: WaveType = "triangle" if timbre.melody == "square" and inten < 0.5 else timbre.melody
+                _place(
+                    out,
+                    s.pluck(_midi_hz(note), step_s * 1.9, melody_gain, mel_wave, cutoff),
+                    at_k,
+                    pan_k,
+                )
+                # Harmonize elevated color bands with a consonant scale fifth/third pluck
+                if inten > 0.52 and note in ladder:
+                    harm_note = ladder[min(len(ladder) - 1, ladder.index(note) + 2)]
+                    _place(
+                        out,
+                        s.pluck(_midi_hz(harm_note), step_s * 1.6, melody_gain * 0.55, mel_wave, cutoff),
+                        at_k + 0.015,
+                        pan_k * 0.7,
+                    )
+                if timbre.tension and frame.tension > 0.25 and k % 2 == 1 and inten > 0.55:
+                    _place(
+                        out,
+                        s.pluck(_midi_hz(note + 1), step_s * 1.2, melody_gain * frame.tension * 0.45, mel_wave, cutoff),
+                        at_k + step_s * 0.25,
+                        -pan_k,
+                    )
+            last_note = note
+
+            # Upstream rhythm hits (step % 2 == 0 and half-steps on high rhythm_density)
+            if note >= 0 or gate > 0.15:
+                hit_scale = 0.35 + 1.15 * (inten**1.6)
+                on_beat = k % 2 == 0
+                if frame.rhythm_density >= 2 or on_beat:
+                    base_hit = 0.075 if k % 4 == 0 else 0.038
+                    _place(out, s.hit(rhythm_kind, base_hit * hit_scale * gate), at_k, 0.0)
+                if frame.rhythm_density >= 4 or inten > 0.65:
+                    _place(out, s.hit(rhythm_kind, 0.028 * hit_scale * gate), at_k + step_s * 0.5, 0.15)
+
+            # Upstream hotspot bell on the hotspot column (plus peak anomaly bell)
+            if timbre.bell and frame.hotspot and k == hot_step:
+                _place(
+                    out,
+                    s.bell(_midi_hz(frame.hotspot.note), frame.hotspot.strength),
+                    at_k,
+                    pan_k,
+                )
 
     # Cues: frame tick (time orientation) and threshold earcons (where it happens).
-    tick = s.pluck(1500, 0.03, 0.025)
+    tick = s.pluck(1500, 0.03, 0.022)
     for f, lf in enumerate(layers):
         _place(out, tick, f * frame_s, 0.0)
         for alert in lf.alerts:
@@ -145,13 +267,13 @@ def render(
                 at = f * frame_s + (alert.x * frame_s if mode == "sweep" else 0.15)
                 _place(out, s.alert(), at, alert.x * 1.7 - 0.85)
 
-    # Fades, soft limiter, normalise.
+    # Fades and clean peak normalization (preserve dynamic contrast between quiet areas and peaks).
     fade = int(0.3 * SR)
     ramp = np.linspace(0, 1, fade, dtype=np.float32)
     out[:, :fade] *= ramp
     out[:, -fade:] *= ramp[::-1]
     peak = float(np.abs(out).max()) or 1.0
-    out = np.tanh(1.4 * out / peak) / np.tanh(1.4)
+    out = out / peak
     return (out * 0.89).astype(np.float32)
 
 

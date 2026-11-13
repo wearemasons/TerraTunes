@@ -1,14 +1,22 @@
 # Data Sources
 
-> The challenge Resources tab could not be fetched (TLS error). The EIC gallery itself was reachable and is the
-> source of every track below. **Still to do:** open
-> https://www.spaceappschallenge.org/2026/challenges/the-earth-information-jukebox/?tab=resources
-> and paste its links into the "From the Resources tab" table below.
+> Resources tab extracted from https://www.spaceappschallenge.org/2026/challenges/the-earth-information-jukebox/?tab=resources
+> (2026-11-13). The EIC gallery is the source of every track in the catalogue below.
 
 ## From the Resources tab
-| Resource | URL | Notes |
-|---|---|---|
-| _TBD_ | | |
+| # | Resource | URL | Notes |
+|---|---|---|---|
+| 1 | Earth Information Center (EIC) Content Database | https://svs.gsfc.nasa.gov/gallery/earth-information-center/ | SVS visuals used in EIC dashboards (videos and images) |
+| 2 | Data Sonification: Caldwell 73 | https://svs.gsfc.nasa.gov/13786/ | NASA reference example: luminosity/spatial coordinates → volume and pitch |
+| 3 | Change in Night Lights between 2012 and 2023 - EIC Version | https://svs.gsfc.nasa.gov/5313/ | Urban illumination evolution; high-contrast intensity → tempo/volume |
+| 4 | Global Sea Surface Currents and Temperature | https://svs.gsfc.nasa.gov/3912/#media_group_349716 | Fluid ocean currents + thermal gradients → evolving soundscapes |
+| 5 | GEOS Aerosols | https://svs.gsfc.nasa.gov/5669/ | Smoke, dust, and atmospheric particles by type → multi-track textures/instruments |
+| 6 | Air Quality Model Runs | https://svs.gsfc.nasa.gov/5533/ | High-res atmospheric data frames → color palettes & pixel density to sound |
+| 7 | Perpetual Ocean 2: Western Boundary Currents | https://svs.gsfc.nasa.gov/5425/ | High-contrast major ocean currents → rhythms and scales |
+| 8 | DYAMOND Global Carbon Dioxide | https://svs.gsfc.nasa.gov/5196/ | Global CO2 concentrations over time → primary interactive synthesis input |
+| 9 | Lightning Events Detected from the ISS 2017-2023 | https://svs.gsfc.nasa.gov/5011/ | Layered lightning flashes → punctuated/percussive sonification |
+| 10 | A 3D View of an Atmospheric River from an Earth System Model | https://svs.gsfc.nasa.gov/4960/ | 3D atmospheric river moisture path → immersive shifting landscapes |
+| 11 | GEDI Forest Height | https://svs.gsfc.nasa.gov/4950/ | Global canopy elevation color spectrums → rhythm, frequency, pitch |
 
 ## Found via search (verify before relying on them)
 
