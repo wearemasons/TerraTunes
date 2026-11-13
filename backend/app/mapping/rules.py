@@ -23,7 +23,7 @@ from app.schemas.models import (
 )
 from app.vision.colorbar import ValueScale
 
-MAPPING_VERSION = "1"
+MAPPING_VERSION = "2"
 STEPS_PER_FRAME = 16
 ROOT_MIDI = 50  # D3
 GRID_MAX = 250

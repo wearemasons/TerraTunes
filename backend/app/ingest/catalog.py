@@ -8,6 +8,7 @@ import yaml
 from pydantic import BaseModel, Field
 
 from app.schemas.models import ThemeId
+from app.sonify.spec import SoundSpec
 
 
 class Tick(BaseModel):
@@ -52,6 +53,7 @@ class CatalogEntry(BaseModel):
     unmatched: Literal["no_data", "min"] = "no_data"
     """What pixels that match no colorbar colour mean. Use "min" when the map leaves low values
     uncoloured (e.g. no rain shows the Earth underneath)."""
+    sound: SoundSpec | None = None
     enabled: bool = True
 
 

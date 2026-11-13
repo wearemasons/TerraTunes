@@ -35,3 +35,8 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[[tool.mypy.overrides]]
+# NumPy's arithmetic return types are imprecise for DSP code; keep strict elsewhere.
+module = ["app.sonify.synth", "app.sonify.render"]
+disable_error_code = ["no-any-return", "assignment"]

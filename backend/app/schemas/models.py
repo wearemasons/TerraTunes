@@ -72,6 +72,7 @@ class TrackDetail(TrackSummary):
     presets: list[PresetId]
     frame_labels: list[str]
     transcript: list[TranscriptEntry]
+    sound: "SoundInfo | None" = None
 
 
 class Hotspot(BaseModel):
@@ -88,6 +89,49 @@ class FrameStats(BaseModel):
     extreme_share: float
 
 
+class Alert(BaseModel):
+    label: str
+    value: float
+    x: float
+    y: float
+    region: str
+    share: float = Field(description="Share of the data area past the threshold.")
+    new: bool = Field(description="First frame (or first again) to cross it.")
+
+
+class Region(BaseModel):
+    region: str
+    where: str
+    value: float
+    x: float
+    y: float
+
+
+class FrameLayers(BaseModel):
+    """Soundscape data for one frame (see app/sonify)."""
+
+    intensity: float = Field(description="Whole-map phenomenon intensity 0..1.")
+    column_intensity: list[float] = Field(description="Per scan step west→east, 0..1.")
+    band_intensity: dict[str, float] = Field(description="north / tropics / south, 0..1.")
+    band_peak_value: dict[str, float | None]
+    coverage: float
+    alerts: list[Alert]
+    regions: list[Region] = Field(description="Up to three strongest, well-separated places.")
+
+
+class ThresholdInfo(BaseModel):
+    value: float
+    label: str
+    above: bool
+
+
+class SoundInfo(BaseModel):
+    phenomenon: str
+    description: str
+    thresholds: list[ThresholdInfo]
+    render_url: str | None = None
+
+
 class FrameScore(BaseModel):
     index: int
     label: str
@@ -99,6 +143,7 @@ class FrameScore(BaseModel):
     hotspot: Hotspot | None
     stats: FrameStats
     description: str
+    layers: FrameLayers | None = None
 
 
 class ScoreKey(BaseModel):
@@ -121,6 +166,7 @@ class Score(BaseModel):
     grid: GridSize
     steps_per_frame: int
     frames: list[FrameScore]
+    sound: SoundInfo | None = None
 
 
 class GridResponse(BaseModel):
@@ -146,3 +192,6 @@ class ErrorBody(BaseModel):
 
 class ErrorResponse(BaseModel):
     error: ErrorBody
+
+
+TrackDetail.model_rebuild()

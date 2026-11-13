@@ -26,7 +26,18 @@ from app.mapping.rules import (
     build_transcript,
     frame_duration_s,
 )
-from app.schemas.models import Legend, PresetId, Score, ThemeId, TrackDetail, TrackSummary
+from app.schemas.models import (
+    Legend,
+    PresetId,
+    Score,
+    SoundInfo,
+    ThemeId,
+    ThresholdInfo,
+    TrackDetail,
+    TrackSummary,
+)
+from app.sonify.analysis import analyse_frames
+from app.sonify.spec import SoundSpec
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +63,8 @@ class StoredTrack:
     meta: TrackMeta
     path: Path
     grids: NDArray[np.uint8]
+    sound: SoundSpec | None = None
+    order: int = 0
 
     @property
     def frame_count(self) -> int:
@@ -77,12 +90,33 @@ class StoredTrack:
             synthetic=False,
         )
 
-    def detail(self, thumbnail_url: str | None) -> TrackDetail:
+    def sound_info(self, render_url: str | None = None) -> SoundInfo | None:
+        if self.sound is None:
+            return None
+        return SoundInfo(
+            phenomenon=self.sound.phenomenon,
+            description=self.sound.description,
+            thresholds=[
+                ThresholdInfo(value=t.value, label=t.label, above=t.above) for t in self.sound.thresholds
+            ],
+            render_url=render_url,
+        )
+
+    def detail(self, thumbnail_url: str | None, render_url: str | None = None) -> TrackDetail:
         score = self.score("musical")
+        key = audio_key_text(self.meta.legend)
+        if self.sound is not None:
+            alerts = "; ".join(t.label for t in self.sound.thresholds)
+            key = f"{self.sound.description} {key}" + (
+                f" A rising two-note chime marks where the map first crosses a meaningful line: {alerts}."
+                if alerts
+                else ""
+            )
         return TrackDetail(
             **self.summary(thumbnail_url).model_dump(),
             description=self.meta.description,
-            audio_key=audio_key_text(self.meta.legend),
+            audio_key=key,
+            sound=self.sound_info(render_url),
             legend=self.meta.legend,
             presets=["musical", "clear"],
             frame_labels=self.meta.frame_labels,
@@ -103,9 +137,16 @@ def _score(track_id: str, preset: PresetId, _mtime: int) -> Score:
     if track is None:
         raise KeyError(track_id)
     m = track.meta
-    return build_score(
+    score = build_score(
         track_id=m.id, theme=m.theme, legend=m.legend, labels=m.frame_labels, grids=track.grids, preset=preset
     )
+    if track.sound is not None:
+        for frame, layers in zip(
+            score.frames, analyse_frames(track.grids, m.legend, track.sound), strict=True
+        ):
+            frame.layers = layers
+        score.sound = track.sound_info()
+    return score
 
 
 class TrackStore:
@@ -115,16 +156,26 @@ class TrackStore:
         self.reload()
 
     def reload(self) -> None:
+        from app.ingest.catalog import load_catalog  # local import: catalog → schemas only
+
+        sounds: dict[str, tuple[SoundSpec | None, int]] = {}
+        catalog_path = get_settings().catalog_path
+        if catalog_path.exists():
+            for i, entry in enumerate(load_catalog(catalog_path).tracks):
+                sounds[entry.id] = (entry.sound, i)
         tracks: dict[str, StoredTrack] = {}
         if self.root.exists():
             for meta_path in sorted(self.root.glob("*/meta.json")):
                 try:
                     meta = TrackMeta.model_validate(json.loads(meta_path.read_text(encoding="utf-8")))
                     grids = np.load(meta_path.parent / "grids.npy")
-                    tracks[meta.id] = StoredTrack(meta=meta, path=meta_path.parent, grids=grids)
+                    sound, order = sounds.get(meta.id, (None, 999))
+                    tracks[meta.id] = StoredTrack(
+                        meta=meta, path=meta_path.parent, grids=grids, sound=sound, order=order
+                    )
                 except Exception:
                     log.exception("Skipping unreadable track at %s", meta_path.parent)
-        self._tracks = dict(sorted(tracks.items(), key=lambda kv: (kv[1].meta.order, kv[0])))
+        self._tracks = dict(sorted(tracks.items(), key=lambda kv: (kv[1].order, kv[0])))
         _score.cache_clear()
         log.info("Loaded %d tracks from %s", len(self._tracks), self.root)
 

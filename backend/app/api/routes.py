@@ -1,5 +1,5 @@
 import base64
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
@@ -15,6 +15,7 @@ from app.schemas.models import (
     TrackDetail,
     TrackSummary,
 )
+from app.sonify.service import render_file
 from app.store import StoredTrack, TrackStore, get_store
 
 router = APIRouter()
@@ -28,6 +29,10 @@ def _track(store: TrackStore, track_id: str) -> StoredTrack:
     if track is None:
         raise HTTPException(404, f'Track "{track_id}" not found')
     return track
+
+
+def _render_url(request: Request, track: StoredTrack) -> str | None:
+    return str(request.url_for("render", track_id=track.meta.id)) if track.sound else None
 
 
 def _thumb_url(request: Request, track: StoredTrack) -> str | None:
@@ -49,7 +54,7 @@ def list_tracks(request: Request, store: Store) -> list[TrackSummary]:
 @router.get("/tracks/{track_id}", response_model=TrackDetail, responses=NOT_FOUND, tags=["tracks"])
 def get_track(track_id: str, request: Request, store: Store) -> TrackDetail:
     track = _track(store, track_id)
-    return track.detail(_thumb_url(request, track))
+    return track.detail(_thumb_url(request, track), _render_url(request, track))
 
 
 @router.get("/tracks/{track_id}/score", response_model=Score, responses=NOT_FOUND, tags=["tracks"])
@@ -104,4 +109,25 @@ def frame_grid(track_id: str, n: int, store: Store, response: Response) -> GridR
         real_min=legend.min,
         real_max=legend.max,
         unit=legend.unit,
+    )
+
+
+@router.get("/tracks/{track_id}/render", name="render", responses=NOT_FOUND, tags=["media"])
+def render_audio(
+    track_id: str,
+    store: Store,
+    mode: Annotated[Literal["sweep", "overview"], Query()] = "sweep",
+    format: Annotated[Literal["mp3", "wav"], Query()] = "mp3",
+    melody: Annotated[bool, Query(description="Add the soft data melody over the natural sounds.")] = True,
+) -> FileResponse:
+    """The track's soundscape as audio. Rendered on first request, then cached on disk."""
+    track = _track(store, track_id)
+    if track.sound is None:
+        raise HTTPException(404, f'Track "{track_id}" has no soundscape')
+    path = render_file(track, mode, format, melody)
+    return FileResponse(
+        path,
+        media_type="audio/mpeg" if format == "mp3" else "audio/wav",
+        filename=f"terratunes-{track_id}-{mode}.{format}",
+        headers={"cache-control": IMMUTABLE},
     )

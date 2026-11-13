@@ -23,6 +23,12 @@ tracks:
       ticks: [{position: 0, value: -40}, {position: 0.5, value: 0, label: freezing}, {position: 1, value: 40}]
     masks: *gmao_masks
     time: {mode: hourly}
+    sound:
+      phenomenon: temperature
+      intensity: {lo: -40, hi: 40}   # 0.5 = freezing; cicadas from 20 °C, ice below 0 °C
+      thresholds:
+        - {value: 0, label: below freezing, above: false}
+        - {value: 40, label: "extreme heat, 40 °C or more"}
 
   - id: wind-speed
     svs_id: 5148
@@ -41,6 +47,12 @@ tracks:
     # Calm ocean is drawn darker than any colour on the bar. A looser tolerance makes it match the
     # dark-brown storm end (tested: wrong), so those areas stay silent instead.
     time: {mode: hourly}
+    sound:
+      phenomenon: wind
+      intensity: {lo: 0, hi: 33}
+      thresholds:
+        - {value: 24.5, label: "storm-force wind (Beaufort 10)"}
+        - {value: 32.7, label: "hurricane-force wind (Beaufort 12)"}
 
   - id: precipitation
     svs_id: 5149
@@ -58,6 +70,11 @@ tracks:
     max_delta_e: 12
     unmatched: min   # no rain shows clouds and Earth imagery underneath
     time: {mode: hourly}
+    sound:
+      phenomenon: rain
+      intensity: {lo: 0.2, hi: 20, log: true}
+      thresholds:
+        - {value: 7.6, label: "heavy rain (7.6 mm or more)"}
 
   - id: fine-particulates
     svs_id: 5151
@@ -74,6 +91,12 @@ tracks:
       ticks: [{position: 0, value: 0.4}, {position: 1, value: 409.6}]
     masks: *gmao_masks
     time: {mode: hourly}
+    sound:
+      phenomenon: haze
+      intensity: {lo: 2, hi: 150, log: true}
+      thresholds:
+        - {value: 15, label: "above the WHO daily guideline for PM2.5 (15 µg/m³)"}
+        - {value: 55.5, label: "unhealthy for everyone (US Air Quality Index)"}
 
   - id: surface-ozone
     svs_id: 5152
@@ -94,6 +117,11 @@ tracks:
       ticks: [{position: 0, value: 5}, {position: 1, value: 60}]
     masks: *gmao_masks
     time: {mode: hourly}
+    sound:
+      phenomenon: haze
+      intensity: {lo: 10, hi: 60}
+      thresholds:
+        - {value: 51, label: "above the WHO 8-hour ozone guideline (about 51 ppb)"}
 
   - id: carbon-monoxide
     svs_id: 5153
@@ -115,6 +143,11 @@ tracks:
         - {position: 1, value: 500}
     masks: *gmao_masks
     time: {mode: hourly}
+    sound:
+      phenomenon: fire
+      intensity: {lo: 90, hi: 500, log: true}
+      thresholds:
+        - {value: 200, label: "a strong smoke plume (carbon monoxide above 200 ppb)"}
 
   - id: nitrogen-oxides
     svs_id: 5154
@@ -137,6 +170,9 @@ tracks:
         - {position: 1, value: 21}
     masks: *gmao_masks
     time: {mode: hourly}
+    sound:
+      phenomenon: traffic
+      intensity: {lo: 0.05, hi: 15, log: true}
 
   - id: sea-surface-temperature
     svs_id: 5101
@@ -151,6 +187,11 @@ tracks:
       unit: °C
       ticks: [{position: 0, value: -5}, {position: 1, value: 35}]
     time: {mode: span, span_days: 912}
+    sound:
+      phenomenon: surf
+      intensity: {lo: -2, hi: 32}   # warmth: icy and bright → warm and dark
+      thresholds:
+        - {value: 26.5, label: "warm enough to fuel tropical cyclones (26.5 °C)"}
 
   - id: vegetation
     svs_id: 5544
@@ -164,3 +205,6 @@ tracks:
       unit: "% of scale"
       ticks: [{position: 0, value: 0, label: Low}, {position: 1, value: 100, label: High}]
     time: {mode: steps, step_label: Snapshot}
+    sound:
+      phenomenon: biophony
+      intensity: {lo: 5, hi: 90}
