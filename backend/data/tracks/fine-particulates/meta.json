@@ -1,0 +1,193 @@
+{
+ "id": "fine-particulates",
+ "svs_id": 5151,
+ "title": "Fine Particulate Matter (PM2.5)",
+ "theme": "air_quality",
+ "summary": "Smoke, dust and pollution particles small enough to reach deep into our lungs.",
+ "description": "Near surface concentration of fine particular matter (PM2.5) estimated from NASA’s aerosol and weather fields produced by NASA’s GEOS-CF model.",
+ "date_range": "About 29 Oct to 13 Nov 2026, hourly (approximate)",
+ "frame_labels": [
+  "about 29 Oct, 17:00",
+  "about 30 Oct, 12:00",
+  "about 31 Oct, 07:00",
+  "about 1 Nov, 01:00",
+  "about 1 Nov, 20:00",
+  "about 2 Nov, 15:00",
+  "about 3 Nov, 10:00",
+  "about 4 Nov, 05:00",
+  "about 4 Nov, 23:00",
+  "about 5 Nov, 18:00",
+  "about 6 Nov, 13:00",
+  "about 7 Nov, 08:00",
+  "about 8 Nov, 02:00",
+  "about 8 Nov, 21:00",
+  "about 9 Nov, 16:00",
+  "about 10 Nov, 11:00",
+  "about 11 Nov, 06:00",
+  "about 12 Nov, 00:00",
+  "about 12 Nov, 19:00",
+  "about 13 Nov, 14:00"
+ ],
+ "legend": {
+  "label": "Fine particulate matter (PM2.5)",
+  "unit": "µg/m³",
+  "min": 0.4,
+  "max": 409.5999999999998,
+  "anchors": [
+   {
+    "position": 0.0,
+    "rgb": [
+     255,
+     254,
+     243
+    ]
+   },
+   {
+    "position": 0.06666666666666667,
+    "rgb": [
+     254,
+     228,
+     148
+    ]
+   },
+   {
+    "position": 0.13333333333333333,
+    "rgb": [
+     254,
+     197,
+     82
+    ]
+   },
+   {
+    "position": 0.2,
+    "rgb": [
+     254,
+     165,
+     52
+    ]
+   },
+   {
+    "position": 0.26666666666666666,
+    "rgb": [
+     247,
+     138,
+     33
+    ]
+   },
+   {
+    "position": 0.3333333333333333,
+    "rgb": [
+     238,
+     116,
+     22
+    ]
+   },
+   {
+    "position": 0.4,
+    "rgb": [
+     224,
+     99,
+     13
+    ]
+   },
+   {
+    "position": 0.4666666666666667,
+    "rgb": [
+     211,
+     84,
+     5
+    ]
+   },
+   {
+    "position": 0.5333333333333333,
+    "rgb": [
+     197,
+     73,
+     2
+    ]
+   },
+   {
+    "position": 0.6,
+    "rgb": [
+     180,
+     65,
+     3
+    ]
+   },
+   {
+    "position": 0.6666666666666666,
+    "rgb": [
+     166,
+     58,
+     4
+    ]
+   },
+   {
+    "position": 0.7333333333333333,
+    "rgb": [
+     150,
+     51,
+     4
+    ]
+   },
+   {
+    "position": 0.8,
+    "rgb": [
+     138,
+     48,
+     5
+    ]
+   },
+   {
+    "position": 0.8666666666666667,
+    "rgb": [
+     127,
+     44,
+     5
+    ]
+   },
+   {
+    "position": 0.9333333333333333,
+    "rgb": [
+     116,
+     41,
+     5
+    ]
+   },
+   {
+    "position": 1.0,
+    "rgb": [
+     104,
+     38,
+     6
+    ]
+   }
+  ],
+  "ticks": [
+   {
+    "position": 0.0,
+    "value": 0.4,
+    "label": null
+   },
+   {
+    "position": 1.0,
+    "value": 409.6,
+    "label": null
+   }
+  ],
+  "log": true
+ },
+ "credit": "NASA's Scientific Visualization Studio (SVS 5151). Visualization by Joseph V. Ardizzone.",
+ "source_url": "https://svs.gsfc.nasa.gov/5151",
+ "calibrated": true,
+ "valid_share": 0.958,
+ "unmatched": "no_data",
+ "colorbar_box": [
+  74,
+  48,
+  462,
+  62
+ ],
+ "source_movie": "MC01_stage4_GMAO_pm25_2048x1024_en.mp4",
+ "built_at": "2026-11-13T15:59:30+02:00"
+}

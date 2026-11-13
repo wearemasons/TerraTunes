@@ -1,0 +1,193 @@
+{
+ "id": "vegetation",
+ "svs_id": 5544,
+ "title": "Vegetation Greenness (NDVI)",
+ "theme": "agriculture",
+ "summary": "Forests, farms and grasslands greening and browning, measured from space.",
+ "description": "NRT NDVI",
+ "date_range": "Latest run, updated 13 Nov 2026",
+ "frame_labels": [
+  "Snapshot 1",
+  "Snapshot 2",
+  "Snapshot 3",
+  "Snapshot 4",
+  "Snapshot 5",
+  "Snapshot 6",
+  "Snapshot 7",
+  "Snapshot 8",
+  "Snapshot 9",
+  "Snapshot 10",
+  "Snapshot 11",
+  "Snapshot 12",
+  "Snapshot 13",
+  "Snapshot 14",
+  "Snapshot 15",
+  "Snapshot 16",
+  "Snapshot 17",
+  "Snapshot 18",
+  "Snapshot 19",
+  "Snapshot 20"
+ ],
+ "legend": {
+  "label": "Vegetation greenness (relative NDVI)",
+  "unit": "% of scale",
+  "min": 0.0,
+  "max": 100.0,
+  "anchors": [
+   {
+    "position": 0.0,
+    "rgb": [
+     222,
+     209,
+     205
+    ]
+   },
+   {
+    "position": 0.06666666666666667,
+    "rgb": [
+     235,
+     213,
+     192
+    ]
+   },
+   {
+    "position": 0.13333333333333333,
+    "rgb": [
+     219,
+     197,
+     162
+    ]
+   },
+   {
+    "position": 0.2,
+    "rgb": [
+     204,
+     187,
+     133
+    ]
+   },
+   {
+    "position": 0.26666666666666666,
+    "rgb": [
+     186,
+     184,
+     107
+    ]
+   },
+   {
+    "position": 0.3333333333333333,
+    "rgb": [
+     164,
+     177,
+     88
+    ]
+   },
+   {
+    "position": 0.4,
+    "rgb": [
+     137,
+     167,
+     80
+    ]
+   },
+   {
+    "position": 0.4666666666666667,
+    "rgb": [
+     107,
+     154,
+     77
+    ]
+   },
+   {
+    "position": 0.5333333333333333,
+    "rgb": [
+     88,
+     139,
+     69
+    ]
+   },
+   {
+    "position": 0.6,
+    "rgb": [
+     79,
+     122,
+     60
+    ]
+   },
+   {
+    "position": 0.6666666666666666,
+    "rgb": [
+     71,
+     106,
+     50
+    ]
+   },
+   {
+    "position": 0.7333333333333333,
+    "rgb": [
+     55,
+     94,
+     43
+    ]
+   },
+   {
+    "position": 0.8,
+    "rgb": [
+     32,
+     85,
+     37
+    ]
+   },
+   {
+    "position": 0.8666666666666667,
+    "rgb": [
+     20,
+     81,
+     34
+    ]
+   },
+   {
+    "position": 0.9333333333333333,
+    "rgb": [
+     10,
+     77,
+     32
+    ]
+   },
+   {
+    "position": 1.0,
+    "rgb": [
+     2,
+     71,
+     29
+    ]
+   }
+  ],
+  "ticks": [
+   {
+    "position": 0.0,
+    "value": 0.0,
+    "label": "Low"
+   },
+   {
+    "position": 1.0,
+    "value": 100.0,
+    "label": "High"
+   }
+  ],
+  "log": false
+ },
+ "credit": "NASA's Scientific Visualization Studio (SVS 5544). Visualization by Alex Kekesi.",
+ "source_url": "https://svs.gsfc.nasa.gov/5544",
+ "calibrated": true,
+ "valid_share": 0.341,
+ "unmatched": "no_data",
+ "colorbar_box": [
+  102,
+  110,
+  798,
+  140
+ ],
+ "source_movie": "nrt_ndvi_equi_2048p30.mp4",
+ "built_at": "2026-11-13T16:04:14+02:00"
+}

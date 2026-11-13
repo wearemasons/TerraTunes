@@ -1,0 +1,208 @@
+{
+ "id": "carbon-monoxide",
+ "svs_id": 5153,
+ "title": "Carbon Monoxide",
+ "theme": "wildfires",
+ "summary": "Carbon monoxide from fires and fuel burning, drifting across oceans in long plumes.",
+ "description": "Near surface concentration of carbon monoxide (CO) estimated by NASA’s GEOS-CF model.",
+ "date_range": "About 29 Oct to 13 Nov 2026, hourly (approximate)",
+ "frame_labels": [
+  "about 29 Oct, 17:00",
+  "about 30 Oct, 12:00",
+  "about 31 Oct, 07:00",
+  "about 1 Nov, 01:00",
+  "about 1 Nov, 20:00",
+  "about 2 Nov, 15:00",
+  "about 3 Nov, 10:00",
+  "about 4 Nov, 05:00",
+  "about 4 Nov, 23:00",
+  "about 5 Nov, 18:00",
+  "about 6 Nov, 13:00",
+  "about 7 Nov, 08:00",
+  "about 8 Nov, 02:00",
+  "about 8 Nov, 21:00",
+  "about 9 Nov, 16:00",
+  "about 10 Nov, 11:00",
+  "about 11 Nov, 06:00",
+  "about 12 Nov, 00:00",
+  "about 12 Nov, 19:00",
+  "about 13 Nov, 14:00"
+ ],
+ "legend": {
+  "label": "Carbon monoxide",
+  "unit": "ppbv",
+  "min": 39.99999999999999,
+  "max": 499.99999999999994,
+  "anchors": [
+   {
+    "position": 0.0,
+    "rgb": [
+     255,
+     253,
+     229
+    ]
+   },
+   {
+    "position": 0.06666666666666667,
+    "rgb": [
+     255,
+     238,
+     140
+    ]
+   },
+   {
+    "position": 0.13333333333333333,
+    "rgb": [
+     255,
+     201,
+     80
+    ]
+   },
+   {
+    "position": 0.2,
+    "rgb": [
+     255,
+     163,
+     54
+    ]
+   },
+   {
+    "position": 0.26666666666666666,
+    "rgb": [
+     255,
+     125,
+     38
+    ]
+   },
+   {
+    "position": 0.3333333333333333,
+    "rgb": [
+     253,
+     90,
+     26
+    ]
+   },
+   {
+    "position": 0.4,
+    "rgb": [
+     246,
+     71,
+     23
+    ]
+   },
+   {
+    "position": 0.4666666666666667,
+    "rgb": [
+     238,
+     51,
+     19
+    ]
+   },
+   {
+    "position": 0.5333333333333333,
+    "rgb": [
+     231,
+     31,
+     16
+    ]
+   },
+   {
+    "position": 0.6,
+    "rgb": [
+     220,
+     16,
+     14
+    ]
+   },
+   {
+    "position": 0.6666666666666666,
+    "rgb": [
+     205,
+     14,
+     14
+    ]
+   },
+   {
+    "position": 0.7333333333333333,
+    "rgb": [
+     188,
+     11,
+     15
+    ]
+   },
+   {
+    "position": 0.8,
+    "rgb": [
+     172,
+     8,
+     15
+    ]
+   },
+   {
+    "position": 0.8666666666666667,
+    "rgb": [
+     156,
+     6,
+     15
+    ]
+   },
+   {
+    "position": 0.9333333333333333,
+    "rgb": [
+     139,
+     3,
+     16
+    ]
+   },
+   {
+    "position": 1.0,
+    "rgb": [
+     122,
+     0,
+     16
+    ]
+   }
+  ],
+  "ticks": [
+   {
+    "position": 0.0,
+    "value": 40.0,
+    "label": null
+   },
+   {
+    "position": 0.31,
+    "value": 100.0,
+    "label": null
+   },
+   {
+    "position": 0.55,
+    "value": 130.0,
+    "label": null
+   },
+   {
+    "position": 0.77,
+    "value": 200.0,
+    "label": null
+   },
+   {
+    "position": 1.0,
+    "value": 500.0,
+    "label": null
+   }
+  ],
+  "log": true
+ },
+ "credit": "NASA's Scientific Visualization Studio (SVS 5153). Visualization by Joseph V. Ardizzone.",
+ "source_url": "https://svs.gsfc.nasa.gov/5153",
+ "calibrated": true,
+ "valid_share": 0.957,
+ "unmatched": "no_data",
+ "colorbar_box": [
+  74,
+  48,
+  462,
+  62
+ ],
+ "source_movie": "MC03_stage4_GMAO_CO_2048x1024_en.mp4",
+ "built_at": "2026-11-13T16:00:25+02:00"
+}

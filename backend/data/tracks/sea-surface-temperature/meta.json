@@ -1,0 +1,193 @@
+{
+ "id": "sea-surface-temperature",
+ "svs_id": 5101,
+ "title": "Sea Surface Temperature",
+ "theme": "ocean",
+ "summary": "Two and a half years of ocean warmth, season after season.",
+ "description": "An equirectangular view of sea surface temperature (SST) data for the past two and half years, updated daily to include the latest available data. || sst_mur_print.jpg (1024x512) [142.4 KB] || sst_mur_searchweb.png (320x180) [78.8 KB] || sst_mur_thm.png (80x40) [6.5 KB] || sst_mur (4096x2048) [0 Item(s)] || sst_30_sec_4096x2048_2x1_30p.mp4 (4096x2048) [78.0 MB] || slide-01.hwshow [504 bytes] ||",
+ "date_range": "May 2024 to Oct 2026 (approximate)",
+ "frame_labels": [
+  "about May 2024",
+  "about Jul 2024",
+  "about Aug 2024",
+  "about Oct 2024",
+  "about Nov 2024",
+  "about Jan 2025",
+  "about Feb 2025",
+  "about Apr 2025",
+  "about May 2025",
+  "about Jul 2025",
+  "about Aug 2025",
+  "about Oct 2025",
+  "about Dec 2025",
+  "about Jan 2026",
+  "about Mar 2026",
+  "about Apr 2026",
+  "about Jun 2026",
+  "about Jul 2026",
+  "about Sep 2026",
+  "about Oct 2026"
+ ],
+ "legend": {
+  "label": "Sea surface temperature",
+  "unit": "°C",
+  "min": -5.0,
+  "max": 35.0,
+  "anchors": [
+   {
+    "position": 0.0,
+    "rgb": [
+     0,
+     35,
+     63
+    ]
+   },
+   {
+    "position": 0.06666666666666667,
+    "rgb": [
+     0,
+     55,
+     101
+    ]
+   },
+   {
+    "position": 0.13333333333333333,
+    "rgb": [
+     0,
+     87,
+     150
+    ]
+   },
+   {
+    "position": 0.2,
+    "rgb": [
+     11,
+     121,
+     196
+    ]
+   },
+   {
+    "position": 0.26666666666666666,
+    "rgb": [
+     0,
+     144,
+     212
+    ]
+   },
+   {
+    "position": 0.3333333333333333,
+    "rgb": [
+     76,
+     171,
+     225
+    ]
+   },
+   {
+    "position": 0.4,
+    "rgb": [
+     140,
+     198,
+     237
+    ]
+   },
+   {
+    "position": 0.4666666666666667,
+    "rgb": [
+     184,
+     218,
+     245
+    ]
+   },
+   {
+    "position": 0.5333333333333333,
+    "rgb": [
+     255,
+     227,
+     187
+    ]
+   },
+   {
+    "position": 0.6,
+    "rgb": [
+     242,
+     197,
+     145
+    ]
+   },
+   {
+    "position": 0.6666666666666666,
+    "rgb": [
+     220,
+     164,
+     113
+    ]
+   },
+   {
+    "position": 0.7333333333333333,
+    "rgb": [
+     200,
+     128,
+     88
+    ]
+   },
+   {
+    "position": 0.8,
+    "rgb": [
+     176,
+     77,
+     58
+    ]
+   },
+   {
+    "position": 0.8666666666666667,
+    "rgb": [
+     143,
+     49,
+     47
+    ]
+   },
+   {
+    "position": 0.9333333333333333,
+    "rgb": [
+     108,
+     37,
+     42
+    ]
+   },
+   {
+    "position": 1.0,
+    "rgb": [
+     71,
+     25,
+     27
+    ]
+   }
+  ],
+  "ticks": [
+   {
+    "position": 0.0,
+    "value": -5.0,
+    "label": null
+   },
+   {
+    "position": 1.0,
+    "value": 35.0,
+    "label": null
+   }
+  ],
+  "log": false
+ },
+ "credit": "NASA's Scientific Visualization Studio (SVS 5101). Visualization by Kel Elkins.",
+ "source_url": "https://svs.gsfc.nasa.gov/5101",
+ "calibrated": true,
+ "valid_share": 0.68,
+ "unmatched": "no_data",
+ "colorbar_box": [
+  128,
+  284,
+  896,
+  304
+ ],
+ "source_movie": "sst_30_sec_no-dates_4096x2048_2x1_30p.mp4",
+ "built_at": "2026-11-13T16:03:35+02:00"
+}

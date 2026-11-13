@@ -1,0 +1,193 @@
+{
+ "id": "wind-speed",
+ "svs_id": 5148,
+ "title": "Near-Surface Wind Speed",
+ "theme": "weather",
+ "summary": "Winds swirling around the planet, from calm air to storm force.",
+ "description": "Near-surface wind speed is calculated by sampling 3-D atmospheric fields from NASA’s GEOS-FP system 10 meters above Earth’s surface. GEOS-FP combines millions of weather observations with a predictive model to create a global best estimate of weather conditions that are used to begin a forecast.",
+ "date_range": "About 29 Oct to 13 Nov 2026, hourly (approximate)",
+ "frame_labels": [
+  "about 29 Oct, 17:00",
+  "about 30 Oct, 12:00",
+  "about 31 Oct, 07:00",
+  "about 1 Nov, 01:00",
+  "about 1 Nov, 20:00",
+  "about 2 Nov, 15:00",
+  "about 3 Nov, 10:00",
+  "about 4 Nov, 05:00",
+  "about 4 Nov, 23:00",
+  "about 5 Nov, 18:00",
+  "about 6 Nov, 13:00",
+  "about 7 Nov, 08:00",
+  "about 8 Nov, 02:00",
+  "about 8 Nov, 21:00",
+  "about 9 Nov, 16:00",
+  "about 10 Nov, 11:00",
+  "about 11 Nov, 06:00",
+  "about 12 Nov, 00:00",
+  "about 12 Nov, 19:00",
+  "about 13 Nov, 14:00"
+ ],
+ "legend": {
+  "label": "Wind speed",
+  "unit": "m/s",
+  "min": 0.0,
+  "max": 40.0,
+  "anchors": [
+   {
+    "position": 0.0,
+    "rgb": [
+     255,
+     255,
+     255
+    ]
+   },
+   {
+    "position": 0.06666666666666667,
+    "rgb": [
+     255,
+     255,
+     255
+    ]
+   },
+   {
+    "position": 0.13333333333333333,
+    "rgb": [
+     80,
+     72,
+     159
+    ]
+   },
+   {
+    "position": 0.2,
+    "rgb": [
+     60,
+     116,
+     232
+    ]
+   },
+   {
+    "position": 0.26666666666666666,
+    "rgb": [
+     143,
+     237,
+     204
+    ]
+   },
+   {
+    "position": 0.3333333333333333,
+    "rgb": [
+     206,
+     236,
+     91
+    ]
+   },
+   {
+    "position": 0.4,
+    "rgb": [
+     225,
+     185,
+     60
+    ]
+   },
+   {
+    "position": 0.4666666666666667,
+    "rgb": [
+     214,
+     109,
+     41
+    ]
+   },
+   {
+    "position": 0.5333333333333333,
+    "rgb": [
+     197,
+     52,
+     27
+    ]
+   },
+   {
+    "position": 0.6,
+    "rgb": [
+     140,
+     35,
+     16
+    ]
+   },
+   {
+    "position": 0.6666666666666666,
+    "rgb": [
+     98,
+     21,
+     8
+    ]
+   },
+   {
+    "position": 0.7333333333333333,
+    "rgb": [
+     71,
+     12,
+     4
+    ]
+   },
+   {
+    "position": 0.8,
+    "rgb": [
+     57,
+     8,
+     3
+    ]
+   },
+   {
+    "position": 0.8666666666666667,
+    "rgb": [
+     58,
+     28,
+     24
+    ]
+   },
+   {
+    "position": 0.9333333333333333,
+    "rgb": [
+     91,
+     87,
+     83
+    ]
+   },
+   {
+    "position": 1.0,
+    "rgb": [
+     120,
+     122,
+     119
+    ]
+   }
+  ],
+  "ticks": [
+   {
+    "position": 0.0,
+    "value": 0.0,
+    "label": null
+   },
+   {
+    "position": 1.0,
+    "value": 40.0,
+    "label": null
+   }
+  ],
+  "log": false
+ },
+ "credit": "NASA's Scientific Visualization Studio (SVS 5148). Visualization by Joseph V. Ardizzone.",
+ "source_url": "https://svs.gsfc.nasa.gov/5148",
+ "calibrated": true,
+ "valid_share": 0.73,
+ "unmatched": "no_data",
+ "colorbar_box": [
+  74,
+  86,
+  462,
+  99
+ ],
+ "source_movie": "MC02_stage3_GMAO_near_surface_wind_2048x1024_en.mp4",
+ "built_at": "2026-11-13T16:02:19+02:00"
+}

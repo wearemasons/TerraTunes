@@ -1,0 +1,198 @@
+{
+ "id": "surface-temperature",
+ "svs_id": 5147,
+ "title": "Near-Surface Temperature",
+ "theme": "weather",
+ "summary": "The latest NASA GEOS forecast of air temperature just above the ground, from polar cold to desert heat.",
+ "description": "Near-surface temperature is calculated by sampling 3-D atmospheric fields from NASA’s GEOS-FP system 3 meters above Earth’s surface. GEOS-FP combines millions of weather observations with a predictive model to create a global best estimate of weather conditions that are used to begin a forecast.",
+ "date_range": "About 29 Oct to 13 Nov 2026, hourly (approximate)",
+ "frame_labels": [
+  "about 29 Oct, 17:00",
+  "about 30 Oct, 12:00",
+  "about 31 Oct, 07:00",
+  "about 1 Nov, 01:00",
+  "about 1 Nov, 20:00",
+  "about 2 Nov, 15:00",
+  "about 3 Nov, 10:00",
+  "about 4 Nov, 05:00",
+  "about 4 Nov, 23:00",
+  "about 5 Nov, 18:00",
+  "about 6 Nov, 13:00",
+  "about 7 Nov, 08:00",
+  "about 8 Nov, 02:00",
+  "about 8 Nov, 21:00",
+  "about 9 Nov, 16:00",
+  "about 10 Nov, 11:00",
+  "about 11 Nov, 06:00",
+  "about 12 Nov, 00:00",
+  "about 12 Nov, 19:00",
+  "about 13 Nov, 14:00"
+ ],
+ "legend": {
+  "label": "Near-surface temperature",
+  "unit": "°C",
+  "min": -40.0,
+  "max": 40.0,
+  "anchors": [
+   {
+    "position": 0.0,
+    "rgb": [
+     39,
+     45,
+     90
+    ]
+   },
+   {
+    "position": 0.06666666666666667,
+    "rgb": [
+     122,
+     140,
+     194
+    ]
+   },
+   {
+    "position": 0.13333333333333333,
+    "rgb": [
+     180,
+     207,
+     230
+    ]
+   },
+   {
+    "position": 0.2,
+    "rgb": [
+     224,
+     211,
+     225
+    ]
+   },
+   {
+    "position": 0.26666666666666666,
+    "rgb": [
+     157,
+     68,
+     145
+    ]
+   },
+   {
+    "position": 0.3333333333333333,
+    "rgb": [
+     79,
+     31,
+     132
+    ]
+   },
+   {
+    "position": 0.4,
+    "rgb": [
+     11,
+     34,
+     170
+    ]
+   },
+   {
+    "position": 0.4666666666666667,
+    "rgb": [
+     52,
+     104,
+     231
+    ]
+   },
+   {
+    "position": 0.5333333333333333,
+    "rgb": [
+     135,
+     229,
+     219
+    ]
+   },
+   {
+    "position": 0.6,
+    "rgb": [
+     185,
+     236,
+     120
+    ]
+   },
+   {
+    "position": 0.6666666666666666,
+    "rgb": [
+     228,
+     201,
+     65
+    ]
+   },
+   {
+    "position": 0.7333333333333333,
+    "rgb": [
+     212,
+     99,
+     38
+    ]
+   },
+   {
+    "position": 0.8,
+    "rgb": [
+     163,
+     41,
+     20
+    ]
+   },
+   {
+    "position": 0.8666666666666667,
+    "rgb": [
+     87,
+     18,
+     7
+    ]
+   },
+   {
+    "position": 0.9333333333333333,
+    "rgb": [
+     51,
+     8,
+     2
+    ]
+   },
+   {
+    "position": 1.0,
+    "rgb": [
+     111,
+     111,
+     107
+    ]
+   }
+  ],
+  "ticks": [
+   {
+    "position": 0.0,
+    "value": -40.0,
+    "label": null
+   },
+   {
+    "position": 0.5,
+    "value": 0.0,
+    "label": "freezing"
+   },
+   {
+    "position": 1.0,
+    "value": 40.0,
+    "label": null
+   }
+  ],
+  "log": false
+ },
+ "credit": "NASA's Scientific Visualization Studio (SVS 5147). Visualization by Joseph V. Ardizzone.",
+ "source_url": "https://svs.gsfc.nasa.gov/5147",
+ "calibrated": true,
+ "valid_share": 0.96,
+ "unmatched": "no_data",
+ "colorbar_box": [
+  74,
+  86,
+  462,
+  99
+ ],
+ "source_movie": "MC01_stage3_GMAO_near_surface_temperature_2048x1024_en.mp4",
+ "built_at": "2026-11-13T16:01:49+02:00"
+}

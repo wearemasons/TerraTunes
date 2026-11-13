@@ -1,0 +1,193 @@
+{
+ "id": "surface-ozone",
+ "svs_id": 5152,
+ "title": "Near-Surface Ozone",
+ "theme": "air_quality",
+ "summary": "Ground-level ozone, a lung irritant that builds up in sunny, polluted air.",
+ "description": "Near-surface ozone estimated by NASA's GEOS-CF model. Ozone high in the sky protects us from ultraviolet light, but at nose level it harms lungs. It builds up downwind of cities in sunny weather. Large grey areas, mostly over the southern oceans, use shades that are not on the colorbar, so TeraTones leaves them silent rather than guess their values.",
+ "date_range": "About 29 Oct to 13 Nov 2026, hourly (approximate)",
+ "frame_labels": [
+  "about 29 Oct, 17:00",
+  "about 30 Oct, 12:00",
+  "about 31 Oct, 07:00",
+  "about 1 Nov, 01:00",
+  "about 1 Nov, 20:00",
+  "about 2 Nov, 15:00",
+  "about 3 Nov, 10:00",
+  "about 4 Nov, 05:00",
+  "about 4 Nov, 23:00",
+  "about 5 Nov, 18:00",
+  "about 6 Nov, 13:00",
+  "about 7 Nov, 08:00",
+  "about 8 Nov, 02:00",
+  "about 8 Nov, 21:00",
+  "about 9 Nov, 16:00",
+  "about 10 Nov, 11:00",
+  "about 11 Nov, 06:00",
+  "about 12 Nov, 00:00",
+  "about 12 Nov, 19:00",
+  "about 13 Nov, 14:00"
+ ],
+ "legend": {
+  "label": "Near-surface ozone",
+  "unit": "ppbv",
+  "min": 5.0,
+  "max": 60.0,
+  "anchors": [
+   {
+    "position": 0.0,
+    "rgb": [
+     254,
+     254,
+     254
+    ]
+   },
+   {
+    "position": 0.06666666666666667,
+    "rgb": [
+     254,
+     254,
+     254
+    ]
+   },
+   {
+    "position": 0.13333333333333333,
+    "rgb": [
+     252,
+     253,
+     253
+    ]
+   },
+   {
+    "position": 0.2,
+    "rgb": [
+     250,
+     251,
+     252
+    ]
+   },
+   {
+    "position": 0.26666666666666666,
+    "rgb": [
+     242,
+     242,
+     250
+    ]
+   },
+   {
+    "position": 0.3333333333333333,
+    "rgb": [
+     226,
+     223,
+     245
+    ]
+   },
+   {
+    "position": 0.4,
+    "rgb": [
+     203,
+     196,
+     239
+    ]
+   },
+   {
+    "position": 0.4666666666666667,
+    "rgb": [
+     171,
+     159,
+     232
+    ]
+   },
+   {
+    "position": 0.5333333333333333,
+    "rgb": [
+     149,
+     130,
+     224
+    ]
+   },
+   {
+    "position": 0.6,
+    "rgb": [
+     137,
+     113,
+     218
+    ]
+   },
+   {
+    "position": 0.6666666666666666,
+    "rgb": [
+     126,
+     96,
+     213
+    ]
+   },
+   {
+    "position": 0.7333333333333333,
+    "rgb": [
+     115,
+     79,
+     207
+    ]
+   },
+   {
+    "position": 0.8,
+    "rgb": [
+     101,
+     65,
+     202
+    ]
+   },
+   {
+    "position": 0.8666666666666667,
+    "rgb": [
+     89,
+     54,
+     199
+    ]
+   },
+   {
+    "position": 0.9333333333333333,
+    "rgb": [
+     77,
+     43,
+     195
+    ]
+   },
+   {
+    "position": 1.0,
+    "rgb": [
+     65,
+     32,
+     192
+    ]
+   }
+  ],
+  "ticks": [
+   {
+    "position": 0.0,
+    "value": 5.0,
+    "label": null
+   },
+   {
+    "position": 1.0,
+    "value": 60.0,
+    "label": null
+   }
+  ],
+  "log": false
+ },
+ "credit": "NASA's Scientific Visualization Studio (SVS 5152). Visualization by Joseph V. Ardizzone.",
+ "source_url": "https://svs.gsfc.nasa.gov/5152",
+ "calibrated": true,
+ "valid_share": 0.553,
+ "unmatched": "no_data",
+ "colorbar_box": [
+  74,
+  48,
+  462,
+  62
+ ],
+ "source_movie": "MC02_stage4_GMAO_O3_2048x1024_en.mp4",
+ "built_at": "2026-11-13T15:59:54+02:00"
+}

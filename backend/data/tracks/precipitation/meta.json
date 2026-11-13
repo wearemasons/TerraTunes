@@ -1,0 +1,193 @@
+{
+ "id": "precipitation",
+ "svs_id": 5149,
+ "title": "Precipitation",
+ "theme": "water",
+ "summary": "Rain and snow bands sweeping across oceans and continents.",
+ "description": "Precipitation and clouds are calculated using fields from NASA’s GEOS-FP system. GEOS-FP combines millions of weather observations with a predictive model to create a global best estimate of weather conditions, which can be used to estimate the formation of clouds along with rain and snowfall.",
+ "date_range": "About 29 Oct to 13 Nov 2026, hourly (approximate)",
+ "frame_labels": [
+  "about 29 Oct, 17:00",
+  "about 30 Oct, 12:00",
+  "about 31 Oct, 07:00",
+  "about 1 Nov, 01:00",
+  "about 1 Nov, 20:00",
+  "about 2 Nov, 15:00",
+  "about 3 Nov, 10:00",
+  "about 4 Nov, 05:00",
+  "about 4 Nov, 23:00",
+  "about 5 Nov, 18:00",
+  "about 6 Nov, 13:00",
+  "about 7 Nov, 08:00",
+  "about 8 Nov, 02:00",
+  "about 8 Nov, 21:00",
+  "about 9 Nov, 16:00",
+  "about 10 Nov, 11:00",
+  "about 11 Nov, 06:00",
+  "about 12 Nov, 00:00",
+  "about 12 Nov, 19:00",
+  "about 13 Nov, 14:00"
+ ],
+ "legend": {
+  "label": "Precipitation",
+  "unit": "mm",
+  "min": 0.0,
+  "max": 20.0,
+  "anchors": [
+   {
+    "position": 0.0,
+    "rgb": [
+     255,
+     255,
+     255
+    ]
+   },
+   {
+    "position": 0.06666666666666667,
+    "rgb": [
+     21,
+     97,
+     175
+    ]
+   },
+   {
+    "position": 0.13333333333333333,
+    "rgb": [
+     0,
+     202,
+     238
+    ]
+   },
+   {
+    "position": 0.2,
+    "rgb": [
+     125,
+     115,
+     208
+    ]
+   },
+   {
+    "position": 0.26666666666666666,
+    "rgb": [
+     144,
+     36,
+     222
+    ]
+   },
+   {
+    "position": 0.3333333333333333,
+    "rgb": [
+     139,
+     0,
+     111
+    ]
+   },
+   {
+    "position": 0.4,
+    "rgb": [
+     146,
+     0,
+     0
+    ]
+   },
+   {
+    "position": 0.4666666666666667,
+    "rgb": [
+     197,
+     0,
+     0
+    ]
+   },
+   {
+    "position": 0.5333333333333333,
+    "rgb": [
+     223,
+     35,
+     0
+    ]
+   },
+   {
+    "position": 0.6,
+    "rgb": [
+     241,
+     75,
+     0
+    ]
+   },
+   {
+    "position": 0.6666666666666666,
+    "rgb": [
+     251,
+     112,
+     0
+    ]
+   },
+   {
+    "position": 0.7333333333333333,
+    "rgb": [
+     243,
+     128,
+     0
+    ]
+   },
+   {
+    "position": 0.8,
+    "rgb": [
+     218,
+     131,
+     0
+    ]
+   },
+   {
+    "position": 0.8666666666666667,
+    "rgb": [
+     215,
+     150,
+     0
+    ]
+   },
+   {
+    "position": 0.9333333333333333,
+    "rgb": [
+     234,
+     181,
+     0
+    ]
+   },
+   {
+    "position": 1.0,
+    "rgb": [
+     255,
+     216,
+     0
+    ]
+   }
+  ],
+  "ticks": [
+   {
+    "position": 0.0,
+    "value": 0.0,
+    "label": null
+   },
+   {
+    "position": 1.0,
+    "value": 20.0,
+    "label": null
+   }
+  ],
+  "log": false
+ },
+ "credit": "NASA's Scientific Visualization Studio (SVS 5149). Visualization by Joseph V. Ardizzone.",
+ "source_url": "https://svs.gsfc.nasa.gov/5149",
+ "calibrated": true,
+ "valid_share": 0.96,
+ "unmatched": "min",
+ "colorbar_box": [
+  74,
+  86,
+  462,
+  99
+ ],
+ "source_movie": "MC03_stage3_GMAO_precipitation_2048x1024_en.mp4",
+ "built_at": "2026-11-13T16:02:47+02:00"
+}
