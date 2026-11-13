@@ -1,0 +1,88 @@
+backend/app/main.py
+  s_6690a5e2369cef::t_281174e2d8831d 15
+README.md
+  s_6690a5e2369cef::t_281174e2d8831d 1,6,25
+frontend/apps/web/src/routes/track.$id.tsx
+  s_6690a5e2369cef::t_281174e2d8831d 52
+frontend/apps/web/src/routes/about.tsx
+  s_6690a5e2369cef::t_281174e2d8831d 18,44,133
+frontend/apps/web/src/components/header.tsx
+  s_6690a5e2369cef::t_281174e2d8831d 34,36
+.claude/agents/a11y-reviewer.md
+  s_6690a5e2369cef::t_281174e2d8831d 7
+AGENTS.md
+  s_6690a5e2369cef::t_281174e2d8831d 1
+docs/FRONTEND_PLAN.md
+  s_6690a5e2369cef::t_281174e2d8831d 48-49,102-103
+frontend/apps/web/src/components/site-footer.tsx
+  s_6690a5e2369cef::t_281174e2d8831d 8
+frontend/apps/web/src/lib/mock/demo-source.ts
+  s_6690a5e2369cef::t_281174e2d8831d 10
+.claude/agents/data-curator.md
+  s_6690a5e2369cef::t_281174e2d8831d 7
+docs/PLAN.md
+  s_6690a5e2369cef::t_281174e2d8831d 1
+backend/README.md
+  s_6690a5e2369cef::t_281174e2d8831d 1,67
+backend/pyproject.toml
+  s_6690a5e2369cef::t_281174e2d8831d 2,4
+.claude/agents/sonification-engineer.md
+  s_6690a5e2369cef::t_281174e2d8831d 7
+.claude/agents/frontend-tanstack.md
+  s_6690a5e2369cef::t_281174e2d8831d 7
+dev.mjs
+  s_6690a5e2369cef::t_281174e2d8831d 2,191,210
+frontend/apps/web/src/routes/__root.tsx
+  s_6690a5e2369cef::t_281174e2d8831d 30,34,45
+backend/tests/conftest.py
+  s_6690a5e2369cef::t_281174e2d8831d 54
+frontend/apps/web/.env.schema
+  s_6690a5e2369cef::t_281174e2d8831d 10
+backend/app/cli.py
+  s_6690a5e2369cef::t_281174e2d8831d 1,23,99
+.claude/agents/backend-fastapi.md
+  s_6690a5e2369cef::t_281174e2d8831d 7
+backend/app/core/logging.py
+  s_6690a5e2369cef::t_281174e2d8831d 27
+frontend/apps/web/index.html
+  s_6690a5e2369cef::t_281174e2d8831d 6
+frontend/README.md
+  s_6690a5e2369cef::t_281174e2d8831d 1
+frontend/apps/web/package.json
+  h_7a38498e9490a1 2
+backend/data/tracks/surface-ozone/meta.json
+  s_6690a5e2369cef::t_281174e2d8831d 7
+frontend/apps/web/src/lib/prefs.ts
+  s_6690a5e2369cef::t_281174e2d8831d 14
+backend/app/core/config.py
+  s_6690a5e2369cef::t_281174e2d8831d 10,12,18
+backend/app/__init__.py
+  s_6690a5e2369cef::t_281174e2d8831d 1
+backend/data/catalog.yaml
+  s_6690a5e2369cef::t_281174e2d8831d 1,86
+frontend/apps/web/scripts/a11y-check.mjs
+  s_6690a5e2369cef::t_281174e2d8831d 26
+backend/uv.lock
+  s_6690a5e2369cef::t_e8c327f34e5e89 1767
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "960e13760a953c7e786f5ac42742436aa914d749",
+  "prompts": {},
+  "humans": {
+    "h_7a38498e9490a1": {
+      "author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  },
+  "sessions": {
+    "s_6690a5e2369cef": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "44cde8d6-aba9-4dc7-a51f-067b3cb9098d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
