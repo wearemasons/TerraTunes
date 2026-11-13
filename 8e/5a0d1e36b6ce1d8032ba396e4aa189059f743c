@@ -1,0 +1,73 @@
+backend/app/cli.py
+  s_66a65e58ee11fe::t_38b24e8b926593 88-130,132-133,136-138,157-161,167-169
+  s_66a65e58ee11fe::t_9ba4255c36ca7d 131,134-135
+backend/app/sonify/service.py
+  s_66a65e58ee11fe::t_7803e34ec93998 1-38,42-45,52
+  s_66a65e58ee11fe::t_38b24e8b926593 39-41,46-51
+backend/app/sonify/analysis.py
+  s_66a65e58ee11fe::t_73b7d042d03b93 1-7,9-12,14-61,67-107,115-128
+  s_66a65e58ee11fe::t_9ba4255c36ca7d 13
+  s_66a65e58ee11fe::t_12315b54095b17 62-66
+  s_66a65e58ee11fe::t_38b24e8b926593 8,108-114
+backend/tests/test_sonify.py
+  s_66a65e58ee11fe::t_12315b54095b17 35,45-46,54-56
+  s_6690a5e2369cef::t_1adaa80d5d64a5 36
+  s_66a65e58ee11fe::t_cb7ee9db7093de 1-34,37-44,47-53,57-78
+backend/app/sonify/spec.py
+  s_66a65e58ee11fe::t_9c219b14a35175 1-55
+backend/app/schemas/models.py
+  s_66a65e58ee11fe::t_b3cd1dc5754d59 75,92-134,146,169,195-197
+backend/app/sonify/synth.py
+  s_66a65e58ee11fe::t_37266c1d43d74d 1-52,54-55,57-75,77-82,84-86,88-105,107-137,139-143,145-159
+  s_66a65e58ee11fe::t_cb7ee9db7093de 53,56,76,83,87,106,138,144
+backend/app/sonify/regions.py
+  s_66a65e58ee11fe::t_c5c4486afae3a9 1-47
+backend/data/catalog.yaml
+  s_66a65e58ee11fe::t_2d9b30c5637edd 26-31,50-55,73-77,94-99,120-124,146-150,173-175,190-194,208-210
+backend/app/sonify/render.py
+  s_66a65e58ee11fe::t_83fc741f375747 1-20,22-91,97-121,128-131,138-139,141-182
+  s_66a65e58ee11fe::t_38b24e8b926593 21,92-96,122-127,132-137
+  s_66a65e58ee11fe::t_cb7ee9db7093de 140
+backend/app/store.py
+  s_66a65e58ee11fe::t_38b24e8b926593 99-101,111-113,144-146
+  s_66a65e58ee11fe::t_7803e34ec93998 29-40,66-67,93-98,102-105,107-110,114,118-119,140,143,147-149,159-165,172-175,178
+backend/app/api/routes.py
+  s_66a65e58ee11fe::t_38b24e8b926593 2,18,34-37,57,113-130,132
+  s_6690a5e2369cef::t_281174e2d8831d 131
+  s_6690a5e2369cef::t_3263f0a9e9c53d 133
+backend/pyproject.toml
+  s_66a65e58ee11fe::t_ee5e99e2a295ff 38-42
+backend/app/ingest/catalog.py
+  s_66a65e58ee11fe::t_7f613c239615bf 11,56
+backend/app/mapping/rules.py
+  s_66a65e58ee11fe::t_0aa49dbbfb44a4 26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8e5a0d1e36b6ce1d8032ba396e4aa189059f743c",
+  "prompts": {},
+  "humans": {
+    "h_7a38498e9490a1": {
+      "author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  },
+  "sessions": {
+    "s_6690a5e2369cef": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "44cde8d6-aba9-4dc7-a51f-067b3cb9098d",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    },
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
