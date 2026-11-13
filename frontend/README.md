@@ -1,79 +1,64 @@
-# my-better-t-app
+# TeraTones frontend
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, TanStack Router, and more.
+The Earth Information Jukebox web app: pick a NASA Earth visualization, watch it and hear it.
+React 19 · TanStack Router + Query · Vite · Tailwind 4 · shadcn/ui (`base-lyra`) · Web Audio · bun.
 
-## Features
-
-- **TypeScript** - For type safety and improved developer experience
-- **TanStack Router** - File-based routing with full type safety
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-
-## Getting Started
-
-First, install the dependencies:
+## Run
 
 ```bash
 bun install
+bun run dev:web            # http://localhost:3000
 ```
 
-Then, run the development server:
+With no backend the app uses **demo data**: synthetic, Earth-like fields generated in the browser and clearly labelled as such. To use the FastAPI backend:
 
 ```bash
-bun run dev
+# frontend/apps/web/.env.local
+VITE_API_URL=http://localhost:8000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the web application.
+The app checks `GET /healthz` on start and falls back to demo data if the API isn't reachable. Set `VITE_STATIC_MODE=1` to force demo data (for example, for an offline demo).
 
-## UI Customization
+## Checks
 
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
+Run from `apps/web/`:
 
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
+| Command | What it does |
+|---|---|
+| `bun run check-types` | Production build, `tsc`, and the theme-token guard |
+| `bun run lint:theme` | Fails on hard-coded colours in app code (hex, `rgb()`, `bg-blue-500`, …) |
+| `bun run build && bun run serve` then `bun run test:a11y` | Real-browser axe audit (WCAG 2.2 AA), light and dark, all screens. Uses installed Chrome; `PW_CHANNEL=msedge` for Edge |
 
-### Add more shared components
-
-Run this from the project root to add more primitives to the shared UI package:
-
-```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
-```
-
-Import shared components like this:
-
-```tsx
-import { Button } from "@my-better-t-app/ui/components/button";
-```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
-
-## Environment Configuration
-
-Each app owns its environment schema in `.env.schema`. Varlock generates `src/env.ts` during installation; run `bun run env:generate` after changing a schema. Commit schemas, and keep secrets in ignored env files or your deployment platform.
-
-Import the generated `ENV` accessor in application code. Shared database and auth packages receive configuration or initialized clients from the application. See [Varlock's monorepo guide](https://varlock.dev/guides/monorepos/).
-
-Bun's automatic env loading is disabled in `bunfig.toml`; the framework integration or server bootstrap loads Varlock. Node deployments must include Varlock and its dependencies alongside the app schema.
-
-Run standalone Node/Bun tools that use Varlock from the owning app directory so they load that app's schema and env files. `env:generate` only generates TypeScript files; it does not initialize environment values in a subsequent command.
-
-## Project Structure
+## Layout
 
 ```
-my-better-t-app/
-├── apps/
-│   ├── web/         # Frontend application (React + TanStack Router)
-├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
+apps/web/src/
+  routes/            index (jukebox), track.$id (player), about, __root (shell)
+  features/
+    jukebox/         track cards
+    player/          frame stage + overlays, transport, legend, charts, info tabs, shortcuts
+    shortcuts/       shortcut list and dialog
+    visuals/         frame canvas (theme-aware)
+  audio/             engine.ts (Web Audio graph), player.ts (scheduler + store), timbres.ts
+  lib/
+    api/             contract types, data source (API or demo), TanStack Query options
+    mock/            demo planet, catalogue and a demo port of the mapping rules
+    a11y/            live-region announcer
+packages/ui/         shadcn components and the theme (styles/globals.css)
 ```
 
-## Available Scripts
+## Rules
 
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run dev:web`: Start only the web application
-- `bun run check-types`: Check TypeScript types across all apps
+- **Only shadcn components** (`bunx shadcn@latest add <name>`, or `npx shadcn@latest add` if the bun runtime is older than 1.3).
+- **Only theme tokens** for colour: `bg-primary`, `text-muted-foreground`, `--chart-1…5`. Canvas code reads tokens at draw time through `themeColor()`.
+- The only data colours are colorbars reproduced from the source visualizations (`lib/colormap.ts`, `lib/mock/`, `features/player/legend.tsx`).
+
+## Retheme with tweakcn
+
+1. Design a theme at [tweakcn.com](https://tweakcn.com).
+2. Paste its `:root`, `.dark` and `@theme inline` blocks over the same blocks in `packages/ui/src/styles/globals.css`.
+3. Run the app in light, dark and high contrast, then run `bun run test:a11y` to confirm contrast still passes.
+
+No component changes are needed. High contrast (`apps/web/src/index.css`) only remaps existing tokens, so it follows the new theme.
+
+More detail: [docs/FRONTEND_PLAN.md](../docs/FRONTEND_PLAN.md) · [docs/ACCESSIBILITY.md](../docs/ACCESSIBILITY.md) · [docs/API_CONTRACT.md](../docs/API_CONTRACT.md)

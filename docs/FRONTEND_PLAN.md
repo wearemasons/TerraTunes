@@ -2,6 +2,19 @@
 
 Scope: `frontend/apps/web` (React 19, TanStack Router + Query, Vite, Tailwind 4) and the shared UI package `frontend/packages/ui`. Product context: [PLAN.md](PLAN.md). Contract: [API_CONTRACT.md](API_CONTRACT.md). Accessibility: [ACCESSIBILITY.md](ACCESSIBILITY.md).
 
+## 0. Status (2026-11-13)
+
+Phases 0–4 are built, plus most of 5 and 6. The app runs fully offline on synthetic demo data until the backend is connected.
+
+| Area | State |
+|---|---|
+| Jukebox, player, explore, about pages | Done |
+| Audio engine (Web Audio, limiter, scan/overview, clear tone) | Done; needs a listening review on real speakers and headphones |
+| Visuals: frame, playhead, hot-spot, legend, pitch contour, tension timeline, waveform | Done |
+| Accessibility: keyboard, live regions, focus on navigation, high contrast, reduced motion | Done; axe WCAG 2.2 AA clean in both themes. NVDA pass still to do by hand |
+| Theme-token guard | Done (`bun run lint:theme`, also runs in `check-types`) |
+| Real API | Client ready behind `VITE_API_URL`; waits for the backend |
+
 ## 1. UI rule: shadcn components only, themeable with tweakcn
 
 The whole UI must be restyleable later by pasting a [tweakcn](https://tweakcn.com) theme with **zero component edits**.

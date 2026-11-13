@@ -28,23 +28,25 @@ Frontend work is broken into phases in [FRONTEND_PLAN.md](FRONTEND_PLAN.md); Tra
 - [ ] P2 Optional LLM description generation (offline script)
 
 ## Track C — Frontend (TanStack)
-- [ ] P0 Add deps: `@tanstack/react-query`, `tone` (or raw Web Audio), `openapi-typescript`
-- [ ] P0 Routes: `/`, `/track/$id`, `/about`, `__root` with skip link and live region
-- [ ] P0 Typed API client + Query hooks + static fallback
-- [ ] P0 `AudioEngine`: init on gesture, voices (drone, melody, rhythm, accent), master limiter
-- [ ] P0 Player: canvas, transport, scrubber, volume, audio key panel
-- [ ] P0 Scan-mode playback from `column_notes`
-- [ ] P0 Keyboard shortcuts + help dialog
-- [ ] P1 Explore mode (pointer + arrow keys, value readout)
-- [ ] P1 Time-series playback with tension
-- [ ] P1 Presets: Musical / Clear tone; Light / Dark / High contrast
-- [ ] P1 Transcript panel synced to playback
-- [ ] P2 Haptics, shareable URL state, PWA/offline
+- [x] P0 Add deps: `@tanstack/react-query`, raw Web Audio (no Tone.js needed). `openapi-typescript` waits for the backend
+- [x] P0 Routes: `/`, `/track/$id`, `/about`, `__root` with skip link and live region
+- [x] P0 Typed API client + Query hooks + demo fallback (synthetic data when the API is down)
+- [x] P0 `AudioEngine`: init on gesture, voices (drone, melody, rhythm, accent), master limiter
+- [x] P0 Player: canvas, transport, scrubber, volume, audio key panel
+- [x] P0 Scan-mode playback from `column_notes`
+- [x] P0 Keyboard shortcuts + help dialog
+- [x] P1 Explore mode (pointer + arrow keys, value readout)
+- [x] P1 Time-series playback with tension (Overview mode)
+- [x] P1 Presets: Musical / Clear tone; Light / Dark / High contrast
+- [x] P1 Transcript panel synced to playback
+- [x] P1 Mode, preset and frame in the URL (shareable)
+- [ ] P0 Swap mock types for generated OpenAPI types once the backend exists
+- [ ] P2 Haptics, PWA/offline
 
 ## Track D — Accessibility and QA
-- [ ] P0 axe-core in CI or pre-demo script
+- [x] P0 axe-core pre-demo script (`bun run test:a11y`)
 - [ ] P0 NVDA full-flow test and notes
-- [ ] P0 Keyboard-only walkthrough
+- [x] P0 Keyboard-only walkthrough (automated in `test:a11y`; repeat by hand before the demo)
 - [ ] P1 Listening review (3 people) per track; tune presets
 - [ ] P1 Blind/low-vision feedback session
 
