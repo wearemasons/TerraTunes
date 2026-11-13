@@ -40,6 +40,10 @@ const CLEAR: Timbre = {
   filterBase: 4000,
 };
 
+/** "Orchestra": the Clear tone on real instruments (see ./orchestra.ts); only the hall is set here. */
+const ORCHESTRA: Timbre = { ...CLEAR, reverb: 0.6 };
+
 export function timbreFor(theme: ThemeId, preset: PresetId): Timbre {
+  if (preset === "orchestra") return ORCHESTRA;
   return preset === "clear" ? CLEAR : THEME_TIMBRES[theme];
 }

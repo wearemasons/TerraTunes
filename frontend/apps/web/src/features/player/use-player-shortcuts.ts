@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { player } from "@/audio/player";
 import { announce } from "@/lib/a11y/announce";
-import type { ModeId, PresetId, Score, TrackDetail } from "@/lib/api/types";
+import { type ModeId, PRESET_IDS, PRESET_LABELS, type PresetId, type Score, type TrackDetail } from "@/lib/api/types";
 import { getPrefs } from "@/lib/prefs";
 import { isActivatable, isTypingTarget, ownsArrowKeys, useUi } from "@/lib/ui-store";
 
@@ -73,9 +73,9 @@ export function usePlayerShortcuts(args: {
           }
           case "c":
           case "C": {
-            const next: PresetId = preset === "musical" ? "clear" : "musical";
+            const next: PresetId = PRESET_IDS[(PRESET_IDS.indexOf(preset) + 1) % PRESET_IDS.length]!;
             onPresetChange(next);
-            announce(next === "clear" ? "Clear tone" : "Musical sound", { force: true });
+            announce(PRESET_LABELS[next], { force: true });
             return true;
           }
           default: {

@@ -13,7 +13,7 @@ export const SHORTCUTS: ShortcutDef[] = [
   { keys: ["↑", "↓"], label: "Volume up or down", scope: "Player" },
   { keys: ["M"], label: "Mute or unmute", scope: "Player" },
   { keys: ["1", "2", "3"], label: "Scan, Overview or Explore mode", scope: "Player" },
-  { keys: ["C"], label: "Switch between Musical and Clear tone", scope: "Player" },
+  { keys: ["C"], label: "Switch sound: Orchestra, Clear tone, Musical", scope: "Player" },
   { keys: ["K"], label: "Read the audio key", scope: "Player" },
   { keys: ["D"], label: "Read the current frame description", scope: "Player" },
   { keys: ["←", "↑", "→", "↓"], label: "Move across the map (hold Shift for bigger steps)", scope: "Explore mode" },

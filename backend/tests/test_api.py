@@ -96,3 +96,13 @@ tracks:
 
 def test_render_without_soundscape_is_404(client: TestClient) -> None:
     assert client.get("/tracks/test-track/render").status_code == 404
+
+
+def test_orchestra_preset_plays_the_clear_tone_notes(client: TestClient) -> None:
+    clear = client.get("/tracks/test-track/score?preset=clear").json()
+    orchestra = client.get("/tracks/test-track/score?preset=orchestra")
+    assert orchestra.status_code == 200
+    body = orchestra.json()
+    assert body["preset"] == "orchestra"
+    assert [f["column_notes"] for f in body["frames"]] == [f["column_notes"] for f in clear["frames"]]
+    assert body["key"] == clear["key"]

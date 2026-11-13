@@ -19,7 +19,7 @@ import { useTrackPlayer } from "@/features/player/use-track-player";
 import { announce } from "@/lib/a11y/announce";
 import { frameImageQuery, gridQuery, scoreQuery, trackQuery } from "@/lib/api/queries";
 import { NotFoundError } from "@/lib/api/source";
-import { MODE_IDS, type ModeId, PRESET_IDS, type PresetId, THEME_LABELS } from "@/lib/api/types";
+import { DEFAULT_PRESET, MODE_IDS, type ModeId, PRESET_IDS, type PresetId, THEME_LABELS } from "@/lib/api/types";
 
 interface TrackSearch {
   mode?: ModeId;
@@ -31,12 +31,12 @@ export const Route = createFileRoute("/track/$id")({
   validateSearch: (search: Record<string, unknown>): TrackSearch => {
     const result: TrackSearch = {};
     if (MODE_IDS.includes(search.mode as ModeId) && search.mode !== "scan") result.mode = search.mode as ModeId;
-    if (PRESET_IDS.includes(search.preset as PresetId) && search.preset !== "musical") result.preset = search.preset as PresetId;
+    if (PRESET_IDS.includes(search.preset as PresetId) && search.preset !== DEFAULT_PRESET) result.preset = search.preset as PresetId;
     const frame = Number(search.frame);
     if (Number.isInteger(frame) && frame > 1) result.frame = frame;
     return result;
   },
-  loaderDeps: ({ search }) => ({ preset: search.preset ?? "musical" }),
+  loaderDeps: ({ search }) => ({ preset: search.preset ?? DEFAULT_PRESET }),
   loader: async ({ context, params, deps }) => {
     try {
       const [track] = await Promise.all([
@@ -58,7 +58,7 @@ function TrackPage() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const mode: ModeId = search.mode ?? "scan";
-  const preset: PresetId = search.preset ?? "musical";
+  const preset: PresetId = search.preset ?? DEFAULT_PRESET;
   const navigate = useNavigate({ from: "/track/$id" });
 
   const { data: track } = useSuspenseQuery(trackQuery(id));
@@ -76,7 +76,7 @@ function TrackPage() {
     [navigate],
   );
   const setPreset = useCallback(
-    (next: PresetId) => void navigate({ search: (prev) => ({ ...prev, preset: next === "musical" ? undefined : next }), replace: true, resetScroll: false }),
+    (next: PresetId) => void navigate({ search: (prev) => ({ ...prev, preset: next === DEFAULT_PRESET ? undefined : next }), replace: true, resetScroll: false }),
     [navigate],
   );
   usePlayerShortcuts({ track, score, preset, onModeChange: setMode, onPresetChange: setPreset });
