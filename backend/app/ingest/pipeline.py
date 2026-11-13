@@ -51,15 +51,24 @@ def _credit(page: dict[str, Any]) -> str:
     return f"NASA's Scientific Visualization Studio (SVS {page['id']}).{who}"
 
 
-def _labels(entry: CatalogEntry, page: dict[str, Any], indices: list[int], total: int) -> tuple[list[str], str]:
-    n = len(indices)
+def _labels(
+    entry: CatalogEntry, page: dict[str, Any], indices: list[int], total: int
+) -> tuple[list[str], str]:
     updated = datetime.fromisoformat(page.get("update_date") or page["release_date"])
     if entry.time.mode == "span" and entry.time.span_days:
         start = updated - timedelta(days=entry.time.span_days)
         dates = [start + timedelta(days=entry.time.span_days * i / max(1, total - 1)) for i in indices]
         labels = [f"about {d:%b %Y}" for d in dates]
         return labels, f"{dates[0]:%b %Y} to {dates[-1]:%b %Y} (approximate)"
-    labels = [f"{entry.time.step_label} {i + 1} of {n}" for i in range(n)]
+    if entry.time.mode == "hourly":
+        end = updated + timedelta(hours=12)  # update_date is a calendar day; the run ends during it
+        times = [end - timedelta(hours=total - 1 - i) for i in indices]
+        labels = [f"about {t.day} {t:%b}, {t:%H}:00" for t in times]
+        return (
+            labels,
+            f"About {times[0].day} {times[0]:%b} to {times[-1].day} {times[-1]:%b %Y}, hourly (approximate)",
+        )
+    labels = [f"{entry.time.step_label} {i + 1}" for i in range(len(indices))]
     return labels, f"Latest run, updated {updated:%d %b %Y}"
 
 
@@ -91,13 +100,22 @@ def build_track(entry: CatalogEntry, client: SvsClient, settings: Settings | Non
     grids = np.empty((len(sampled), GRID_ROWS, GRID_COLS), dtype=np.uint8)
     for n, (_, image) in enumerate(sampled):
         grids[n] = calibrate_frame(
-            image, strip.colors, cols=GRID_COLS, rows=GRID_ROWS, masks=entry.masks, max_delta_e=entry.max_delta_e
+            image,
+            strip.colors,
+            cols=GRID_COLS,
+            rows=GRID_ROWS,
+            masks=entry.masks,
+            max_delta_e=entry.max_delta_e,
+            unmatched_as_min=entry.unmatched == "min",
+            match_range=entry.match_range,
         )
         image.convert("RGB").resize(DISPLAY_SIZE, Image.Resampling.LANCZOS).save(
             work / "frames" / f"{n:04d}.webp", quality=80, method=5
         )
         if n == len(sampled) // 2:
-            image.convert("RGB").resize(THUMB_SIZE, Image.Resampling.LANCZOS).save(work / "thumb.webp", quality=78)
+            image.convert("RGB").resize(THUMB_SIZE, Image.Resampling.LANCZOS).save(
+                work / "thumb.webp", quality=78
+            )
     np.save(work / "grids.npy", grids)
 
     valid = float((grids != 255).mean())
@@ -135,6 +153,7 @@ def build_track(entry: CatalogEntry, client: SvsClient, settings: Settings | Non
         "source_url": f"https://svs.gsfc.nasa.gov/{entry.svs_id}",
         "calibrated": True,
         "valid_share": round(valid, 3),
+        "unmatched": entry.unmatched,
         "colorbar_box": list(strip.box),
         "source_movie": entry.movie,
         "built_at": datetime.now().astimezone().isoformat(timespec="seconds"),

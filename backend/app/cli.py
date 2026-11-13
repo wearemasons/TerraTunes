@@ -1,9 +1,9 @@
 """TeraTones data CLI.
 
-    uv run python -m app.cli discover            # crawl the EIC gallery, rank sonifiable visualizations
-    uv run python -m app.cli build               # build every enabled track in data/catalog.yaml
-    uv run python -m app.cli build surface-temperature pm25
-    uv run python -m app.cli list                # show built tracks
+uv run python -m app.cli discover            # crawl the EIC gallery, rank sonifiable visualizations
+uv run python -m app.cli build               # build every enabled track in data/catalog.yaml
+uv run python -m app.cli build surface-temperature pm25
+uv run python -m app.cli list                # show built tracks
 """
 
 import argparse
@@ -28,7 +28,9 @@ def discover(gallery_id: int) -> int:
     rows = []
     with SvsClient() as client:
         root = client.page(gallery_id)
-        galleries = [root] + [client.page(link.id) for link in client.links(root) if link.page_type == "Gallery"]
+        galleries = [root] + [
+            client.page(link.id) for link in client.links(root) if link.page_type == "Gallery"
+        ]
         seen: set[int] = set()
         for gallery in galleries:
             for link in client.links(gallery):
@@ -56,7 +58,9 @@ def discover(gallery_id: int) -> int:
     out = settings.data_dir / "candidates.json"
     out.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
     for r in rows:
-        print(f"{r['score']}  {r['svs_id']:>6}  {r['title'][:60]:<60}  movies={len(r['flat_movies'])} colorbars={len(r['colorbars'])}")
+        print(
+            f"{r['score']}  {r['svs_id']:>6}  {r['title'][:60]:<60}  movies={len(r['flat_movies'])} colorbars={len(r['colorbars'])}"
+        )
     print(f"\n{len(rows)} visualizations. Details in {out}")
     return 0
 

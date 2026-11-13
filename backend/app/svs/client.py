@@ -131,12 +131,23 @@ class SvsClient:
         return sorted(set(re.findall(r"\b(\d{4,}\.(?:png|jpg|tif))\b", response.text)))
 
     # --- files ---
-    def download(self, url: str, dest: Path) -> Path:
-        """Stream a file to disk. Resumes partial files; skips complete ones."""
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        part = dest.with_suffix(dest.suffix + ".part")
+    def download(self, url: str, dest: Path, attempts: int = 5) -> Path:
+        """Stream a file to disk. Resumes partial files after dropped connections; skips complete ones."""
         if dest.exists():
             return dest
+        for attempt in range(1, attempts + 1):
+            try:
+                return self._download_once(url, dest)
+            except httpx.TransportError as exc:
+                log.warning(
+                    "  download of %s interrupted (%s), attempt %d/%d", dest.name, exc, attempt, attempts
+                )
+                time.sleep(min(30, 2**attempt))
+        raise RuntimeError(f"Download kept failing: {url}")
+
+    def _download_once(self, url: str, dest: Path) -> Path:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        part = dest.with_suffix(dest.suffix + ".part")
         offset = part.stat().st_size if part.exists() else 0
         headers = {"Range": f"bytes={offset}-"} if offset else {}
         self._wait()

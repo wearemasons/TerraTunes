@@ -24,10 +24,11 @@ class LegendSpec(BaseModel):
 
 
 class TimeSpec(BaseModel):
-    mode: Literal["steps", "span"] = "steps"
+    mode: Literal["steps", "span", "hourly"] = "steps"
     step_label: str = "Snapshot"
     span_days: int | None = None
-    """For mode=span: the frames cover this many days, ending at the SVS page's update date."""
+    """For mode=span: the frames cover this many days, ending at the SVS page's update date.
+    mode=hourly: one movie frame per hour, the last one near the page's update date (GEOS runs)."""
 
 
 class CatalogEntry(BaseModel):
@@ -46,6 +47,11 @@ class CatalogEntry(BaseModel):
     skip_edges: float = Field(default=0.02, ge=0, lt=0.5, description="Skip intro/outro fades.")
     time: TimeSpec = TimeSpec()
     max_delta_e: float = 14.0
+    match_range: tuple[float, float] = (0.0, 1.0)
+    """Part of the colorbar allowed to match (0..1). Use to drop tails that collide with map shading."""
+    unmatched: Literal["no_data", "min"] = "no_data"
+    """What pixels that match no colorbar colour mean. Use "min" when the map leaves low values
+    uncoloured (e.g. no rain shows the Earth underneath)."""
     enabled: bool = True
 
 

@@ -22,7 +22,7 @@ tracks:
       unit: °C
       ticks: [{position: 0, value: -40}, {position: 0.5, value: 0, label: freezing}, {position: 1, value: 40}]
     masks: *gmao_masks
-    time: {mode: steps, step_label: Forecast step}
+    time: {mode: hourly}
 
   - id: wind-speed
     svs_id: 5148
@@ -37,7 +37,10 @@ tracks:
       unit: m/s
       ticks: [{position: 0, value: 0}, {position: 1, value: 40}]
     masks: *gmao_masks
-    time: {mode: steps, step_label: Forecast step}
+    match_range: [0.0, 0.86]   # the grey "hurricane force" tail collides with grey land shading
+    # Calm ocean is drawn darker than any colour on the bar. A looser tolerance makes it match the
+    # dark-brown storm end (tested: wrong), so those areas stay silent instead.
+    time: {mode: hourly}
 
   - id: precipitation
     svs_id: 5149
@@ -53,7 +56,8 @@ tracks:
       ticks: [{position: 0, value: 0}, {position: 1, value: 20}]
     masks: *gmao_masks
     max_delta_e: 12
-    time: {mode: steps, step_label: Forecast step}
+    unmatched: min   # no rain shows clouds and Earth imagery underneath
+    time: {mode: hourly}
 
   - id: fine-particulates
     svs_id: 5151
@@ -69,13 +73,18 @@ tracks:
       log: true
       ticks: [{position: 0, value: 0.4}, {position: 1, value: 409.6}]
     masks: *gmao_masks
-    time: {mode: steps, step_label: Forecast step}
+    time: {mode: hourly}
 
   - id: surface-ozone
     svs_id: 5152
     theme: air_quality
     title: Near-Surface Ozone
     summary: Ground-level ozone, a lung irritant that builds up in sunny, polluted air.
+    description: >-
+      Near-surface ozone estimated by NASA's GEOS-CF model. Ozone high in the sky protects us from ultraviolet light,
+      but at nose level it harms lungs. It builds up downwind of cities in sunny weather. Large grey areas, mostly over
+      the southern oceans, use shades that are not on the colorbar, so TeraTones leaves them silent rather than guess
+      their values.
     movie: MC02_stage4_GMAO_O3_2048x1024_en.mp4
     colorbar: O3_colorbar_plain.png
     colorbar_box: [74, 48, 462, 62]
@@ -84,7 +93,7 @@ tracks:
       unit: ppbv
       ticks: [{position: 0, value: 5}, {position: 1, value: 60}]
     masks: *gmao_masks
-    time: {mode: steps, step_label: Forecast step}
+    time: {mode: hourly}
 
   - id: carbon-monoxide
     svs_id: 5153
@@ -105,7 +114,7 @@ tracks:
         - {position: 0.77, value: 200}
         - {position: 1, value: 500}
     masks: *gmao_masks
-    time: {mode: steps, step_label: Forecast step}
+    time: {mode: hourly}
 
   - id: nitrogen-oxides
     svs_id: 5154
@@ -127,7 +136,7 @@ tracks:
         - {position: 0.944, value: 10}
         - {position: 1, value: 21}
     masks: *gmao_masks
-    time: {mode: steps, step_label: Forecast step}
+    time: {mode: hourly}
 
   - id: sea-surface-temperature
     svs_id: 5101

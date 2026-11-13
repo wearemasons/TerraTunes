@@ -197,8 +197,9 @@ def build_score(
             if both.any():
                 tension = min(1.0, float(np.abs(values[both] - values_all[i - 1][both]).mean()) * 8)
         change = to_real(mean, legend) - to_real(start_mean, legend)
+        verb = "is typically" if legend.log else "averages"
         parts = [
-            f"{label}. {legend.label} averages {fmt(to_real(mean, legend))} {legend.unit}, ranging from "
+            f"{label}. {legend.label} {verb} {fmt(to_real(mean, legend))} {legend.unit}, ranging from "
             f"{fmt(to_real(vmin, legend))} to {fmt(to_real(vmax, legend))}.",
             f"The strongest values are in the {describe_region(hotspot.x, hotspot.y)}." if hotspot else "",
             f"Change since the first frame: {fmt_signed(change)} {legend.unit}." if i > 0 else "",
@@ -241,13 +242,14 @@ def build_transcript(score: Score, legend: Legend) -> list[TranscriptEntry]:
     if not frames:
         return []
     first, last = frames[0], frames[-1]
+    avg = "typical value" if legend.log else "average"
     entries: list[TranscriptEntry] = []
     sounding = [n for n in first.column_notes if n >= 0]
     melody = f" Melody from {midi_name(min(sounding))} to {midi_name(max(sounding))}." if sounding else ""
     entries.append(
         TranscriptEntry(
             frame=0,
-            text=f"Starts at {first.label}: average {fmt(to_real(first.stats.mean, legend))} {legend.unit}.{melody}",
+            text=f"Starts at {first.label}: {avg} {fmt(to_real(first.stats.mean, legend))} {legend.unit}.{melody}",
         )
     )
     peak = first
@@ -278,7 +280,7 @@ def build_transcript(score: Score, legend: Legend) -> list[TranscriptEntry]:
     entries.append(
         TranscriptEntry(
             frame=last.index,
-            text=f"Ends at {last.label}: average {fmt(to_real(last.stats.mean, legend))} {legend.unit}, "
+            text=f"Ends at {last.label}: {avg} {fmt(to_real(last.stats.mean, legend))} {legend.unit}, "
             f"{fmt_signed(change)} {legend.unit} since the start.",
         )
     )

@@ -41,7 +41,9 @@ def _runs(mask_row: NDArray[np.bool_]) -> tuple[int, int]:
     return best
 
 
-def extract_strip(image: Image.Image, samples: int = 256, box: tuple[int, int, int, int] | None = None) -> Strip:
+def extract_strip(
+    image: Image.Image, samples: int = 256, box: tuple[int, int, int, int] | None = None
+) -> Strip:
     """Find the gradient bar automatically (or use `box`) and sample `samples` colours along it."""
     rgba = np.asarray(image.convert("RGBA")).astype(np.int16)
     # Composite transparency over white so semi-transparent panels behave.

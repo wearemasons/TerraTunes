@@ -70,3 +70,15 @@ def test_mapping_uses_legend_ticks() -> None:
         log=True,
     )
     assert to_real(0.6, legend) == pytest.approx(25.6)
+
+
+def test_despeckle_removes_isolated_spike_but_keeps_plumes() -> None:
+    from app.vision.calibrate import despeckle
+
+    g = np.full((10, 10), 40, dtype=np.uint8)
+    g[2, 2] = 220  # lone spike, e.g. dense coastline
+    g[6:9, 6:9] = 200  # a real plume
+    g[7, 7] = 240
+    out = despeckle(g)
+    assert out[2, 2] == 40
+    assert out[7, 7] == 240 and out[6, 6] == 200
