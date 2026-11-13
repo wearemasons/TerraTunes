@@ -22,7 +22,9 @@ Nothing else: no drones, no pads, no percussion, no environmental noise, no earc
 Every grain is synthesised at unity peak, starts with a >=5 ms exponential fade (no clicks) and
 ends decayed to about -80 dB (never truncated). Randomness exists only inside these instruments;
 each grain draws from its own RNG stream keyed on (seed, instrument, pitch), so the result cannot
-depend on the order the notes are scheduled in.
+depend on the order the notes are scheduled in. The seeded, sub-2-cent oscillator drift below is
+timbral decoration for a less-perfect analogue realization; it is not measured data, score-pitch
+movement, random music, or a change to the score grid.
 """
 
 import hashlib
@@ -113,71 +115,93 @@ class Synth:
         return env
 
     @staticmethod
+    def _partial_drift(k: F, depth_cents: float, rate_hz: float, phase: float) -> F:
+        """Return a bounded, continuous frequency ratio for analogue-like partial drift.
+
+        The ratio is a smooth LFO, not a data/control signal. Callers cap the depth at 2 cents;
+        the synth uses a smaller seeded depth and a 0.15-0.35 Hz rate for each partial.
+        """
+        depth = min(2.0, abs(float(depth_cents)))
+        ratio = np.exp2(depth * np.sin(2 * np.pi * rate_hz * k + phase) / 1200.0)
+        return ratio.astype(np.float32)
+
     def _partials(
+        self,
         k: F,
         freq: float,
         levels: list[float],
         taus: list[float],
         phases: NDArray[np.float64],
         stretch: float = 0.0,
+        rng: np.random.Generator | None = None,
     ) -> F:
-        """Sum of harmonic (optionally stiffened) partials, each with its own e-folding time."""
+        """Sum of harmonic partials with decay and optional seeded analogue-like drift."""
         out = np.zeros(len(k), dtype=np.float32)
         for idx, (level, tau) in enumerate(zip(levels, taus, strict=True), start=1):
             f = freq * idx * (1.0 + stretch * idx * idx)
             if f >= NYQUIST:
                 break
+            if rng is None:
+                phase_path = 2 * np.pi * f * k + phases[idx - 1]
+            else:
+                drift = self._partial_drift(
+                    k,
+                    depth_cents=float(rng.uniform(0.75, 1.5)),
+                    rate_hz=float(rng.uniform(0.15, 0.35)),
+                    phase=float(rng.uniform(0.0, 2 * np.pi)),
+                )
+                phase_path = phases[idx - 1] + 2 * np.pi * np.cumsum(f * drift) / SR
             out += (
-                level * np.sin(2 * np.pi * f * k + phases[idx - 1]) * np.exp(-k / max(1e-3, tau))
+                level * np.sin(phase_path) * np.exp(-k / max(1e-3, tau))
             ).astype(np.float32)
         return out
 
     # ---------------------------------------------------------------- the voices
     def plucked_bass(self, freq: float, dur: float = 0.6) -> F:
         """Low plucked string: pick comb, body formants, bridge resonance, string scrape."""
-        n = max(64, int(dur * SR))
+        n = max(1, int(dur * SR))
         k = (np.arange(n, dtype=np.float32) / SR).astype(np.float32)
         rng = self._stream("bass", freq)
         nh = 22
         comb = np.abs(np.sin(np.pi * np.arange(1, nh + 1) * 0.13)) + 0.06
         levels = [float(c / h**1.05) for h, c in zip(range(1, nh + 1), comb, strict=True)]
-        taus = [(dur / 4.0) / (1.0 + 0.55 * (h - 1)) for h in range(1, nh + 1)]  # darker as it fades
+        taus = [(dur / 3.0) / (1.0 + 0.55 * (h - 1)) for h in range(1, nh + 1)]  # darker as it fades
         phases = rng.uniform(0, 2 * np.pi, nh)
         body = self.formants(
-            self._partials(k, freq, levels, taus, phases),
+            self._partials(k, freq, levels, taus, phases, rng=rng),
             [(250.0, 2.1, 2.0), (400.0, 1.5, 2.5), (1000.0, 1.7, 3.0)],
         )
-        scrape = self.band_noise(rng, 1200.0, 5200.0, n) * np.exp(-k / 0.010) * 0.09
-        out = (body + scrape).astype(np.float32) * self.envelope(k, 0.008, dur)
+        scrape = self.band_noise(rng, 1200.0, 5200.0, n) * np.exp(-k / 0.010) * 0.045
+        out = (body + scrape).astype(np.float32) * self.envelope(k, 0.015, dur)
         return (out / (np.abs(out).max() + 1e-9)).astype(np.float32)
 
     def harp(self, freq: float, dur: float = 1.6) -> F:
         """Harp: three detuned strings, inharmonic stretch, bright hammer, long overlapping ring."""
-        n = max(64, int(dur * SR))
+        n = max(1, int(dur * SR))
         k = (np.arange(n, dtype=np.float32) / SR).astype(np.float32)
         rng = self._stream("harp", freq)
         nh = 18
         levels = [1.0 / h**0.95 for h in range(1, nh + 1)]
-        taus = [(dur / 4.5) / (1.0 + 0.42 * (h - 1)) for h in range(1, nh + 1)]
+        taus = [(dur / 3.5) / (1.0 + 0.42 * (h - 1)) for h in range(1, nh + 1)]
         mix = np.zeros(n, dtype=np.float32)
         for cents in (-3.5, 0.0, 4.0):
             f = freq * 2.0 ** (cents / 1200.0)
             phases = rng.uniform(0, 2 * np.pi, nh)
-            mix += self._partials(k, f, levels, taus, phases, stretch=4e-6)
+            mix += self._partials(k, f, levels, taus, phases, stretch=4e-6, rng=rng)
         mix /= 3.0
-        hammer = self.band_noise(rng, 2200.0, 7000.0, n) * np.exp(-k / 0.007) * 0.06
-        out = (mix + hammer).astype(np.float32) * self.envelope(k, 0.006, dur)
+        hammer = self.band_noise(rng, 2200.0, 7000.0, n) * np.exp(-k / 0.007) * 0.03
+        out = (mix + hammer).astype(np.float32) * self.envelope(k, 0.012, dur)
         return (out / (np.abs(out).max() + 1e-9)).astype(np.float32)
 
     def flute(self, freq: float, dur: float = 0.6) -> F:
         """Flute: soft attack, steady sustain, late vibrato, slight droop, breath at the ends."""
-        n = max(64, int(dur * SR))
+        n = max(1, int(dur * SR))
         k = (np.arange(n, dtype=np.float32) / SR).astype(np.float32)
         rng = self._stream("flute", freq)
         vib_on = np.clip((k - 0.25) / 0.3, 0.0, 1.0)  # the player's vibrato arrives late
         vib = 1.0 + 0.0045 * vib_on * np.sin(2 * np.pi * 5.0 * k + rng.uniform(0, 2 * np.pi))
         droop = 1.0 - 0.010 * np.exp(-k / 0.045)  # the note sags a little as it is struck
-        phase = 2 * np.pi * np.cumsum(freq * vib * droop) / SR
+        phase = rng.uniform(-0.08, 0.08) + 2 * np.pi * np.cumsum(freq * vib * droop) / SR
         tone = np.sin(phase) + 0.2 * np.sin(2 * phase) + 0.06 * np.sin(3 * phase)
         trem = 1.0 + 0.04 * vib_on * np.sin(2 * np.pi * 3.6 * k)
         env = self.envelope(k, attack=0.05, total=dur, sustain=True, release=0.14)

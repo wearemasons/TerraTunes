@@ -1,5 +1,5 @@
 /**
- * Browser v15 ensemble fallback. The backend render remains preferred whenever `audioUrl`
+ * Browser v16 ensemble fallback. The backend render remains preferred whenever `audioUrl`
  * is present; this path only realises the backend's pre-scored notes, durations and gains
  * for bass, harp and flute through the existing deterministic stereo hall.
  */
@@ -22,6 +22,49 @@ export interface VoiceEvent {
   gainTargets: { offset: number; value: number }[]
 }
 
+export interface GainTarget { offset: number; value: number }
+
+/**
+ * Sample monotone cubic easing in log-gain space for Web Audio exponential ramps.
+ * Each interval is capped so the cubic's maximum slope (1.5× its endpoint slope)
+ * stays within the browser fallback's approximate 45 dB/s combined limit.
+ */
+export function easeGainTargets(
+  targets: readonly GainTarget[],
+  maxDbPerSecond = 45,
+  samplesPerInterval = 33,
+): GainTarget[] {
+  if (targets.length <= 1) return targets.map((target) => ({ ...target }))
+  const samples = Math.max(1, Math.floor(samplesPerInterval))
+  const maxDb = Math.max(0, maxDbPerSecond)
+  const toDb = (value: number) => 20 * Math.log10(Math.max(0.0001, value))
+  const fromDb = (db: number) => 10 ** (db / 20)
+  const out: GainTarget[] = [{ ...targets[0]!, value: Math.max(0.0001, targets[0]!.value) }]
+
+  for (let i = 1; i < targets.length; i++) {
+    const previous = targets[i - 1]!
+    const target = targets[i]!
+    const dt = target.offset - previous.offset
+    if (!(dt > 0)) continue
+    const previousDb = toDb(out[out.length - 1]!.value)
+    const wantedDb = toDb(target.value)
+    const maxStepDb = (maxDb * dt) / 1.5
+    const endpointDb = Math.max(previousDb - maxStepDb, Math.min(previousDb + maxStepDb, wantedDb))
+    const endpointValue = Math.abs(endpointDb - wantedDb) < 1e-12 ? target.value : fromDb(endpointDb)
+
+    for (let sample = 1; sample <= samples; sample++) {
+      const u = sample / samples
+      const eased = u * u * (3 - 2 * u)
+      const db = previousDb + (endpointDb - previousDb) * eased
+      out.push({
+        offset: sample === samples ? target.offset : previous.offset + dt * u,
+        value: sample === samples ? (target.value > 0 ? endpointValue : fromDb(endpointDb)) : fromDb(db),
+      })
+    }
+  }
+  return out
+}
+
 export interface SpecCell {
   row: number; col: number; cx: number; cy: number; brightness: number; saturation: number; hue: number
   turbulence: number; edges: number; gradient: number; hot: number; green: number; water: number
@@ -34,7 +77,7 @@ export interface Spec {
   grid: { cols: number; rows: number; cells: SpecCell[] }; frame_stats: Record<string, number>
   drop_count?: number; crackle_count?: number; audioUrl?: string
   terraDetail?: import('../types').TerraTrackDetail; terraScore?: import('../types').TerraScore
-  /** A single-frame v15 score for the client-side image scanner. */
+  /** A single-frame v16 score for the client-side image scanner. */
   voices?: VoicePart[]
   colorWaves?: { cool: number[]; mid: number[]; hot: number[]; peak: number[] }
 }
@@ -182,21 +225,16 @@ export class PhenomenonPlayer {
     const gain = ctx.createGain(); const amplitude = ctx.createGain()
     const pan = ctx.createStereoPanner(); pan.pan.value = event.instrument === 'bass' ? 0 : event.instrument === 'harp' ? 0.10 : -0.10
     // Separate instrument articulation from measured amplitude automation; only the latter
-    // is a data-driven fader. Bound its log-gain slope to the backend's 45 dB/s combined limit.
-    let db = 20 * Math.log10(Math.max(0.0001, event.gain))
-    let lastOffset = 0
-    amplitude.gain.setValueAtTime(10 ** (db / 20), when)
-    for (const target of event.gainTargets.slice(1)) {
+    // is a data-driven fader. The backend remains authoritative for calibrated streaming.
+    const easedTargets = easeGainTargets(event.gainTargets)
+    amplitude.gain.setValueAtTime(easedTargets[0]?.value ?? event.gain, when)
+    for (const target of easedTargets.slice(1)) {
       const targetTime = when + target.offset
       if (targetTime < when + duration - 0.02) {
-        const wanted = 20 * Math.log10(Math.max(0.0001, target.value))
-        const limit = 45 * (target.offset - lastOffset)
-        db = Math.max(db - limit, Math.min(db + limit, wanted))
-        amplitude.gain.exponentialRampToValueAtTime(10 ** (db / 20), targetTime)
-        lastOffset = target.offset
+        amplitude.gain.exponentialRampToValueAtTime(target.value, targetTime)
       }
     }
-    const attack = Math.min(duration / 4, event.instrument === 'flute' ? 0.06 : 0.008)
+    const attack = Math.min(duration / 4, event.instrument === 'bass' ? 0.015 : event.instrument === 'harp' ? 0.012 : 0.06)
     const release = Math.min(0.14, duration / 3)
     gain.gain.setValueAtTime(0.0001, when)
     gain.gain.exponentialRampToValueAtTime(1, when + attack)
@@ -215,7 +253,7 @@ export class PhenomenonPlayer {
     }
     const osc = ctx.createOscillator(); osc.type = 'sawtooth'; const base = midiHz(event.midi)
     osc.frequency.setValueAtTime(base, when); osc.detune.value = event.instrument === 'harp' ? 3 : -2
-    const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.Q.value = 0.7; filter.frequency.setValueAtTime(event.instrument === 'harp' ? 5200 : 2400, when); filter.frequency.exponentialRampToValueAtTime(event.instrument === 'harp' ? 900 : 180, when + Math.min(0.5, duration))
+    const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.Q.value = 0.7; filter.frequency.setValueAtTime(event.instrument === 'harp' ? 4200 : 1800, when); filter.frequency.exponentialRampToValueAtTime(event.instrument === 'harp' ? 900 : 180, when + Math.min(0.5, duration))
     osc.connect(filter).connect(gain); osc.start(when); osc.stop(when + duration + 0.02); this.nodes.push(osc)
   }
 

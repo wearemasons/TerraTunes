@@ -1,7 +1,7 @@
-"""Realise the v15 score with the v14 acoustic instruments and hall.
+"""Realise the v16 score with warmer procedural acoustic instruments and hall.
 
 Pitches, rests, durations and intensity gain targets come only from mapping/rules.py. Shared
-instrument-bus and ensemble automation interpolate exponentially, with a provable combined
+instrument-bus and ensemble automation use rounded monotone easing in dB, with a provable combined
 control slew below 6 dB/100 ms. Acoustic pluck attacks are not gain-control jumps. The master
 soft-knee limiter and peak ceiling remain, without dynamic-range compression of the quiet map.
 """
@@ -84,19 +84,24 @@ def _place(out: NDArray[np.float32], grain: NDArray[np.float32], at_s: float, pa
 def smooth_gain(
     targets: list[float], step_s: float, samples: int, max_db_s: float = GAIN_SLEW_DB_PER_S
 ) -> NDArray[np.float32]:
-    """Exponential interpolation with a bounded derivative in dB, no discrete gain jumps.
+    """C1-continuous rounded waves in dB, monotone between measured targets, no overshoot.
 
-    Successive control knots are rate-limited before interpolation. The final automation holds
-    its last value through the tail. Silence itself is made by not scheduling notes, not by
-    slamming a master fader to zero.
+    Cubic easing has a maximum derivative of 1.5, so knot differences are capped at two thirds
+    of the requested slew budget. This keeps the bound even at a wave's steepest point. The
+    final target holds through the tail. Silence is scheduled rests, not an abrupt fader cut.
     """
     if not targets:
         return np.ones(samples, dtype=np.float32)
     db = 20 * np.log10(np.maximum(np.asarray(targets, dtype=np.float64), 1e-4))
+    limit = max_db_s * step_s / 1.5
     for i in range(1, len(db)):
-        db[i] = np.clip(db[i], db[i - 1] - max_db_s * step_s, db[i - 1] + max_db_s * step_s)
-    t = np.arange(samples, dtype=np.float64) / SR
-    curve = np.interp(t, np.arange(len(db)) * step_s, db)
+        db[i] = np.clip(db[i], db[i - 1] - limit, db[i - 1] + limit)
+    position = np.arange(samples, dtype=np.float64) / (SR * step_s)
+    left = np.minimum(position.astype(np.int64), len(db) - 1)
+    right = np.minimum(left + 1, len(db) - 1)
+    u = np.clip(position - left, 0.0, 1.0)
+    eased = u * u * (3.0 - 2.0 * u)
+    curve = db[left] + (db[right] - db[left]) * eased
     return (10 ** (curve / 20)).astype(np.float32)
 
 
@@ -242,7 +247,9 @@ def listening_guide(spec: SoundSpec, unit_label: str, mode: Mode = "sweep", melo
         "Louder and fuller means more intense activity relative to this track. Quiet "
         "areas are soft and sparse with longer notes; active areas gain more ringing "
         "harp plucks and a stronger ensemble swell. There are no drums, drones or weather "
-        "sounds, only acoustic-modelled strings, flute and a hall tail."
+        "sounds, only acoustic-modelled strings, flute and a hall tail. Rounded gain curves "
+        "join the measured targets and emphasize high-activity peaks without raising the output "
+        "ceiling. Slight seeded string drift adds organic timbre, not another data measurement."
     )
     if not melody:
         parts.append("This version plays the scored low plucked line alone: no harp or flute.")

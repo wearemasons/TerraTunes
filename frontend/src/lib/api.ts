@@ -312,7 +312,7 @@ const CLIENT_SCALES: Record<string, number[]> = {
 }
 
 function clientVoices(cells: SpecCell[], model: string): VoicePart[] {
-  // Uncalibrated single-photo mirror of v15: D-root first-chord harmony, continuous measured
+  // Uncalibrated single-photo mirror of v16: D-root first-chord harmony, continuous measured
   // contours over a two-octave chord register, activity-driven density, and no invented flute line.
   const scaleName = model === 'ocean' || model === 'space' ? 'dorian'
     : model === 'storm' || model === 'fire' ? 'phrygian'
@@ -381,7 +381,7 @@ function clientVoices(cells: SpecCell[], model: string): VoicePart[] {
     const ladder = ladderFor(instrument)
     const targets = continuousTargets(values, filled, ladder, minSpans[instrument])
     const notes = values.map((_, k) => occupied(instrument, k) ? nearest(targets[k]!, ladder) : -1)
-    const gains = values.map((_, k) => filled[k] ? Number(({ bass: 0.95, harp: 0.90, flute: 0.72 }[instrument] * (0.08 + 0.92 * activity[k]! ** 1.4)).toFixed(6)) : 0)
+    const gains = values.map((_, k) => filled[k] ? Number((({ bass: 0.95, harp: 0.90, flute: 0.72 }[instrument] * (0.08 + 0.92 * activity[k]! ** 1.6) * (1 + 0.40 * activity[k]! ** 4)).toFixed(6))) : 0)
     const durations = values.map((_, k) => notes[k] < 0 ? 0 : Number(Math.min(8 - k, { bass: 3.8, harp: 4.0, flute: 2.6 }[instrument] - { bass: 2.4, harp: 0.5, flute: 1.2 }[instrument] * activity[k]!).toFixed(4)))
     let last = -1
     notes.forEach((note, k) => {

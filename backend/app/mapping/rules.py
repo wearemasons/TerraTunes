@@ -3,7 +3,7 @@
 Input: a stack of value grids (uint8, 0..250 = normalized value, 255 = no data).
 Output: a deterministic Score the browser can play. Bump MAPPING_VERSION on any rule change.
 
-v15 — composed harmony, measured contour and breathing dynamics
+v16 — accepted v15 notes, rounded swells and stronger measured peaks
 ==============================================================
 One authored, disclosed chord per frame; each voice chooses only its chord tones. The measured
 slice orders those tones monotonically. The relative contour is expanded within each frame so
@@ -39,7 +39,7 @@ from app.schemas.models import (
 )
 from app.vision.colorbar import ValueScale
 
-MAPPING_VERSION = "15"
+MAPPING_VERSION = "16"
 STEPS_PER_FRAME = 8
 ROOT_MIDI = 50  # D3
 GRID_MAX = 250
@@ -264,7 +264,8 @@ def audio_key_text(legend: Legend, progression: Sequence[str] = ()) -> str:
             "values within a frame, not pitches across a chord change. Equal values stay on the same note.",
             "Louder and fuller means more intense activity relative to the rest of this track. Quiet "
             "areas become genuinely soft, with fewer, longer notes; active areas bring more harp plucks "
-            "and a stronger ensemble swell. The pulse never changes.",
+            "and a stronger ensemble swell. Rounded rises and falls connect the measured gain targets; "
+            "high activity gets extra peak emphasis without raising the output ceiling. The pulse never changes.",
             "Each frame lasts four seconds, with eight half-second slots scanning west to east. Early "
             "in the frame is west; late is east. Some slots are rests, not a faster or slower scan. "
             "The instruments stay near the centre: location is time, not left or right.",
@@ -362,7 +363,7 @@ def contour_targets(
 def _activity(raw: Sequence[float], lo: float, hi: float) -> list[float]:
     """Track-relative activity, blended with the absolute phenomenon intensity.
 
-    A flat field isn't exaggerated by normalising numerical dust: <1% activity range keeps the
+    A flat field isn't exaggerated by normalising numerical dust: <5% activity range keeps the
     absolute activity. The observed bounds are recorded indirectly by the original layers.
     """
     if hi - lo < 0.05:
@@ -380,6 +381,16 @@ def _occupied(iid: InstrumentId, k: int, activity: float, filled: Sequence[bool]
     if iid == "harp":
         return activity >= 0.12 and (k % 4 == 0 or (activity >= 0.35 and k % 2 == 0) or activity >= 0.58)
     return activity >= 0.20 and (k % 2 == 0 or activity >= 0.65)
+
+
+def activity_gain(activity: float) -> float:
+    """Monotone intensity fader with restrained peak emphasis; no new musical events.
+
+    The quiet floor is unchanged. At full activity the target is 1.4 times the old maximum,
+    about 2.9 dB more contrast before global peak normalization. This is not extra headroom.
+    """
+    a = float(np.clip(activity, 0.0, 1.0))
+    return float((ACTIVITY_FLOOR + (1.0 - ACTIVITY_FLOOR) * a**1.6) * (1.0 + 0.40 * a**4))
 
 
 def _voices(
@@ -405,11 +416,7 @@ def _voices(
             # Nearest chord tone is monotone in the unrounded measured target, including ties.
             note = min(ladder, key=lambda n: (abs(n - targets[k]), n)) if sounding else -1
             notes.append(note)
-            gains.append(
-                round(VOICE_GAIN[iid] * (ACTIVITY_FLOOR + (1 - ACTIVITY_FLOOR) * activity[k] ** 1.4), 6)
-                if filled[k]
-                else 0.0
-            )
+            gains.append(round(VOICE_GAIN[iid] * activity_gain(activity[k]), 6) if filled[k] else 0.0)
             dur = {
                 "bass": 3.8 - 2.4 * activity[k],
                 "harp": 4.0 - 0.5 * activity[k],

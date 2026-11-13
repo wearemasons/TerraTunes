@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from app.mapping.rules import VOICE_ORDER, build_score, chord_ladder, contour_targets
+from app.mapping.rules import VOICE_ORDER, activity_gain, build_score, chord_ladder, contour_targets
 from app.schemas.models import FrameLayers, FrameScore, Legend, LegendTick, Score
 from app.sonify.analysis import analyse_frames, real_values
 from app.sonify.regions import region_name
@@ -182,8 +182,12 @@ def test_pulse_is_steady_on_the_scan_grid() -> None:
     assert len(times) >= len(scheduled) / 2  # very quiet attacks may fall below the detector
     off_grid = np.abs(times / step_s - np.round(times / step_s)) * step_s
     assert float((off_grid < 0.05).mean()) > 0.85
-    # IOIs may be integer multiples of the pulse because density is data-driven.
-    ioi = np.diff(times)
+    # Flux can detect a curved swell or flute vibrato, not just a new note. Validate
+    # attack IOIs among the on-grid detections; the separate majority bound above
+    # guards against the renderer producing arbitrary off-grid attacks.
+    attacks = times[off_grid < 0.05]
+    assert all(any(abs(t - event) < 0.05 for event in scheduled) for t in attacks)
+    ioi = np.diff(attacks)
     assert float((np.abs(ioi / step_s - np.round(ioi / step_s)) < 0.12).mean()) > 0.85
 
 
@@ -223,6 +227,31 @@ def test_stereo_is_centred() -> None:
     # Only the reverb differs between the ears; no instrument is hard-panned.
     assert float(np.corrcoef(audio[0], audio[1])[0, 1]) > 0.90
     assert _lr_balance_db(audio) < 2.0
+
+
+def test_round_swells_are_monotone_without_overshoot_or_sharp_corners() -> None:
+    curve = smooth_gain([0.1, 0.5, 0.1], 0.5, SR * 2, 35)
+    db = 20 * np.log10(curve)
+    knot = int(SR * 0.5)
+    assert np.all(np.diff(db[:knot]) >= -1e-5)
+    assert np.all(np.diff(db[knot : 2 * knot]) <= 1e-5)
+    assert curve.max() <= 0.500001 and curve.min() >= 0.099999
+    # Rounded crest has almost zero slope; the mid-wave slope remains audible.
+    edge_slope = abs(float(db[knot] - db[knot - 1])) * SR
+    middle_slope = abs(float(db[knot // 2] - db[knot // 2 - 1])) * SR
+    assert edge_slope < 0.2 and middle_slope > 5.0
+    assert np.allclose(curve[int(1.2 * SR) :], 0.1)
+
+
+def test_peak_emphasis_is_ordered_without_changing_the_quiet_floor() -> None:
+    a = np.linspace(0, 1, 101)
+    gains = np.array([activity_gain(float(v)) for v in a])
+    assert np.all(np.diff(gains) > 0)
+    assert gains[0] == 0.08
+    assert np.isclose(gains[-1], 1.4)
+    old = 0.08 + 0.92 * a**1.4
+    # More peak-to-mid contrast, not simply turning up every sample or raising the ceiling.
+    assert gains[-1] / gains[50] > old[-1] / old[50]
 
 
 def test_notes_leave_a_hall_tail() -> None:

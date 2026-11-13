@@ -1,12 +1,13 @@
 # Sonification Design
 
-## mapping_version 15 — composed harmony, measured contour, and breathing dynamics (current)
+## mapping_version 16 — composed harmony, measured contour, and breathing dynamics (current)
 
-The v15 candidate keeps the v14 acoustic instruments and hall, but composes a disclosed,
-seeded eight-frame chord phrase around measured contours. The phrase is authored musical
-structure, not a measurement of environmental change. The backend's streamed MP3 is the
-authoritative reference; the browser WebAudio renderer is an approximate timbre realization
-that still uses the scored notes, durations, and gains.
+The v16 candidate keeps v15's scored notes, durations, pitch targets, occupied/rest slots,
+authored chord phrase, acoustic instruments, and hall. It composes a disclosed, seeded
+eight-frame chord phrase around measured contours; the phrase is authored musical structure,
+not a measurement of environmental change. The backend's streamed MP3 is the authoritative
+reference; the browser WebAudio renderer is an approximate timbre realization that still uses
+the scored notes, durations, and gains.
 
 | Channel measured per scan slice | Voice | Instrument family | Register |
 | --- | --- | --- | --- |
@@ -28,12 +29,25 @@ that still uses the scored notes, durations, and gains.
   consecutive notes are tied through valid slots rather than repeatedly attacked.
 * **Activity and articulation.** Track-relative activity uses the 10th/90th percentiles with a
   denominator floor of 0.15; a flat-activity range below 0.05 skips that expansion. Activity
-  chooses density, longer ringing, and gain, with a gain floor of 0.08. No-data slices schedule
-  no new notes; low activity can produce rests, while hall tails may linger.
+  chooses the same v15 density, occupancy, and longer ringing, with a gain floor of 0.08. The
+  v16 activity multiplier is
+  `VOICE_GAIN * (.08 + .92 * a**1.6) * (1 + .40 * a**4)`: it is monotone with stronger
+  high-activity contrast, reaches at most 1.4 times the old maximum (about 2.92 dB higher
+  target), and leaves the floor unchanged. No-data slices schedule no new notes; low activity
+  can produce rests, while hall tails may linger.
 * **Rendering and dynamics.** v14's acoustic-modelled bass, harp, flute, and Schroeder hall are
-  retained. Log control buses are smoothed at 35 dB/s, followed by a 10 dB/s ensemble control
-  (45 dB/s combined). This is a bound on control automation, not on a waveform's acoustic pluck
-  attack. The master remains fade-in -> hall -> soft-knee limiter -> peak normalise 0.89.
+  retained. `smooth_gain` is C1 cubic easing in dB, `3u² - 2u³`, with no overshoot; knot
+  differences are clamped to `max_db_s * step_s / 1.5`. Voice automation is 35 dB/s and the
+  ensemble is 10 dB/s, keeping the combined derivative at or below 45 dB/s. Swells interpolate
+  measured gain targets; there is no arbitrary waveform LFO applied to data. The overall
+  rendered sample peak is still normalized to 0.89, not raised to a higher output ceiling:
+  stronger peaks are relative contrast, not guaranteed absolute loudness. The master remains
+  fade-in -> hall -> soft-knee limiter -> peak normalise 0.89.
+* **Instrument texture.** A separate synth texture layer uses softer approximately 15 ms bass
+  and 12 ms harp attacks, reduced bass scrape and harp hammer, and a longer low-frequency ring.
+  Deterministic continuous partial drift of at most 2 cents gives an analog-like organic timbre;
+  this is not analog hardware and is not an additional data variable or score control. Equal
+  consecutive notes remain tied, with no repeated attacks.
 * **Imaging.** Fixed per-instrument offsets, |pan| <= 0.10 (bass centre, harp slightly right, flute
   slightly left); measured L/R correlation 0.98-0.99, L/R energy difference 0.45-0.8 dB. The hall is
   70 % shared between the ears and 30 % per-channel decorrelated, so it feels wide but the image
@@ -43,21 +57,22 @@ that still uses the scored notes, durations, and gains.
   26 ms pre-delay, wet 0.30 of the dry RMS, measured to an impulse response per channel and applied
   by FFT convolution. Tuning jitter comes from the render seed, so the hall is identical for the
   same (track, mode).
-* **Determinism and fallback.** `MAPPING_VERSION = "15"`; the phrase and score seed are derived
+* **Determinism and fallback.** `MAPPING_VERSION = "16"`; the phrase and score seed are derived
   from the track/theme, while the render seed is derived from track/mode. The browser fallback
   (`frontend/src/lib/audio/phenomena.ts`) is approximate and must consume `FrameScore.voices`
   rather than choose pitches; the backend `/tracks/{id}/render` stream remains authoritative.
-* **Candidate measurements and limits.** New candidate EBU LRA measurements are SST 5.3 LU,
-  wind 13.4 LU, and vegetation 13.6 LU. These are measurements of candidate renders, not a claim
-  of an ideal sonification, and the candidate has not been validated with blind users.
+* **Candidate measurements and limits.** Historical v15 candidate EBU LRA measurements are SST
+  5.3 LU, wind 13.4 LU, and vegetation 13.6 LU. They are not v16 measurements. These are
+  measurements of candidate renders, not a claim of an ideal sonification, and the candidate has
+  not been validated with blind users.
 
 
 > **Historical v2 (2026-11-13): soundscape engine in the backend.** This earlier experiment layered
-> natural sounds over the data. It is retained for provenance only; v15 above is the current model.
+> natural sounds over the data. It is retained for provenance only; v16 above is the current model.
 
 Goal: sound that is **traceable to the data** and **musical**. Every audible parameter has one documented meaning that is also written in the track's audio key.
 
-> _Sections 1-10 below describe mapping_version 13 and earlier (the physical soundscape model). They are kept as history; v14's acoustic-instrument revision is also historical, and v15 above is the model in force._
+> _Sections 1-10 below describe mapping_version 13 and earlier (the physical soundscape model). They are kept as history; v14's acoustic-instrument revision is also historical, and v16 above is the model in force._
 
 ## 1. Pipeline
 
