@@ -304,33 +304,98 @@ function scoreToLayers(score: TerraScore): SpecLayer[] {
 }
 
 const CLIENT_SCALES: Record<string, number[]> = {
-  dorian: [0, 2, 3, 5, 7, 9, 10], minor_pentatonic: [0, 3, 5, 7, 10],
+  aeolian: [0, 2, 3, 5, 7, 8, 10], dorian: [0, 2, 3, 5, 7, 9, 10],
+  major: [0, 2, 4, 5, 7, 9, 11], minor_pentatonic: [0, 3, 5, 7, 10],
   phrygian: [0, 1, 3, 5, 7, 8, 10], whole_tone: [0, 2, 4, 6, 8, 10],
   lydian: [0, 2, 4, 6, 7, 9, 11], major_pentatonic: [0, 2, 4, 7, 9],
   mixolydian: [0, 2, 4, 5, 7, 9, 10], phrygian_dominant: [0, 1, 4, 5, 7, 8, 10],
 }
 
 function clientVoices(cells: SpecCell[], model: string): VoicePart[] {
-  // Mirrors backend/app/mapping/rules.py::_slice_measures and _voices: mean→bass, peak→harp,
-  // signed frame change→flute, then voice_ladder()/quantize(). Keep these constants in sync.
-  const scaleName = model === 'ocean' ? 'dorian' : model === 'storm' ? 'phrygian' : model === 'fire' ? 'phrygian' : model === 'canopy' ? 'major_pentatonic' : 'mixolydian'
-  const intervals = CLIENT_SCALES[scaleName] ?? CLIENT_SCALES.dorian
-  const ladder = [0, 1].flatMap((octave) => intervals.map((interval) => octave * 12 + interval)).concat(24)
-  const quantize = (value: number, base: number) => base + (ladder[Math.round(Math.max(0, Math.min(1, value)) * (ladder.length - 1))] ?? 0)
-  const notes = (kind: 'mean' | 'peak') => Array.from({ length: 8 }, (_, step) => {
+  // Uncalibrated single-photo mirror of v15: D-root first-chord harmony, continuous measured
+  // contours over a two-octave chord register, activity-driven density, and no invented flute line.
+  const scaleName = model === 'ocean' || model === 'space' ? 'dorian'
+    : model === 'storm' || model === 'fire' ? 'phrygian'
+      : model === 'plume' ? 'aeolian'
+        : model === 'canopy' ? 'major' : 'mixolydian'
+  const scaleIntervals = CLIENT_SCALES[scaleName] ?? CLIENT_SCALES.dorian
+  const minorScale = scaleIntervals.includes(3)
+  const chordPcs = minorScale ? [2, 5, 9] : [2, 6, 9]
+  const bases: Record<VoicePart['instrument'], number> = { bass: 26, harp: 50, flute: 62 }
+  const minSpans: Record<VoicePart['instrument'], number> = { bass: 0.15, harp: 0.20, flute: 0.05 }
+  const clamp = (v: number) => Math.max(0, Math.min(1, v))
+  const ladderFor = (instrument: VoicePart['instrument']) => {
+    const base = bases[instrument]
+    return Array.from({ length: 25 }, (_, offset) => base + offset).filter((midi) => chordPcs.includes(midi % 12))
+  }
+  const nearest = (target: number, ladder: number[]) => ladder.reduce((best, midi) =>
+    Math.abs(midi - target) < Math.abs(best - target) ? midi : best, ladder[0] ?? 0)
+  const continuousTargets = (
+    values: number[],
+    filled: boolean[],
+    ladder: number[],
+    minimumSpan: number,
+  ) => {
+    const observed = values.filter((_, i) => filled[i])
+    if (!observed.length) return values.map(() => ladder[0] ?? 0)
+    const lo = Math.min(...observed)
+    const hi = Math.max(...observed)
+    const span = Math.max(hi - lo, minimumSpan)
+    const centre = (lo + hi) / 2
+    return values.map((value, i) => filled[i]
+      ? (ladder[0] ?? 0) + clamp(0.5 + (value - centre) / span) * ((ladder[ladder.length - 1] ?? 0) - (ladder[0] ?? 0))
+      : ladder[0] ?? 0)
+  }
+  const quantile = (values: number[], q: number) => {
+    if (!values.length) return 0
+    const sorted = [...values].sort((a, b) => a - b)
+    const at = (sorted.length - 1) * q
+    const lower = Math.floor(at)
+    const upper = Math.ceil(at)
+    return sorted[lower]! + (sorted[upper]! - sorted[lower]!) * (at - lower)
+  }
+  const slices = Array.from({ length: 8 }, (_, step) => {
     const part = cells.filter((c) => c.col >= Math.floor(step * 12 / 8) && c.col < Math.floor((step + 1) * 12 / 8))
-    if (!part.length) return -1
-    const value = kind === 'mean' ? part.reduce((sum, c) => sum + c.brightness, 0) / part.length : Math.max(...part.map((c) => c.brightness))
-    return quantize(value, kind === 'mean' ? 26 : 50)
+    const values = part.map((cell) => cell.brightness)
+    return {
+      mean: values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0,
+      peak: values.length ? Math.max(...values) : 0,
+      filled: values.length > 0,
+    }
   })
-  const mean = cells.length ? cells.reduce((sum, c) => sum + c.brightness, 0) / cells.length : 0
-  const peak = cells.length ? Math.max(...cells.map((c) => c.brightness)) : 0
-  return [
-    { instrument: 'bass', notes: cells.length ? notes('mean') : Array(8).fill(-1) },
-    { instrument: 'harp', notes: peak - mean >= 0.1 ? notes('peak') : Array(8).fill(-1) },
-    // A single scanned image has no previous calibrated frame, so change is intentionally silent.
-    { instrument: 'flute', notes: Array(8).fill(-1) },
-  ]
+  const filled = slices.map((slice) => slice.filled)
+  const activityRaw = slices.map((slice) => 0.65 * slice.peak + 0.35 * slice.mean)
+  const activeValues = activityRaw.filter((_, i) => filled[i])
+  const lo = quantile(activeValues, 0.10)
+  const hi = quantile(activeValues, 0.90)
+  const activity = activityRaw.map((value, i) => !filled[i] ? 0 : hi - lo < 0.05
+    ? clamp(value)
+    : clamp(0.15 * value + 0.85 * clamp((value - lo) / Math.max(hi - lo, 0.15))))
+  const occupied = (instrument: VoicePart['instrument'], k: number) => {
+    if (!filled[k]) return false
+    if (instrument === 'bass') return k === 0 || !filled[k - 1] || k % 4 === 0 || (activity[k]! >= 0.30 && k % 2 === 0) || activity[k]! >= 0.62
+    if (instrument === 'harp') return activity[k]! >= 0.12 && (k % 4 === 0 || (activity[k]! >= 0.35 && k % 2 === 0) || activity[k]! >= 0.58)
+    return false
+  }
+  const makePart = (instrument: VoicePart['instrument'], values: number[]): VoicePart => {
+    const ladder = ladderFor(instrument)
+    const targets = continuousTargets(values, filled, ladder, minSpans[instrument])
+    const notes = values.map((_, k) => occupied(instrument, k) ? nearest(targets[k]!, ladder) : -1)
+    const gains = values.map((_, k) => filled[k] ? Number(({ bass: 0.95, harp: 0.90, flute: 0.72 }[instrument] * (0.08 + 0.92 * activity[k]! ** 1.4)).toFixed(6)) : 0)
+    const durations = values.map((_, k) => notes[k] < 0 ? 0 : Number(Math.min(8 - k, { bass: 3.8, harp: 4.0, flute: 2.6 }[instrument] - { bass: 2.4, harp: 0.5, flute: 1.2 }[instrument] * activity[k]!).toFixed(4)))
+    let last = -1
+    notes.forEach((note, k) => {
+      if (!filled[k]) last = -1
+      else if (note >= 0) {
+        if (last >= 0 && notes[last] === note) {
+          durations[last] = Math.min(8 - last, k - last + durations[k]!)
+          notes[k] = -1; durations[k] = 0
+        } else last = k
+      }
+    })
+    return { instrument, notes, gains, durations, values, pitch_targets: targets }
+  }
+  return [makePart('bass', slices.map((slice) => slice.mean)), makePart('harp', slices.map((slice) => slice.peak)), makePart('flute', slices.map(() => 0))]
 }
 
 /** Client-side pixel analyzer for uploaded images on `/scan`. */
@@ -511,7 +576,7 @@ async function analyzeImageClient(file: File, model: string): Promise<AnalyzeRes
     height: img.naturalHeight,
     model,
     title: file.name,
-    explain: `Client-side luminance & colour measurement (${cols}×${rows} cells) read through the ${model} physical model. Uncalibrated artistic mapping.`,
+    explain: `Client-side luminance measurement (${cols}×${rows} cells), played as a chord-constrained bass and harp with intensity-driven level. This is an uncalibrated artistic mapping, not a scientific value reading.`,
     duration,
     layers: [],
     voices: clientVoices(cells, model),

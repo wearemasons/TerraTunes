@@ -17,7 +17,9 @@ def test_list_and_detail(client: TestClient) -> None:
     assert tracks[0]["thumbnail_url"].endswith("/tracks/test-track/thumbnail")
     detail = client.get("/tracks/test-track").json()
     assert detail["frame_count"] == 4
-    assert detail["audio_key"].startswith("Pitch shows")
+    assert detail["audio_key"].startswith("The map measures")
+    assert "composition, not another data measurement" in detail["audio_key"]
+    assert "Louder and fuller" in detail["audio_key"]
     assert detail["transcript"][0]["frame"] == 0
     assert detail["synthetic"] is False
 

@@ -22,7 +22,7 @@ Frontend work is broken into phases in [FRONTEND_PLAN.md](FRONTEND_PLAN.md); Tra
 - [x] P0 Colorbar calibration in CIELAB with masks, chroma check and despeckle (+ tests)
 - [x] P0 Mapping rules ported to `app/mapping/rules.py` (monotonic, deterministic, tested)
 - [x] P0 `GET /score` with ETag
-- [ ] P1 `render/synth.py` offline WAV/MP3 + `/render` (playlist deliverable)
+- [x] P1 `render/synth.py` offline WAV/MP3 + `/render` (playlist deliverable; v15 backend stream)
 - [ ] P1 Scheduled daily rebuild (SVS pages update daily)
 - [ ] P2 `/analyze` upload with luminance fallback
 
@@ -30,9 +30,9 @@ Frontend work is broken into phases in [FRONTEND_PLAN.md](FRONTEND_PLAN.md); Tra
 - [x] P0 Add deps: `@tanstack/react-query`, raw Web Audio (no Tone.js needed). `openapi-typescript` waits for the backend
 - [x] P0 Routes: `/`, `/track/$id`, `/about`, `__root` with skip link and live region
 - [x] P0 Typed API client + Query hooks + demo fallback (synthetic data when the API is down)
-- [x] P0 `AudioEngine`: init on gesture, voices (drone, melody, rhythm, accent), master limiter
+- [x] P0 `AudioEngine`: init on gesture, score-driven notes/durations/gains, approximate WebAudio timbre, master limiter
 - [x] P0 Player: canvas, transport, scrubber, volume, audio key panel
-- [x] P0 Scan-mode playback from `column_notes`
+- [x] P0 Scan-mode playback from scored eight-slot frames (backend render is authoritative)
 - [x] P0 Keyboard shortcuts + help dialog
 - [x] P1 Explore mode (pointer + arrow keys, value readout)
 - [x] P1 Time-series playback with tension (Overview mode)
@@ -67,4 +67,5 @@ Frontend work is broken into phases in [FRONTEND_PLAN.md](FRONTEND_PLAN.md); Tra
 Data (A) → colormap (B) → score (B) → player (C) → a11y pass (D) → submission (E).
 Frontend can start in parallel against a **mock score** (`docs/examples/score.mock.json`, create on day 0).
 
-- [x] SAC26: re-voice the sonification as three instruments in a hall (mapping_version 14) - quantised bass/harp/flute lines, one note set per 0.5 s scan step, additive entry, static centred imaging, Schroeder hall (RT60 2.2 s, wet 0.30), noise/drone/tick/chime layers removed; contract (`instruments`, `voices`, 8 steps/frame), generated accessibility copy, tests and docs updated. Frontend `phenomena.ts` is now a documented fallback. Measured on real renders: onsets on-grid within 17 ms RMS, EBU LRA 0.3-3.1 LU, L/R correlation 0.98-0.99, 99 % of spectral energy on the instruments' harmonics.
+- [x] Historical SAC26: re-voice the sonification as three instruments in a hall (mapping_version 14) - quantised bass/harp/flute lines, one note set per 0.5 s scan step, additive entry, static centred imaging, Schroeder hall (RT60 2.2 s, wet 0.30), noise/drone/tick/chime layers removed; contract (`instruments`, `voices`, 8 steps/frame), generated accessibility copy, tests and docs updated. Frontend `phenomena.ts` is now a documented fallback.
+- [x] Current v15 candidate: authored seeded eight-frame chord phrase disclosed as composition; every new attack is a current chord tone; relative within-frame contour, activity-driven density/ringing/gain, valid-slot ties, text-only thresholds, and no-data/no-new-note behavior documented. Candidate EBU LRA: SST 5.3 LU, wind 13.4 LU, vegetation 13.6 LU. Backend: 35 tests passed, ruff and mypy green. Frontend verification remains in progress. Candidate is not validated with blind users and is not claimed to be an ideal sonification.

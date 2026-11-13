@@ -1,12 +1,26 @@
 /**
- * Browser v14 ensemble fallback. The backend render remains preferred whenever `audioUrl`
- * is present; this path plays the same pre-quantised `voices` score: bass, harp and flute
- * on eight 0.5 s steps per frame, through a deterministic stereo hall.
+ * Browser v15 ensemble fallback. The backend render remains preferred whenever `audioUrl`
+ * is present; this path only realises the backend's pre-scored notes, durations and gains
+ * for bass, harp and flute through the existing deterministic stereo hall.
  */
 
 export type InstrumentId = 'bass' | 'harp' | 'flute'
-export interface VoicePart { instrument: InstrumentId; notes: number[] }
-export interface VoiceEvent { instrument: InstrumentId; t: number; midi: number; gain: number }
+export interface VoicePart {
+  instrument: InstrumentId
+  notes: number[]
+  gains: number[]
+  durations: number[]
+  values: number[]
+  pitch_targets: number[]
+}
+export interface VoiceEvent {
+  instrument: InstrumentId
+  t: number
+  midi: number
+  gain: number
+  duration: number
+  gainTargets: { offset: number; value: number }[]
+}
 
 export interface SpecCell {
   row: number; col: number; cx: number; cy: number; brightness: number; saturation: number; hue: number
@@ -20,18 +34,51 @@ export interface Spec {
   grid: { cols: number; rows: number; cells: SpecCell[] }; frame_stats: Record<string, number>
   drop_count?: number; crackle_count?: number; audioUrl?: string
   terraDetail?: import('../types').TerraTrackDetail; terraScore?: import('../types').TerraScore
-  /** A single-frame v14 score for the client-side image scanner. */
+  /** A single-frame v15 score for the client-side image scanner. */
   voices?: VoicePart[]
   colorWaves?: { cool: number[]; mid: number[]; hot: number[]; peak: number[] }
 }
 export interface PlaySnapshot { playing: boolean; position: number; duration: number; level: number }
 
-/** Pure schedule extraction: mirrors backend's eight steady scan steps per frame. */
-export function buildEvents(voices: VoicePart[], frameDurationS: number): VoiceEvent[] {
-  const step = frameDurationS / 8
-  return voices.flatMap((voice) => voice.notes.flatMap((midi, index) =>
-    midi >= 0 ? [{ instrument: voice.instrument, t: index * step, midi, gain: voice.instrument === 'flute' ? 0.16 : 0.2 }] : [],
-  ))
+/**
+ * Pure schedule extraction: mirrors the backend's steady scan grid. Equal consecutive tones are
+ * one held event, while every stored gain knot remains available for smooth browser automation.
+ */
+export function buildEvents(
+  voices: VoicePart[],
+  frameDurationS: number,
+  gainEnvelope: number[] = [],
+  stepsPerFrame = 8,
+): VoiceEvent[] {
+  const steps = Math.max(1, stepsPerFrame)
+  const step = frameDurationS / steps
+  const levels: Record<InstrumentId, number> = { bass: 0.28, harp: 0.18, flute: 0.17 }
+  const events: VoiceEvent[] = []
+
+  for (const voice of voices) {
+    for (let index = 0; index < voice.notes.length; index++) {
+      const midi = voice.notes[index] ?? -1
+      if (midi < 0) continue
+      const duration = Math.min(frameDurationS - index * step, Math.max(0, voice.durations[index] ?? 1) * step)
+      if (!duration) continue
+      const targets = []
+      for (let slot = index; slot < steps && (slot - index) * step < duration; slot++) {
+        targets.push({
+          offset: (slot - index) * step,
+          value: levels[voice.instrument] * (voice.gains[slot] ?? 1) * (gainEnvelope[slot] ?? 1),
+        })
+      }
+      events.push({
+        instrument: voice.instrument,
+        t: index * step,
+        midi,
+        gain: targets[0]?.value ?? 0,
+        duration,
+        gainTargets: targets,
+      })
+    }
+  }
+  return events
 }
 
 const midiHz = (midi: number) => 440 * 2 ** ((midi - 69) / 12)
@@ -117,8 +164,11 @@ export class PhenomenonPlayer {
     if (!this.spec) return
     const score = this.spec.terraScore
     if (score) {
-      const frameS = 8 * (60 / score.key.bpm)
-      score.frames.forEach((frame, fi) => this.scheduleEvents(buildEvents(frame.voices, frameS), fi * frameS, from))
+      const steps = Math.max(1, score.steps_per_frame || 8)
+      const frameS = steps * (60 / score.key.bpm)
+      score.frames.forEach((frame, fi) => this.scheduleEvents(
+        buildEvents(frame.voices, frameS, frame.gain_envelope, steps), fi * frameS, from,
+      ))
     } else if (this.spec.voices) this.scheduleEvents(buildEvents(this.spec.voices, 4), 0, from)
   }
 
@@ -128,15 +178,39 @@ export class PhenomenonPlayer {
 
   private scheduleVoice(event: VoiceEvent, transportTime: number) {
     const ctx = this.ctx!; const when = Math.max(ctx.currentTime + 0.01, this.startedAt + transportTime)
-    const duration = event.instrument === 'harp' ? 1.6 : event.instrument === 'flute' ? 0.68 : 0.62
-    const gain = ctx.createGain(); const pan = ctx.createStereoPanner(); pan.pan.value = event.instrument === 'bass' ? -0.12 : event.instrument === 'harp' ? 0.12 : 0
-    const g = event.gain * 0.48; gain.gain.setValueAtTime(0.0001, when)
-    gain.gain.exponentialRampToValueAtTime(g, when + (event.instrument === 'flute' ? 0.06 : 0.008))
-    gain.gain.setValueAtTime(g, when + duration * 0.72); gain.gain.exponentialRampToValueAtTime(0.0001, when + duration)
-    gain.connect(pan).connect(this.dry!); pan.connect(this.wet!)
+    const duration = Math.max(0.02, event.duration)
+    const gain = ctx.createGain(); const amplitude = ctx.createGain()
+    const pan = ctx.createStereoPanner(); pan.pan.value = event.instrument === 'bass' ? 0 : event.instrument === 'harp' ? 0.10 : -0.10
+    // Separate instrument articulation from measured amplitude automation; only the latter
+    // is a data-driven fader. Bound its log-gain slope to the backend's 45 dB/s combined limit.
+    let db = 20 * Math.log10(Math.max(0.0001, event.gain))
+    let lastOffset = 0
+    amplitude.gain.setValueAtTime(10 ** (db / 20), when)
+    for (const target of event.gainTargets.slice(1)) {
+      const targetTime = when + target.offset
+      if (targetTime < when + duration - 0.02) {
+        const wanted = 20 * Math.log10(Math.max(0.0001, target.value))
+        const limit = 45 * (target.offset - lastOffset)
+        db = Math.max(db - limit, Math.min(db + limit, wanted))
+        amplitude.gain.exponentialRampToValueAtTime(10 ** (db / 20), targetTime)
+        lastOffset = target.offset
+      }
+    }
+    const attack = Math.min(duration / 4, event.instrument === 'flute' ? 0.06 : 0.008)
+    const release = Math.min(0.14, duration / 3)
+    gain.gain.setValueAtTime(0.0001, when)
+    gain.gain.exponentialRampToValueAtTime(1, when + attack)
+    gain.gain.setValueAtTime(1, when + duration - release)
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + duration)
+    gain.connect(amplitude).connect(pan).connect(this.dry!); pan.connect(this.wet!)
     if (event.instrument === 'flute') {
-      const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(midiHz(event.midi) * 0.99, when); osc.frequency.setValueAtTime(midiHz(event.midi), when + 0.12)
-      osc.frequency.setValueAtTime(midiHz(event.midi) * 1.004, when + 0.25); osc.connect(gain); osc.start(when); osc.stop(when + duration + 0.02); this.nodes.push(osc)
+      const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(midiHz(event.midi) * 0.99, when)
+      osc.frequency.exponentialRampToValueAtTime(midiHz(event.midi), when + Math.min(0.12, duration / 2))
+      const vibrato = ctx.createOscillator(); const depth = ctx.createGain()
+      vibrato.frequency.value = 5; depth.gain.setValueAtTime(0, when)
+      if (duration > 0.3) depth.gain.linearRampToValueAtTime(midiHz(event.midi) * 0.0045, when + 0.3)
+      vibrato.connect(depth).connect(osc.frequency); vibrato.start(when); vibrato.stop(when + duration + 0.02)
+      osc.connect(gain); osc.start(when); osc.stop(when + duration + 0.02); this.nodes.push(osc, vibrato)
       return
     }
     const osc = ctx.createOscillator(); osc.type = 'sawtooth'; const base = midiHz(event.midi)

@@ -130,10 +130,8 @@ def render_playlist(ids: list[str], modes: "list[Mode]", fmt: "Literal['wav', 'm
                 if frame.layers:
                     for a in frame.layers.alerts:
                         if a.new or f == 0:
-                            # v14 has no chime: a threshold is marked by the harp
-                            # lifting an octave, which is pitch, so it is spelled
-                            # that way in the caption too
-                            notes.append(f"harp lifts an octave: {a.label} near {a.region}")
+                            # Thresholds are contextual text, not separate scored sound effects.
+                            notes.append(f"threshold: {a.label} near {a.region}")
                     if frame.layers.regions:
                         r = frame.layers.regions[0]
                         notes.append(f"highest values near {r.region}")

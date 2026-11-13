@@ -111,7 +111,7 @@ class StoredTrack:
         return TrackDetail(
             **self.summary(thumbnail_url).model_dump(),
             description=self.meta.description,
-            audio_key=audio_key_text(self.meta.legend),  # key for the browser engine
+            audio_key=audio_key_text(self.meta.legend, score.chord_progression),  # key for the browser engine
             sound=self.sound_info(render_url),
             legend=self.meta.legend,
             presets=["musical", "clear"],
@@ -133,14 +133,11 @@ def _score(track_id: str, preset: PresetId, _mtime: int) -> Score:
     if track is None:
         raise KeyError(track_id)
     m = track.meta
+    layers = analyse_frames(track.grids, m.legend, track.sound) if track.sound is not None else None
     score = build_score(
-        track_id=m.id, theme=m.theme, legend=m.legend, labels=m.frame_labels, grids=track.grids, preset=preset
+        track_id=m.id, theme=m.theme, legend=m.legend, labels=m.frame_labels, grids=track.grids, preset=preset, layers=layers
     )
     if track.sound is not None:
-        for frame, layers in zip(
-            score.frames, analyse_frames(track.grids, m.legend, track.sound), strict=True
-        ):
-            frame.layers = layers
         score.sound = track.sound_info()
     return score
 

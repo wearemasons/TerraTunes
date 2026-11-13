@@ -90,9 +90,9 @@ class Synth:
     ) -> F:
         """Exponential attack, then either a pluck decay or a steady sustain, then a release.
 
-        Every ramp is exponential and every attack and release is at least 5 ms, so no note can
-        move the gain by more than 6 dB per 100 ms (the audio-safety rule in AGENTS.md) and no
-        grain can start or stop on a discontinuity.
+        Every ramp is exponential and every attack and release is at least 5 ms, so no
+        grain starts or stops on a discontinuity. The 6 dB/100 ms control-slew bound is separately
+        enforced by render.smooth_gain; an acoustic note attack is not a fader gain step.
         """
         att = max(5e-3, attack)
         env = np.where(k < att, _FLOOR * (1.0 / _FLOOR) ** np.minimum(1.0, k / att), 1.0).astype(
@@ -106,7 +106,7 @@ class Synth:
             rel = max(5e-3, release)
             start = max(att, total - rel)
             env = (
-                env * np.where(k <= start, 1.0, _FLOOR ** np.minimum(1.0, (k - start) / rel)).astype(
+                env * np.where(k <= start, 1.0, _FLOOR ** np.clip((k - start) / rel, 0.0, 1.0)).astype(
                     np.float32
                 )
             ).astype(np.float32)

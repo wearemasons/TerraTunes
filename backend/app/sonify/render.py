@@ -1,25 +1,9 @@
-"""Render a track's score to audio (WAV/MP3).
+"""Realise the v15 score with the v14 acoustic instruments and hall.
 
-v14 — three instruments in a hall. The renderer has no opinions about music: every pitch, entrance
-and accent comes from the score (`app/mapping/rules.py`). All this file does is acoustics:
-
-  * one set of notes per scan step, on a fixed grid (`step_s = FRAME_S[mode] / steps_per_frame`,
-    0.5 s in sweep mode), so the pulse is perfectly steady and never drifts;
-  * three voices, each with its own instrument: low plucked string, harp, flute (`synth.py`). No
-    drone, no pad, no percussion, no environmental noise and no earcons — chords are what happens
-    when the three lines sound together;
-  * static, centred imaging: one small fixed offset per instrument (max |pan| 0.10; the brief
-    allows 0.25). The melody no longer sweeps left-to-right — position inside a frame is carried
-    by *time*;
-  * a Schroeder hall on the whole mix (RT60 ≈ 2.2 s, 26 ms pre-delay, HF-damped combs, wet 0.30),
-    so an isolated harp pluck keeps ringing after it has been played;
-  * a deliberately narrow dynamic range: note gain follows the measured slice intensity by at most
-    +-2.7 dB, so there are no swells and no gain jump anywhere near 6 dB per 100 ms;
-  * a deterministic soft-knee master limiter, then peak normalisation to 0.89 (-1 dBFS).
-
-The layers removed with mapping_version 13 -> 14 were the phenomenon noise bed (rain, wind, fire,
-surf, biophony, temperature, haze, traffic), the 3-oscillator drone, the noise/tick rhythm hits,
-the inharmonic hotspot bell and the two-tone alert earcon.
+Pitches, rests, durations and intensity gain targets come only from mapping/rules.py. Shared
+instrument-bus and ensemble automation interpolate exponentially, with a provable combined
+control slew below 6 dB/100 ms. Acoustic pluck attacks are not gain-control jumps. The master
+soft-knee limiter and peak ceiling remain, without dynamic-range compression of the quiet map.
 """
 
 import hashlib
@@ -32,14 +16,14 @@ import av
 import numpy as np
 from numpy.typing import NDArray
 
-from app.mapping.rules import STEPS_PER_FRAME, accent_steps, frame_chord
+from app.mapping.rules import GAIN_SLEW_DB_PER_S, frame_chord
 from app.schemas.models import FrameLayers, InstrumentId, Score
 from app.sonify.spec import SoundSpec
 from app.sonify.synth import SR, Synth
 
 Mode = Literal["sweep", "overview"]
 FRAME_S: dict[str, float] = {"sweep": 4.0, "overview": 2.5}
-TAIL_S = 1.0
+TAIL_S = 1.6
 
 # -------------------------------------------------------------------------- the mix
 #: Fixed, small stereo offsets. Nothing moves during the track.
@@ -51,9 +35,6 @@ LEVEL: dict[InstrumentId, float] = {"bass": 0.28, "harp": 0.18, "flute": 0.17}
 #: Note length in scan steps. Plucked voices ring well past their step (the harp over three steps,
 #: so consecutive plucks blend into a chord); the flute sustains just past its step for a legato line.
 DUR_STEPS: dict[InstrumentId, float] = {"bass": 1.1, "harp": 3.2, "flute": 1.35}
-
-#: How far the measured slice intensity may move a note's level: 0.85..1.15 is 2.7 dB.
-GAIN_LOW, GAIN_HIGH = 0.85, 1.15
 
 #: Hall mix and the master limiter (soft knee from 0.72, tanh to 0.96, output peak 0.89).
 REVERB_WET = 0.30
@@ -70,9 +51,7 @@ class Voice:
     dur_steps: float
 
 
-VOICES: tuple[Voice, ...] = tuple(
-    Voice(i, LEVEL[i], PAN[i], DUR_STEPS[i]) for i in ("bass", "harp", "flute")
-)
+VOICES: tuple[Voice, ...] = tuple(Voice(i, LEVEL[i], PAN[i], DUR_STEPS[i]) for i in ("bass", "harp", "flute"))
 
 
 def _midi_hz(midi: int) -> float:
@@ -102,9 +81,23 @@ def _place(out: NDArray[np.float32], grain: NDArray[np.float32], at_s: float, pa
         out[:, at:end] += _pan(grain[: end - at], pan)
 
 
-def _note_gain(base: float, inten: float) -> float:
-    """Slice intensity nudges the level, but only inside a 2.7 dB window."""
-    return float(base * (GAIN_LOW + (GAIN_HIGH - GAIN_LOW) * min(1.0, max(0.0, inten))))
+def smooth_gain(
+    targets: list[float], step_s: float, samples: int, max_db_s: float = GAIN_SLEW_DB_PER_S
+) -> NDArray[np.float32]:
+    """Exponential interpolation with a bounded derivative in dB, no discrete gain jumps.
+
+    Successive control knots are rate-limited before interpolation. The final automation holds
+    its last value through the tail. Silence itself is made by not scheduling notes, not by
+    slamming a master fader to zero.
+    """
+    if not targets:
+        return np.ones(samples, dtype=np.float32)
+    db = 20 * np.log10(np.maximum(np.asarray(targets, dtype=np.float64), 1e-4))
+    for i in range(1, len(db)):
+        db[i] = np.clip(db[i], db[i - 1] - max_db_s * step_s, db[i - 1] + max_db_s * step_s)
+    t = np.arange(samples, dtype=np.float64) / SR
+    curve = np.interp(t, np.arange(len(db)) * step_s, db)
+    return (10 ** (curve / 20)).astype(np.float32)
 
 
 def render(
@@ -117,76 +110,67 @@ def render(
     melody: bool = True,
     grids: NDArray[np.uint8] | None = None,
 ) -> NDArray[np.float32]:
-    """Return stereo float32 audio, shape (2, samples), peak <= 0.89.
-
-    `melody=False` (the CLI's `--no-melody`, the cache key's "nature" variant) plays the value line
-    alone: the low plucked string, one note per scan step, no harp and no flute. In v14 there is no
-    non-musical bed left to fall back to, so the measured value mapping *is* the audio either way.
-    """
+    """Return stereo float32 samples. `melody=False` keeps only the scored bass line."""
     frame_s = FRAME_S[mode]
-    frames = len(layers) if layers else len(score.frames)
+    frames = len(score.frames)
     n = int((frames * frame_s + TAIL_S) * SR)
     s = Synth(n, _seed(track_id, mode))
-    out = np.zeros((2, n), dtype=np.float32)
     steps = max(1, score.steps_per_frame)
     step_s = frame_s / steps
-
+    out = np.zeros((2, n), dtype=np.float32)
     active = [v for v in VOICES if melody or v.instrument == "bass"]
-    grains: dict[InstrumentId, dict[tuple[int, bool], NDArray[np.float32]]] = {
-        v.instrument: {} for v in VOICES
-    }
-
-    def play(voice: Voice, midi: int, at_s: float, inten: float, octave_lift: bool = False) -> None:
-        key = (midi, octave_lift)
-        cache = grains[voice.instrument]
-        if key not in cache:
-            fn = {"bass": s.plucked_bass, "harp": s.harp, "flute": s.flute}[voice.instrument]
-            grain = fn(_midi_hz(midi + (12 if octave_lift else 0)), voice.dur_steps * step_s)
-            cache[key] = (grain / max(float(np.abs(grain).max()), 1e-9)).astype(np.float32)
-        _place(out, cache[key] * np.float32(_note_gain(voice.gain, inten)), at_s, voice.pan)
-
-    for f, frame in enumerate(score.frames[:frames]):
-        t0 = f * frame_s
-        lf = layers[f] if f < len(layers) else None
-        inten = (
-            [frame.loudness] * steps
-            if lf is None
-            else list(lf.column_intensity) + [0.0] * max(0, steps - len(lf.column_intensity))
+    for voice in active:
+        bus = np.zeros((2, n), dtype=np.float32)
+        gain_targets: list[float] = []
+        cache: dict[tuple[int, float], NDArray[np.float32]] = {}
+        for f, frame in enumerate(score.frames):
+            part = next((p for p in frame.voices if p.instrument == voice.instrument), None)
+            if part is None:
+                gain_targets.extend([1e-4] * steps)
+                continue
+            gains = part.gains or [1.0] * steps
+            if mode == "overview":
+                gains = [float(np.mean(gains))] * steps
+            gain_targets.extend(gains)
+            if mode == "overview":
+                midi = frame_chord(frame.voices).get(voice.instrument, -1)
+                events = [(0, midi, float(steps))] if midi >= 0 else []
+            else:
+                events = [
+                    (k, midi, part.durations[k] if part.durations else voice.dur_steps)
+                    for k, midi in enumerate(part.notes)
+                    if midi >= 0
+                ]
+            for k, midi, dur_steps in events:
+                dur = min(dur_steps * step_s, frame_s - k * step_s)
+                key = (midi, round(dur, 4))
+                if key not in cache:
+                    fn = {"bass": s.plucked_bass, "harp": s.harp, "flute": s.flute}[voice.instrument]
+                    grain = fn(_midi_hz(midi), dur)
+                    # Soft exponential release at the frame boundary; no dry cross-chord notes.
+                    release = min(int(0.14 * SR), len(grain) // 3)
+                    if release > 0:
+                        grain[-release:] *= np.geomspace(1.0, 1e-4, release).astype(np.float32)
+                    cache[key] = grain
+                _place(bus, cache[key] * np.float32(voice.gain), f * frame_s + k * step_s, voice.pan)
+        # 35 dB/s on voice buses + 10 dB/s on the ensemble = 45 dB/s, or 4.5 dB/100 ms.
+        bus *= smooth_gain(gain_targets, step_s, n, GAIN_SLEW_DB_PER_S - 10.0)
+        out += bus
+    ensemble = [
+        g
+        for frame in score.frames
+        for g in (
+            [float(np.mean(frame.gain_envelope or [1.0]))] * steps
+            if mode == "overview"
+            else (frame.gain_envelope or [1.0] * steps)
         )
-        lifts = accent_steps(lf.alerts, steps) if lf is not None else set()
-        lines = {p.instrument: list(p.notes) for p in frame.voices}
-
-        if mode == "overview":
-            chord = frame_chord(frame.voices)
-            for voice in active:
-                midi = chord.get(voice.instrument, -1)
-                if midi >= 0:
-                    play(
-                        voice,
-                        midi,
-                        t0 + 0.02,
-                        frame.loudness,
-                        octave_lift=bool(lifts) and voice.instrument == "harp",
-                    )
-            continue
-
-        for k in range(steps):
-            at_k = t0 + k * step_s
-            lift = k in lifts
-            for voice in active:
-                line = lines.get(voice.instrument, [])
-                midi = line[k] if k < len(line) else -1
-                if midi >= 0:
-                    play(voice, midi, at_k, inten[k], octave_lift=lift and voice.instrument == "harp")
-
-    # Global safety fade-in, the hall, then the master limiter.
+    ]
+    out *= smooth_gain(ensemble, step_s, n, 10.0)
     edge = int(0.03 * SR)
-    ramp = (0.5 - 0.5 * np.cos(np.pi * np.linspace(0, 1, edge, dtype=np.float32))).astype(np.float32)
-    out[:, :edge] *= ramp
+    out[:, :edge] *= np.geomspace(1e-4, 1.0, edge).astype(np.float32)
     wet = s.reverb(out, REVERB_WET)
-    fade = int(0.4 * SR)
-    tail = (0.5 - 0.5 * np.cos(np.pi * np.linspace(0, 1, fade, dtype=np.float32))).astype(np.float32)
-    wet[:, -fade:] *= tail[::-1]
+    fade = int(0.6 * SR)
+    wet[:, -fade:] *= np.geomspace(1.0, 1e-4, fade).astype(np.float32)
     wet = _limit(wet)
     peak = float(np.abs(wet).max()) or 1.0
     return ((wet / peak) * PEAK_OUT).astype(np.float32)
@@ -228,45 +212,48 @@ def encode(audio: NDArray[np.float32], fmt: Literal["wav", "mp3"]) -> bytes:
 
 
 def listening_guide(spec: SoundSpec, unit_label: str, mode: Mode = "sweep", melody: bool = True) -> str:
-    """Plain-language key for the rendered audio. Describes only what the renderer actually plays."""
+    """Describe the scored harmony, relative contour, intensity, rests and steady position grid."""
     parts = [spec.description]
     if mode == "sweep":
         parts.append(
-            f"Each frame lasts {FRAME_S['sweep']:.0f} seconds and the map is scanned west to east in "
-            f"{STEPS_PER_FRAME} slices — one note per slice half a second apart, on a steady pulse "
-            "that never speeds up or slows down. The notes of a frame run from its west edge to its "
-            "east edge, so a place in the map is a moment in the frame, not a side of the head. The "
-            "mix sits in the middle and never moves from left to right."
+            "Each frame lasts four seconds. Eight half-second slots scan west to east: "
+            "early is west and late is east. Some slots are quiet-area rests; the grid "
+            "never changes speed. The instruments stay near the centre, so location is "
+            "time, not left or right. This is a longitude summary, not a full latitude map."
         )
     else:
         parts.append(
-            f"Each frame is one {FRAME_S['overview']:.1f}-second chord, built from the middle of what "
-            "each instrument played, so you hear the change over time rather than the shape of the map."
+            "Each frame is one 2.5-second chord, summarising the measured lines over time "
+            "rather than scanning longitude."
         )
     parts.append(
-        "The players: a low plucked string gives the average value of the slice, a harp gives its "
-        f"highest value, and a flute holds longer notes tracing how that slice changed since the "
-        f"previous frame. Higher notes mean higher {unit_label} on the bass and the harp; on the "
-        "flute, a rising line means the values went up since the last frame."
+        f"Bass follows the slice's average {unit_label}; harp follows its highest value; "
+        "flute follows signed change since the previous frame. Within a frame, higher "
+        "measured slices choose equal or higher chord tones. Real relative differences "
+        "are spread across the register; equal values stay equal. Pitch is relative "
+        "contour, not an exact reading in units."
     )
     parts.append(
-        "There are no drums, no drones and no weather sounds: the chords are simply what the three "
-        "lines make when they sound together, and each note keeps ringing in a hall-like reverb "
-        "after it has been played."
+        "The theme has a repeating, composed eight-frame chord phrase, one chord per "
+        "frame. All new notes belong to that chord. The progression is musical composition, "
+        "not measured data; do not compare raw pitches across chord changes."
+    )
+    parts.append(
+        "Louder and fuller means more intense activity relative to this track. Quiet "
+        "areas are soft and sparse with longer notes; active areas gain more ringing "
+        "harp plucks and a stronger ensemble swell. There are no drums, drones or weather "
+        "sounds, only acoustic-modelled strings, flute and a hall tail."
     )
     if not melody:
-        parts.append("This version plays the low plucked line alone — no harp, no flute.")
-    else:
-        parts.append(
-            "The harp joins as soon as the picture has real contrast, the flute as soon as it starts "
-            "moving, so the music thickens one instrument at a time. Loudness stays level: a louder "
-            "note is not more of anything."
-        )
+        parts.append("This version plays the scored low plucked line alone: no harp or flute.")
     if spec.thresholds:
-        lines = "; ".join(t.label for t in spec.thresholds)
         parts.append(
-            "Where the map first crosses one of these lines, the harp lifts an octave for that "
-            f"slice: {lines}."
+            "Named thresholds remain in the text timeline, not as separate sound effects: "
+            + "; ".join(t.label for t in spec.thresholds)
+            + "."
         )
-    parts.append("Silence means no data, for example land on an ocean map. Best with headphones.")
+    parts.append(
+        "A rest can mean low activity. No-data slices schedule no new notes; an empty "
+        "map is silent once the previous hall tail fades. Best with headphones."
+    )
     return " ".join(parts)

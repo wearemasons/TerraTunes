@@ -122,6 +122,15 @@ export interface TerraFrameLayers {
   }[]
 }
 
+export interface TerraVoicePart {
+  instrument: 'bass' | 'harp' | 'flute'
+  notes: number[]
+  gains: number[]
+  durations: number[]
+  values: number[]
+  pitch_targets: number[]
+}
+
 export interface TerraFrameScore {
   index: number
   label: string
@@ -130,9 +139,12 @@ export interface TerraFrameScore {
   brightness: number
   rhythm_density: number
   column_notes: number[]
-  /** mapping_version 14: the three instrument lines for this frame, one MIDI per scan step.
-   *  -1 is silence. Decided in backend/app/mapping/rules.py — never re-derived here. */
-  voices: { instrument: 'bass' | 'harp' | 'flute'; notes: number[] }[]
+  /** v15 score: all musical choices are backend-authored; the browser only realises them. */
+  voices: TerraVoicePart[]
+  chord_name: string
+  chord_pcs: number[]
+  activity: number[]
+  gain_envelope: number[]
   hotspot: { x: number; y: number; note: number; strength: number } | null
   stats: { mean: number; min: number; max: number; extreme_share: number }
   description: string
@@ -154,6 +166,8 @@ export interface TerraScore {
   mapping_version: string
   track_id: string
   preset: 'musical' | 'clear'
+  seed: number
+  chord_progression: string[]
   key: { root: string; root_midi: number; scale: string; bpm: number }
   grid: { cols: number; rows: number }
   steps_per_frame: number

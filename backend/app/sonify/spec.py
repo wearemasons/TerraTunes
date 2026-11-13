@@ -1,14 +1,8 @@
-"""What each track measures, the real-world lines that matter, and how the ensemble sings them.
+"""Phenomenon intensity definitions and contextual thresholds, not musical decisions.
 
-Since mapping_version 14 the sound is an ensemble of three pitched instruments (plucked bass, harp,
-flute) — see `render.py` and `docs/SONIFICATION_DESIGN.md`. Nothing here selects a noise generator
-any more: `phenomenon` is the *label of the physical process the track measures* (it also drives the
-browser's visual model), and `description` is the plain-language text the API returns as
-`sound.description`, so a screen reader announces which channel each instrument carries.
-
-Values still come from the calibrated colourbar measurement; `intensity` maps a real value to the
-0..1 slice figure that nudges note level inside a 2.7 dB window, and `thresholds` are the lines with
-real-world meaning, marked by the harp lifting an octave.
+Mapping v15 uses these intensity figures for track-relative level and note density. Pitches,
+durations and composed harmony belong to mapping/rules.py. Thresholds are textual context;
+they do not trigger a separate instrument or an octave jump.
 """
 
 import math
@@ -19,52 +13,39 @@ from pydantic import BaseModel, Field
 Phenomenon = Literal["rain", "wind", "fire", "surf", "biophony", "temperature", "haze", "traffic"]
 
 _ENSEMBLE = (
-    "An orchestra of three soloists, no drums and no weather noise: the plucked bass plays the "
-    "average value of each slice as the map is scanned west to east, the harp plays the highest "
-    "value in that slice, and the flute holds long notes tracing how the slice changed since the "
-    "previous frame, all over a string section holding the chord those lines imply. Higher values "
-    "mean higher notes, never louder ones — loudness stays level, and silence means no data."
+    "Three instruments carry the measured map: bass follows the slice average, harp its highest "
+    "value, and flute its signed change since the previous frame. A disclosed, composed chord "
+    "phrase supplies harmony; it is not a measured environmental trend. Pitch conveys relative "
+    "values within a frame, not exact units or a comparison across chord changes. The defined "
+    "phenomenon intensity, rescaled relative to this track, controls level and fullness. Equal "
+    "tones are held; quiet areas have fewer attacks. A rest can mean low activity, while no-data "
+    "slices trigger no new notes. There are no weather noises, drums or extra string section."
 )
 
 PHENOMENON_INFO: dict[str, str] = {
-    "rain": f"Precipitation: {_ENSEMBLE} A rising bass line means wetter air over that part of the map.",
-    "wind": f"Wind speed: {_ENSEMBLE} A rising bass line means stronger wind over that part of the map.",
-    "fire": (
-        f"Smoke gas from burning: {_ENSEMBLE} A rising bass line means more carbon monoxide over that "
-        "part of the map."
-    ),
-    "surf": (
-        f"Sea surface temperature: {_ENSEMBLE} A rising bass line means warmer water, and the harp "
-        "reaches its top notes where the sea is warm enough to fuel storms."
-    ),
-    "biophony": (
-        f"Living green cover: {_ENSEMBLE} A rising bass line means greener, denser vegetation."
-    ),
-    "temperature": (
-        f"Air temperature just above the ground: {_ENSEMBLE} Cold places sit at the bottom of the "
-        "scale and hot places at the top; freezing is roughly the middle of the range on these maps."
-    ),
-    "haze": (
-        f"Fine particles and ozone (there is no natural sound for these, so the mapping is agreed "
-        f"rather than imitative): {_ENSEMBLE} A rising bass line means dirtier air."
-    ),
-    "traffic": (
-        f"Nitrogen oxides, mostly from engines: {_ENSEMBLE} A rising bass line means more pollution "
-        "over that part of the map."
-    ),
+    "rain": f"Precipitation: {_ENSEMBLE}",
+    "wind": f"Wind speed: {_ENSEMBLE}",
+    "fire": f"Carbon monoxide used as a smoke-gas indicator: {_ENSEMBLE} It is not a direct measurement of flames.",
+    "surf": f"Sea surface temperature: {_ENSEMBLE} It is not a recording of waves.",
+    "biophony": f"Vegetation index: {_ENSEMBLE} Fuller does not mean more dangerous; the intensity definition follows this track's vegetation scale.",
+    "temperature": f"Near-surface air temperature: {_ENSEMBLE}",
+    "haze": f"Fine particles or ozone, as named on the selected record: {_ENSEMBLE}",
+    "traffic": f"Nitrogen oxides: {_ENSEMBLE} This is a concentration mapping, not a count of vehicles or identification of emission sources.",
 }
 
 
 class Threshold(BaseModel):
     value: float
     label: str
-    """Spoken label, e.g. "hurricane-force wind"."""
+    """Spoken label, e.g. hurricane-force wind; contextual text, not an audible alarm."""
     above: bool = True
 
 
 class IntensityMap(BaseModel):
-    """Real value → 0..1 slice figure. In v14 this only nudges note level (±2.7 dB) and the
-    visualisation; pitch comes from the calibrated value itself, via app/mapping/rules.py."""
+    """Real value to phenomenon intensity (0..1), later rescaled by the mapping layer.
+
+    This is a declared perceptual intensity convention, not a universal measure of risk.
+    """
 
     lo: float
     hi: float

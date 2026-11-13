@@ -4,8 +4,8 @@ Project: Earth Information Jukebox (NASA Space Apps 2026). Read [README.md](READ
 
 ## Stack
 - Frontend: `frontend/` — one flat package, no workspaces. React 19 + **TanStack Router** (+ TanStack Query) + Vite + Tailwind 4 + Zustand. There is no UI kit: the cabinet, the painted world and the opening film are hand-written components with their own stylesheet.
-- Backend: `backend/` = **FastAPI**, Python 3.12, `uv`, Pydantic v2, NumPy, OpenCV (headless), Pillow, ffmpeg.
-- Contract: [docs/API_CONTRACT.md](docs/API_CONTRACT.md). Pydantic schemas are the source of truth; TS types are generated.
+- Backend: `backend/` = **FastAPI**, Python 3.12, `uv`, Pydantic v2, NumPy, Pillow, PyAV and ffmpeg. The calibrated measurement pipeline does not use OpenCV.
+- Contract: [docs/API_CONTRACT.md](docs/API_CONTRACT.md). Pydantic schemas are the source of truth; manually mirrored TS types in `frontend/src/lib/types.ts` must be updated together.
 
 ## Commands
 ```bash

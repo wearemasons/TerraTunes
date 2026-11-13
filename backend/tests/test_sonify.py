@@ -1,14 +1,14 @@
-"""The orchestra: steady pulse, centred mix, level dynamics, acoustic (harmonic) content only."""
+"""The orchestra: steady pulse, centred mix, breathing dynamics, acoustic (harmonic) content only."""
 
 import numpy as np
 
-from app.mapping.rules import VOICE_ORDER, build_score, voice_ladder
+from app.mapping.rules import VOICE_ORDER, build_score, chord_ladder, contour_targets
 from app.schemas.models import FrameLayers, FrameScore, Legend, LegendTick, Score
 from app.sonify.analysis import analyse_frames, real_values
 from app.sonify.regions import region_name
-from app.sonify.render import FRAME_S, LEVEL, PAN, VOICES, _note_gain, encode, render
+from app.sonify.render import FRAME_S, PAN, VOICES, encode, render, smooth_gain
 from app.sonify.spec import IntensityMap, SoundSpec, Threshold
-from app.sonify.synth import SR
+from app.sonify.synth import SR, Synth
 
 LEGEND = Legend(
     label="Wind",
@@ -48,9 +48,7 @@ def line(frame: FrameScore, instrument: str) -> list[int]:
 
 
 def _render(layers: list[FrameLayers], melody: bool = True) -> np.ndarray:
-    return render(
-        track_id="t", score=make_score(), layers=layers, spec=SPEC, mode="sweep", melody=melody
-    )
+    return render(track_id="t", score=make_score(), layers=layers, spec=SPEC, mode="sweep", melody=melody)
 
 
 def _window_db(audio: np.ndarray, width_s: float = 0.25) -> np.ndarray:
@@ -102,20 +100,17 @@ def test_one_line_per_instrument_and_centred_placement() -> None:
     assert max(abs(p) for p in PAN.values()) <= 0.25
 
 
-def test_layers_and_additive_entry() -> None:
+def test_layers_and_activity_driven_entry() -> None:
     layers = analyse_frames(grids(), LEGEND, SPEC)
     assert layers[0].intensity == 0 and not layers[0].alerts
-    assert layers[1].alerts and layers[1].alerts[0].new and layers[1].alerts[0].x > 0.7
-    assert not layers[2].alerts[0].new  # already over the line: no repeat marker
+    assert layers[1].alerts[0].new and layers[1].alerts[0].x > 0.7
+    assert not layers[2].alerts[0].new
     sc = make_score()
-    # The storm arrives in frame 1: the harp's channel becomes active there and stays active.
     assert all(n == -1 for n in line(sc.frames[0], "harp"))
     assert any(n >= 0 for n in line(sc.frames[1], "harp"))
-    assert any(n >= 0 for n in line(sc.frames[2], "harp"))
-    # ... and the flute joins on the frame that actually changed, as long notes only.
     assert any(n >= 0 for n in line(sc.frames[1], "flute"))
-    # the flute line holds its notes: one per scan step, no faster movement than the plucks
-    assert line(sc.frames[1], "flute").count(-1) < len(line(sc.frames[1], "flute"))
+    # Unlike v14, calm areas thin out again; entry is not an irreversible ratchet.
+    assert sc.frames[1].rhythm_density > sc.frames[0].rhythm_density
 
 
 def test_instruments_carry_their_own_channel() -> None:
@@ -125,17 +120,37 @@ def test_instruments_carry_their_own_channel() -> None:
     spiked[0, 0, 0] = 250
     a, b = make_score(flat), make_score(spiked)
     assert max(line(b.frames[0], "harp")) > max(line(a.frames[0], "harp"))
-    assert abs(np.mean(line(a.frames[0], "bass")) - np.mean(line(b.frames[0], "bass"))) <= 2
+    bass_a = next(p for p in a.frames[0].voices if p.instrument == "bass")
+    bass_b = next(p for p in b.frames[0].voices if p.instrument == "bass")
+    assert bass_b.values[0] - bass_a.values[0] < 0.005
+    assert max(abs(x - y) for x, y in zip(bass_a.pitch_targets, bass_b.pitch_targets, strict=True)) < 1.0
     quiet = make_score(np.full((1, 8, 32), 255, dtype=np.uint8))
     assert all(n == -1 for p in quiet.frames[0].voices for n in p.notes)
 
 
+def test_contour_is_monotone_and_does_not_exaggerate_numerical_dust() -> None:
+    ladder = chord_ladder([2, 6, 9], "bass")
+    values = [0.4, 0.4, 0.401, 0.402, 0.403, 0.404, 0.405, 0.406]
+    targets = contour_targets(values, [True] * 8, ladder)
+    assert targets == sorted(targets)
+    assert targets[0] == targets[1]
+    assert max(targets) - min(targets) < 1.0
+
+
+def test_equal_tones_are_held_instead_of_repeatedly_attacked() -> None:
+    sc = make_score(np.full((1, 24, 48), 200, dtype=np.uint8))
+    for part in sc.frames[0].voices:
+        sounding = [i for i, n in enumerate(part.notes) if n >= 0]
+        assert len(sounding) <= 1
+        if sounding:
+            assert part.durations[sounding[0]] >= 4.0
+
+
 def test_notes_are_quantised_to_the_voice_scale() -> None:
     sc = make_score()
-    scale = sc.key.scale.replace(" ", "_")
     for part in sc.frames[2].voices:
         assert len(part.notes) == sc.steps_per_frame
-        allowed = set(voice_ladder(scale, part.instrument))
+        allowed = set(chord_ladder(sc.frames[2].chord_pcs, part.instrument))
         assert all(n in allowed or n == -1 for n in part.notes)
 
 
@@ -149,30 +164,57 @@ def test_render_is_deterministic_and_bounded() -> None:
 
 
 def test_pulse_is_steady_on_the_scan_grid() -> None:
-    layers = analyse_frames(grids(), LEGEND, SPEC)
-    audio = _render(layers)
-    step_s = FRAME_S["sweep"] / make_score().steps_per_frame
-    assert abs(step_s - 0.5) < 1e-6  # one quarter note per scan step, 8 steps per 4 s frame
+    # A fully active, varying field occupies the pulse; quiet fields may omit slots, not move them.
+    g = np.tile(np.linspace(30, 250, 48).astype(np.uint8), (3, 24, 1))
+    sc = make_score(g)
+    layers = analyse_frames(g, LEGEND, SPEC)
+    audio = render(track_id="t", score=sc, layers=layers, spec=SPEC)
+    step_s = FRAME_S["sweep"] / sc.steps_per_frame
+    assert step_s == 0.5
     times = _onsets(audio)
-    assert len(times) > 15
+    scheduled = {
+        f.index * FRAME_S["sweep"] + k * step_s
+        for f in sc.frames
+        for p in f.voices
+        for k, note in enumerate(p.notes)
+        if note >= 0
+    }
+    assert len(times) >= len(scheduled) / 2  # very quiet attacks may fall below the detector
     off_grid = np.abs(times / step_s - np.round(times / step_s)) * step_s
-    assert float((off_grid < 0.04).mean()) > 0.85  # events land on scan steps
+    assert float((off_grid < 0.05).mean()) > 0.85
+    # IOIs may be integer multiples of the pulse because density is data-driven.
     ioi = np.diff(times)
-    assert abs(float(np.median(ioi)) - step_s) < 0.03  # one set per step, no tempo drift
-    assert float(np.percentile(ioi, 90)) - float(np.percentile(ioi, 10)) < 0.05
+    assert float((np.abs(ioi / step_s - np.round(ioi / step_s)) < 0.12).mean()) > 0.85
 
 
-def test_dynamic_range_is_deliberately_narrow() -> None:
-    """The brief asks for moderate, consistent dynamics: nothing may swell or duck the mix."""
-    # 1. By construction the measured slice intensity may move a note by at most 2.7 dB.
-    gains = [_note_gain(LEVEL["bass"], i / 100) for i in range(101)]
-    spread_db = 20 * np.log10(max(gains) / min(gains))
-    assert spread_db < 3.0
-    # 2. In the render, one-second windows of the musical part stay within a modest band.
-    layers = analyse_frames(grids(), LEGEND, SPEC)
-    audio = _render(layers)
-    db = _window_db(audio[:, : int(len(layers) * FRAME_S["sweep"] * SR)], 1.0)
-    assert float(np.percentile(db, 90)) - float(np.percentile(db, 10)) < 9.0
+def test_dynamics_carry_activity_and_controls_are_smooth() -> None:
+    g = np.zeros((4, 24, 48), dtype=np.uint8)
+    g[2:] = 250
+    layers = analyse_frames(g, LEGEND, SPEC)
+    sc = build_score(
+        track_id="dynamics",
+        theme="weather",
+        legend=LEGEND,
+        labels=[],
+        grids=g,
+        preset="musical",
+        layers=layers,
+    )
+    audio = render(track_id="dynamics", score=sc, layers=layers, spec=SPEC)
+    # Compare interior music windows, not the tail or initial safety fade.
+    quiet = audio[:, int(1 * SR) : int(3 * SR)]
+    peak = audio[:, int(9 * SR) : int(11 * SR)]
+    difference = 10 * np.log10((peak**2).mean() / (quiet**2).mean())
+    assert difference >= 8.0
+    assert sc.frames[2].rhythm_density > sc.frames[0].rhythm_density
+    # Equal tones may now be tied across either quiet or active fields; no dry note crosses a frame.
+    assert all(0 <= dur <= 8 - k for f in sc.frames for p in f.voices for k, dur in enumerate(p.durations))
+    # Aggressive control targets are slew-limited; combined buses cannot exceed 4.5 dB/100 ms.
+    voice = smooth_gain([0.01, 1.0, 0.0001, 1.0], 0.5, SR * 2, 35)
+    ensemble = smooth_gain([0.1, 1.0, 0.1, 1.0], 0.5, SR * 2, 10)
+    db = 20 * np.log10(voice * ensemble)
+    span = int(0.1 * SR)
+    assert float(np.max(np.abs(db[span:] - db[:-span]))) <= 4.501
 
 
 def test_stereo_is_centred() -> None:
@@ -185,13 +227,14 @@ def test_stereo_is_centred() -> None:
 
 def test_notes_leave_a_hall_tail() -> None:
     """The reference is a wet, orchestral space: an isolated pluck must keep ringing."""
-    layers = analyse_frames(grids(), LEGEND, SPEC)
-    audio = _render(layers)
-    sr = SR
-    dry_end = int(3 * FRAME_S["sweep"] * sr)  # the last scheduled note starts before this
-    tail_start = dry_end + int(0.6 * sr)
+    synth = Synth(3 * SR, 123)
+    dry = np.zeros((2, 3 * SR), dtype=np.float32)
+    grain = synth.harp(220.0, 0.5)
+    dry[:, : len(grain)] = grain
+    audio = synth.reverb(dry, 0.3)
+    tail_start = len(grain) + int(0.6 * SR)
     peak = float(np.abs(audio).max())
-    tail = float(np.abs(audio[:, tail_start : tail_start + int(0.4 * sr)]).max())
+    tail = float(np.abs(audio[:, tail_start : tail_start + int(0.4 * SR)]).max())
     assert tail > 0.0
     assert 20 * np.log10(tail / peak + 1e-12) > -45.0  # still audible ~0.6 s after the last note
     assert 20 * np.log10(tail / peak + 1e-12) < -6.0  # and it is a tail, not another note
@@ -237,9 +280,10 @@ def test_east_storm_is_late_in_the_frame_not_hard_right() -> None:
 
 
 def test_overview_mode_is_a_steady_chord_per_frame() -> None:
-    layers = analyse_frames(grids(), LEGEND, SPEC)
+    source = np.full((4, 24, 48), 200, dtype=np.uint8)
+    layers = analyse_frames(source, LEGEND, SPEC)
     audio = render(
-        track_id="t", score=make_score(), layers=layers, spec=SPEC, mode="overview", melody=True
+        track_id="t", score=make_score(source), layers=layers, spec=SPEC, mode="overview", melody=True
     )
     assert np.abs(audio).max() <= 0.9
     times = _onsets(audio, min_sep_s=0.8)

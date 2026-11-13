@@ -3,24 +3,17 @@
 Input: a stack of value grids (uint8, 0..250 = normalized value, 255 = no data).
 Output: a deterministic Score the browser can play. Bump MAPPING_VERSION on any rule change.
 
-v14 — the ensemble model (was: a physical "soundscape" of filtered noise, drones and hits)
-===========================================================================================
-The audible target is NASA's ocean-colour / phytoplankton sonification: a small ensemble of
-*melodic* instruments, one per measured channel, every pitch quantised to the theme scale, and one
-set of notes per scan step on a perfectly steady grid. Every musical decision is made here;
-`app/sonify/render.py` only turns these voices into samples, and
-`frontend/src/lib/audio/phenomena.ts` plays the same voice list if it has to synthesise in the
-browser. Nothing downstream picks pitches, octaves or entrances.
-
-    bass   <- mean calibrated value of the slice    -> low plucked string / synth bass
-    harp   <- highest calibrated value of the slice -> brighter plucked texture
-    flute  <- slice change since the previous frame -> sustained breathy woodwind
-
-Values are the calibrated colour-to-value measurement (nearest colourbar colour in CIELAB).
-Quantising to a scale only changes how a pitch is *spelled*, never its order — see the monotonic
-tests. Silence always means "no data", or "this channel has not become active yet".
+v15 — composed harmony, measured contour and breathing dynamics
+==============================================================
+One authored, disclosed chord per frame; each voice chooses only its chord tones. The measured
+slice orders those tones monotonically. The relative contour is expanded within each frame so
+small real changes are audible, but equal values remain equal: there is no decorative random
+melody. Activity (not the primary value) chooses level and occupied slots on the steady 0.5 s grid.
+All pitches, gains, durations, the chord phrase and its seed are stored in the score. Renderers
+only realise this score, using the v14 acoustic strings, flute and hall.
 """
 
+import hashlib
 from collections.abc import Sequence
 from dataclasses import dataclass
 from statistics import median_low
@@ -29,7 +22,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from app.schemas.models import (
-    Alert,
+    FrameLayers,
     FrameScore,
     FrameStats,
     GridSize,
@@ -46,7 +39,7 @@ from app.schemas.models import (
 )
 from app.vision.colorbar import ValueScale
 
-MAPPING_VERSION = "14"
+MAPPING_VERSION = "15"
 STEPS_PER_FRAME = 8
 ROOT_MIDI = 50  # D3
 GRID_MAX = 250
@@ -59,6 +52,8 @@ NO_DATA = 255
 PULSE_BPM = 120
 
 SCALES: dict[str, list[int]] = {
+    "aeolian": [0, 2, 3, 5, 7, 8, 10],
+    "major": [0, 2, 4, 5, 7, 9, 11],
     "dorian": [0, 2, 3, 5, 7, 9, 10],
     "minor_pentatonic": [0, 3, 5, 7, 10],
     "phrygian": [0, 1, 3, 5, 7, 8, 10],
@@ -79,12 +74,12 @@ class ThemeKey:
 #: Scale gives each theme its identity; the pulse is shared so the beat never drifts.
 THEME_KEYS: dict[ThemeId, ThemeKey] = {
     "sea_level": ThemeKey("dorian", PULSE_BPM),
-    "air_quality": ThemeKey("minor_pentatonic", PULSE_BPM),
+    "air_quality": ThemeKey("aeolian", PULSE_BPM),
     "wildfires": ThemeKey("phrygian", PULSE_BPM),
-    "greenhouse_gases": ThemeKey("minor_pentatonic", PULSE_BPM),
+    "greenhouse_gases": ThemeKey("aeolian", PULSE_BPM),
     "water": ThemeKey("lydian", PULSE_BPM),
-    "agriculture": ThemeKey("major_pentatonic", PULSE_BPM),
-    "biodiversity": ThemeKey("major_pentatonic", PULSE_BPM),
+    "agriculture": ThemeKey("major", PULSE_BPM),
+    "biodiversity": ThemeKey("major", PULSE_BPM),
     "energy": ThemeKey("mixolydian", PULSE_BPM),
     "disasters": ThemeKey("phrygian", PULSE_BPM),
     "weather": ThemeKey("mixolydian", PULSE_BPM),
@@ -101,40 +96,62 @@ REGISTERS: dict[InstrumentId, int] = {
 }
 VOICE_ORDER: tuple[InstrumentId, ...] = ("bass", "harp", "flute")
 
-#: ... the harp joins as soon as the picture has real contrast, i.e. the frame's highest value
-#: stands at least this much (as a fraction of the colorbar) above the frame's average.
-HARP_CONTRAST = 0.10
-#: and the flute joins as soon as the map has really moved: mean |change| of the frame, as a
-#: fraction of the colorbar. A voice that has joined stays for the rest of the track, which is
-#: what makes the layering additive.
-FLUTE_ENTRY = 0.0025
-#: +-25 % of the colorbar of change spans the whole flute register.
-FLUTE_SPAN = 0.25
+CONTOUR_MIN_SPAN: dict[InstrumentId, float] = {"bass": 0.15, "harp": 0.20, "flute": 0.05}
 
-#: Plain-language text for the audio key and the API (what each voice carries).
+# Authored harmonic identities, not measurements. Each tuple is (name, absolute pitch classes).
+# The eight-frame phrase turns the four-chord cycle into a question followed by a resolution.
+CHORDS: dict[str, tuple[int, ...]] = {
+    "Dm": (2, 5, 9),
+    "G": (7, 11, 2),
+    "C": (0, 4, 7),
+    "Am": (9, 0, 4),
+    "B♭": (10, 2, 5),
+    "F": (5, 9, 0),
+    "E♭": (3, 7, 10),
+    "Cm": (0, 3, 7),
+    "Gm": (7, 10, 2),
+    "D": (2, 6, 9),
+    "E": (4, 8, 11),
+    "F♯m": (6, 9, 1),
+    "A": (9, 1, 4),
+    "Bm": (11, 2, 6),
+}
+PROGRESSIONS: dict[ThemeId, tuple[str, str, str, str]] = {
+    "sea_level": ("Dm", "G", "C", "Am"),
+    "ocean": ("Dm", "G", "C", "Am"),
+    "air_quality": ("Dm", "B♭", "F", "C"),
+    "wildfires": ("Dm", "E♭", "B♭", "Cm"),
+    "greenhouse_gases": ("Dm", "B♭", "Gm", "Am"),
+    "water": ("D", "E", "F♯m", "A"),
+    "agriculture": ("D", "G", "Bm", "A"),
+    "biodiversity": ("D", "Bm", "G", "A"),
+    "energy": ("D", "C", "G", "D"),
+    "disasters": ("Dm", "E♭", "Cm", "Dm"),
+    "weather": ("D", "G", "C", "D"),
+}
+# Music and safety constants belong here, not in the renderer.
+ACTIVITY_FLOOR = 0.08
+GAIN_SLEW_DB_PER_S = 45.0  # strictly below 6 dB / 100 ms (60 dB/s)
+VOICE_GAIN: dict[InstrumentId, float] = {"bass": 0.95, "harp": 0.90, "flute": 0.72}
 INSTRUMENT_TEXT: dict[InstrumentId, dict[str, str]] = {
     "bass": {
         "family": "low plucked string (upright bass, cello pizzicato)",
-        "carries": "the average value of the slice the scan is on",
-        "entry": "starts as soon as the map has data",
-        "key_line": "a low plucked string plays the average value of each slice — short notes, low "
-        "in pitch",
+        "carries": "the average measured value of each slice, ordered low to high within a frame",
+        "entry": "one long low note in quiet slices; a walking chord line in active slices",
+        "key_line": "a low plucked string walks the chord according to the slice's average value",
     },
     "harp": {
-        "family": "harp (brighter plucked texture)",
-        "carries": "the highest value found in that slice",
-        "entry": f"joins once the highest value is {HARP_CONTRAST:.0%} of the colorbar above the "
-        "average, then stays",
-        "key_line": "the harp plays the highest value in each slice, an octave and more above it",
+        "family": "harp (three ringing, slightly detuned strings)",
+        "carries": "the highest measured value in each slice, ordered low to high within a frame",
+        "entry": "sparse plucks in quiet areas; more chord-tone plucks where activity is greater",
+        "key_line": "the harp arpeggiates chord tones according to the slice's highest value",
     },
     "flute": {
         "family": "flute (sustained breathy woodwind)",
-        "carries": "how much that slice changed since the previous frame",
-        "entry": "joins once the map is changing between frames, then stays",
-        "key_line": (
-            "a flute holds longer notes that trace the change since the previous frame — it rises "
-            "where values went up and falls where they went down"
-        ),
+        "carries": "the signed measured change of that slice since the previous frame",
+        "entry": "joins when there is measured change; thins out again in quiet areas",
+        "key_line": "a flute holds a line tracing change since the previous frame: higher for a "
+        "larger increase, lower for a larger decrease",
     },
 }
 
@@ -212,7 +229,7 @@ def instruments_for(scale: str) -> list[InstrumentInfo]:
     """The three voices of a score in the given scale, with the register each one really uses."""
     out: list[InstrumentInfo] = []
     for iid in VOICE_ORDER:
-        ladder = voice_ladder(scale, iid)
+        ladder = list(range(REGISTERS[iid], REGISTERS[iid] + 25))
         text = INSTRUMENT_TEXT[iid]
         out.append(
             InstrumentInfo(
@@ -228,43 +245,34 @@ def instruments_for(scale: str) -> list[InstrumentInfo]:
     return out
 
 
-def audio_key_text(legend: Legend) -> str:
-    """The spoken key. It describes only what the three instruments actually play: no drone, no
-    percussion, no weather noise, position carried by time rather than by panning, and the hall
-    tail that lets a plucked note keep ringing after it has been played."""
+def audio_key_text(legend: Legend, progression: Sequence[str] = ()) -> str:
+    """Spoken truth: authored harmony is clearly separate from measured contour and intensity."""
+    harmony = ", ".join(progression) if progression else "the theme's repeating eight-frame phrase"
     return " ".join(
         [
-            f"Pitch shows {lower_first(legend.label)} in {legend.unit}: the lowest note of any "
-            f"instrument means {fmt(legend.min)} and the highest means {fmt(legend.max)}.",
-            "Three instruments share the map, each with one job. "
-            + "; ".join(INSTRUMENT_TEXT[iid]["key_line"] for iid in VOICE_ORDER)
+            f"The map measures {lower_first(legend.label)} in {legend.unit}, from {fmt(legend.min)} "
+            f"to {fmt(legend.max)}.",
+            "Three instruments share the map. "
+            + "; ".join(INSTRUMENT_TEXT[i]["key_line"] for i in VOICE_ORDER)
             + ".",
-            "There is no drone, no drum and no weather sound: when the three lines sound together "
-            "they form the chords. Each note rings on in a hall-like reverb, so a plucked string "
-            "keeps fading after it has been played.",
-            "The scan steps west to east and one set of notes sounds for each step, at a steady "
-            "march that never speeds up or slows down, so early in a frame is the west edge of the "
-            "map and late in the frame is the east. The sound sits in the middle with only a slight "
-            "spread that never moves: position comes from timing, not from left or right.",
-            "A rising line means higher values and a falling line means lower values. Loudness is "
-            "kept almost level and carries no information.",
-            "The harp lifts one octave for the slice where the map first crosses one of the named "
-            "lines in the listening guide.",
-            "Silence means no data — for example land on an ocean map — or that a voice has not "
-            "joined yet.",
+            f"The composed chord sequence is {harmony}, one chord per frame. Chords give the piece "
+            "its harmony; they are composition, not another data measurement. Every new note is a tone "
+            "of that frame's chord.",
+            "Within each frame and each instrument, a higher measured slice gives an equal or higher "
+            "note. A bounded continuous mapping makes relative differences audible without "
+            "stretching numerical dust into a whole-register leap. Pitch is a contour, not an exact reading in units; compare "
+            "values within a frame, not pitches across a chord change. Equal values stay on the same note.",
+            "Louder and fuller means more intense activity relative to the rest of this track. Quiet "
+            "areas become genuinely soft, with fewer, longer notes; active areas bring more harp plucks "
+            "and a stronger ensemble swell. The pulse never changes.",
+            "Each frame lasts four seconds, with eight half-second slots scanning west to east. Early "
+            "in the frame is west; late is east. Some slots are rests, not a faster or slower scan. "
+            "The instruments stay near the centre: location is time, not left or right.",
+            "There are no drums, drones or weather sounds. Plucked strings and flute ring in a hall; "
+            "the previous chord may linger briefly as the next begins. A gap can be a quiet-area rest; "
+            "a slice with no data makes no new sound, and a completely empty map is silent after the tail.",
         ]
     )
-
-
-def accent_steps(alerts: Sequence[Alert], steps: int) -> set[int]:
-    """Scan steps where a threshold has just been crossed: the harp lifts an octave there.
-
-    This is the only accent in the model and it is a note of one of the three instruments, not a
-    sound effect: there are no bells, chimes, clicks, drum hits or weather noises in the render.
-    """
-    if steps <= 0:
-        return set()
-    return {min(steps - 1, max(0, int(a.x * steps))) for a in alerts if a.new}
 
 
 def frame_chord(voices: Sequence[VoicePart]) -> dict[InstrumentId, int]:
@@ -326,46 +334,111 @@ def _slice_measures(
     return means, peaks, deltas, filled
 
 
-def _entry(
-    *,
-    has_data: bool,
-    frame_contrast: float,
-    frame_change: float,
-    prev_active: dict[InstrumentId, bool],
-) -> dict[InstrumentId, bool]:
-    """Additive layer entry: once a channel is active, its instrument stays in."""
-    return {
-        "bass": prev_active["bass"] or has_data,
-        "harp": prev_active["harp"] or frame_contrast >= HARP_CONTRAST,
-        "flute": prev_active["flute"] or frame_change >= FLUTE_ENTRY,
-    }
+def chord_ladder(pcs: Sequence[int], instrument: InstrumentId) -> list[int]:
+    """Two octaves of chord tones; fixed ordered register avoids arbitrary octave jumps."""
+    base = REGISTERS[instrument]
+    return [m for m in range(base, base + 25) if m % 12 in pcs]
+
+
+def contour_targets(
+    values: Sequence[float], filled: Sequence[bool], ladder: Sequence[int], min_span: float = 0.15
+) -> list[float]:
+    """Continuous monotone contour with a minimum meaningful measurement span.
+
+    Relative comparisons are within a frame. A tiny outlier cannot span two octaves: gain of
+    the transfer is capped by min_span, while ties remain equal and flat fields remain static.
+    """
+    observed = [v for v, ok in zip(values, filled, strict=True) if ok]
+    if not observed:
+        return [float(ladder[0]) for _ in values]
+    lo, hi = min(observed), max(observed)
+    centre = (lo + hi) / 2
+    span = max(hi - lo, min_span)
+    return [
+        float(ladder[0] + np.clip(0.5 + (v - centre) / span, 0, 1) * (ladder[-1] - ladder[0])) for v in values
+    ]
+
+
+def _activity(raw: Sequence[float], lo: float, hi: float) -> list[float]:
+    """Track-relative activity, blended with the absolute phenomenon intensity.
+
+    A flat field isn't exaggerated by normalising numerical dust: <1% activity range keeps the
+    absolute activity. The observed bounds are recorded indirectly by the original layers.
+    """
+    if hi - lo < 0.05:
+        return [float(np.clip(v, 0, 1)) for v in raw]
+    return [float(np.clip(0.15 * v + 0.85 * np.clip((v - lo) / max(hi - lo, 0.15), 0, 1), 0, 1)) for v in raw]
+
+
+def _occupied(iid: InstrumentId, k: int, activity: float, filled: Sequence[bool]) -> bool:
+    """Density follows activity, while every possible onset stays on the same scan grid."""
+    if not filled[k]:
+        return False
+    entry = k == 0 or not filled[k - 1]
+    if iid == "bass":
+        return entry or k % 4 == 0 or (activity >= 0.30 and k % 2 == 0) or activity >= 0.62
+    if iid == "harp":
+        return activity >= 0.12 and (k % 4 == 0 or (activity >= 0.35 and k % 2 == 0) or activity >= 0.58)
+    return activity >= 0.20 and (k % 2 == 0 or activity >= 0.65)
 
 
 def _voices(
     *,
-    scale: str,
+    chord_pcs: Sequence[int],
     means: Sequence[float],
     peaks: Sequence[float],
     deltas: Sequence[float],
     filled: Sequence[bool],
-    active: dict[InstrumentId, bool],
+    activity: Sequence[float],
+    changing: bool,
 ) -> list[VoicePart]:
-    """Quantise the three measured channels onto the three instruments."""
+    """Voice the current chord from measured order; choose rests and articulation from activity."""
+    channels = {"bass": means, "harp": peaks, "flute": deltas}
     parts: list[VoicePart] = []
     for iid in VOICE_ORDER:
-        ladder = voice_ladder(scale, iid)
-        notes: list[int] = []
+        ladder = chord_ladder(chord_pcs, iid)
+        measured = channels[iid]
+        targets = contour_targets(measured, filled, ladder, CONTOUR_MIN_SPAN[iid])
+        notes, gains, durations = [], [], []
         for k in range(STEPS_PER_FRAME):
-            if not active[iid] or not filled[k]:
-                notes.append(-1)
-            elif iid == "bass":
-                notes.append(quantize(means[k], ladder))
-            elif iid == "harp":
-                notes.append(quantize(peaks[k], ladder))
-            else:
-                change01 = 0.5 + 0.5 * max(-1.0, min(1.0, deltas[k] / FLUTE_SPAN))
-                notes.append(quantize(change01, ladder))
-        parts.append(VoicePart(instrument=iid, notes=notes))
+            sounding = _occupied(iid, k, activity[k], filled) and (iid != "flute" or changing)
+            # Nearest chord tone is monotone in the unrounded measured target, including ties.
+            note = min(ladder, key=lambda n: (abs(n - targets[k]), n)) if sounding else -1
+            notes.append(note)
+            gains.append(
+                round(VOICE_GAIN[iid] * (ACTIVITY_FLOOR + (1 - ACTIVITY_FLOOR) * activity[k] ** 1.4), 6)
+                if filled[k]
+                else 0.0
+            )
+            dur = {
+                "bass": 3.8 - 2.4 * activity[k],
+                "harp": 4.0 - 0.5 * activity[k],
+                "flute": 2.6 - 1.2 * activity[k],
+            }[iid]
+            # New dry notes never carry a non-chord pitch into the next frame; the hall may ring.
+            durations.append(round(min(dur, STEPS_PER_FRAME - k), 4) if sounding else 0.0)
+        # A continuous region should sound continuous, not be re-struck at every slot.
+        # Hold equal chord tones through valid slots; gain automation still follows each slice.
+        last = -1
+        for k, note in enumerate(notes):
+            if not filled[k]:
+                last = -1
+            elif note >= 0:
+                if last >= 0 and notes[last] == note:
+                    durations[last] = min(float(STEPS_PER_FRAME - last), k - last + durations[k])
+                    notes[k], durations[k] = -1, 0.0
+                else:
+                    last = k
+        parts.append(
+            VoicePart(
+                instrument=iid,
+                notes=notes,
+                gains=gains,
+                durations=durations,
+                values=[round(v, 8) for v in measured],
+                pitch_targets=targets,
+            )
+        )
     return parts
 
 
@@ -377,6 +450,7 @@ def build_score(
     labels: list[str],
     grids: NDArray[np.uint8],
     preset: PresetId,
+    layers: Sequence[FrameLayers] | None = None,
 ) -> Score:
     """grids: (frames, rows, cols) uint8."""
     key = THEME_KEYS[theme]
@@ -387,23 +461,43 @@ def build_score(
     first_valid = values_all[0][valid_all[0]]
     start_mean = float(first_valid.mean()) if first_valid.size else 0.0
 
+    seed = int.from_bytes(hashlib.sha256(f"{track_id}:{theme}".encode()).digest()[:4], "little")
+    a, b, c, d = PROGRESSIONS[theme]
+    # Seed chooses the answering phrase's middle order, never a random note at playback.
+    phrase = [a, b, c, d, a, c if seed % 2 else b, b if seed % 2 else c, a]
+    measures = [
+        _slice_measures(values_all[i], valid_all[i], (values_all[i - 1], valid_all[i - 1]) if i > 0 else None)
+        for i in range(n_frames)
+    ]
+    raw_activity = [
+        list(layers[i].column_intensity)
+        if layers is not None
+        else [0.65 * p + 0.35 * m for p, m in zip(measures[i][1], measures[i][0], strict=True)]
+        for i in range(n_frames)
+    ]
+    observed_activity = [
+        v for i, row in enumerate(raw_activity) for k, v in enumerate(row) if measures[i][3][k]
+    ]
+    lo, hi = (
+        (float(np.percentile(observed_activity, 10)), float(np.percentile(observed_activity, 90)))
+        if observed_activity
+        else (0.0, 0.0)
+    )
     frames: list[FrameScore] = []
-    active: dict[InstrumentId, bool] = {"bass": False, "harp": False, "flute": False}
     for i in range(n_frames):
         valid = valid_all[i]
         values = values_all[i]
         data = values[valid]
         label = labels[i] if i < len(labels) else f"Frame {i + 1}"
         if data.size == 0:
-            mean = vmin = vmax = std = 0.0
+            mean = vmin = vmax = 0.0
             extreme = 0.0
             argmax = 0
         else:
-            mean, vmin, vmax, std = (
+            mean, vmin, vmax = (
                 float(data.mean()),
                 float(data.min()),
                 float(data.max()),
-                float(data.std()),
             )
             extreme = float((data >= 0.8).mean())
             argmax = int(np.argmax(np.where(valid, values, -1.0)))
@@ -432,25 +526,39 @@ def build_score(
             ),
             f"Change since the first frame: {fmt_signed(change)} {legend.unit}." if i > 0 else "",
         ]
-        means, peaks, deltas, filled = _slice_measures(
-            values, valid, (values_all[i - 1], valid_all[i - 1]) if i > 0 else None
-        )
-        active = _entry(
-            has_data=bool(data.size), frame_contrast=float(vmax - mean), frame_change=tension / 8.0, prev_active=active
-        )
+        means, peaks, deltas, filled = measures[i]
+        activity = _activity(raw_activity[i], lo, hi)
+        chord_name = phrase[i % len(phrase)]
+        pcs = list(CHORDS[chord_name])
         voices = _voices(
-            scale=key.scale, means=means, peaks=peaks, deltas=deltas, filled=filled, active=active
+            chord_pcs=pcs,
+            means=means,
+            peaks=peaks,
+            deltas=deltas,
+            filled=filled,
+            activity=activity,
+            changing=i > 0 and any(abs(d) >= 1e-4 for d in deltas),
+        )
+        frame_swell = 0.65 + 0.35 * float(np.mean(activity))
+        envelope = [frame_swell * (0.65 + 0.35 * a) for a in activity]
+        parts_text.append(
+            f"Chord {chord_name}: composed harmony. Louder and fuller slices mean more intense activity."
         )
         frames.append(
             FrameScore(
                 index=i,
                 label=label,
                 tension=round(tension, 4),
-                loudness=round(min(1.0, 0.3 + 0.5 * extreme + 0.3 * mean), 4),
+                loudness=round(float(np.mean(activity)), 4),
                 brightness=round(mean, 4),
-                rhythm_density=1 if std < 0.08 else 2 if std < 0.18 else 4,
+                rhythm_density=sum(n >= 0 for part in voices for n in part.notes),
                 column_notes=_column_notes(values, valid, ladder),
                 voices=voices,
+                chord_name=chord_name,
+                chord_pcs=pcs,
+                activity=activity,
+                gain_envelope=envelope,
+                layers=layers[i] if layers is not None else None,
                 hotspot=hotspot,
                 stats=FrameStats(
                     mean=round(mean, 4),
@@ -466,6 +574,8 @@ def build_score(
         mapping_version=MAPPING_VERSION,
         track_id=track_id,
         preset=preset,
+        seed=seed,
+        chord_progression=phrase,
         key=ScoreKey(
             root=midi_name(ROOT_MIDI), root_midi=ROOT_MIDI, scale=key.scale.replace("_", " "), bpm=key.bpm
         ),
@@ -486,11 +596,13 @@ def build_transcript(score: Score, legend: Legend) -> list[TranscriptEntry]:
     entries: list[TranscriptEntry] = []
     harp_line = next((p.notes for p in first.voices if p.instrument == "harp"), [])
     sounding = [n for n in harp_line if n >= 0]
-    melody = f" The harp moves from {midi_name(min(sounding))} to {midi_name(max(sounding))}." if sounding else ""
+    melody = (
+        f" The harp moves from {midi_name(min(sounding))} to {midi_name(max(sounding))}." if sounding else ""
+    )
     entries.append(
         TranscriptEntry(
             frame=0,
-            text=f"Starts at {first.label}: {avg} {fmt(to_real(first.stats.mean, legend))} {legend.unit}.{melody}",
+            text=f"Starts at {first.label}: {avg} {fmt(to_real(first.stats.mean, legend))} {legend.unit}. Composed chord {first.chord_name}.{melody} Louder and fuller areas mean more intense activity; quiet areas have fewer, longer notes.",
         )
     )
 
@@ -500,6 +612,13 @@ def build_transcript(score: Score, legend: Legend) -> list[TranscriptEntry]:
     peak = first
     heard: set[InstrumentId] = sounding_instruments(first)
     for i, frame in enumerate(frames):
+        if i > 0 and frame.chord_name != frames[i - 1].chord_name:
+            entries.append(
+                TranscriptEntry(
+                    frame=i,
+                    text=f"{frame.label}: the composed chord changes to {frame.chord_name}. Pitch comparisons describe relative values inside this frame, not across this chord change.",
+                )
+            )
         prev = frames[i - 1] if i > 0 else None
         now = sounding_instruments(frame)
         for iid in sorted(now - heard, key=VOICE_ORDER.index):
@@ -520,7 +639,9 @@ def build_transcript(score: Score, legend: Legend) -> list[TranscriptEntry]:
             )
         if frame.hotspot is None and prev is not None and prev.hotspot is not None:
             entries.append(
-                TranscriptEntry(frame=i, text=f"{frame.label}: the hot spot fades; the harp's top notes stop.")
+                TranscriptEntry(
+                    frame=i, text=f"{frame.label}: the hot spot fades; the harp's top notes stop."
+                )
             )
         if frame.tension > peak.tension:
             peak = frame

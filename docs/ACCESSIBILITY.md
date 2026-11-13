@@ -1,22 +1,24 @@
 # Accessibility
 
-## mapping_version 14 - what the spoken equivalents now say
+## mapping_version 15 - what the spoken equivalents now say
 
-The audio changed from a physical soundscape (rain, wind, thunder, drones, ticks, chimes) to three
-instruments in a hall, so every generated string was rewritten to describe what a listener will
-actually hear. Sources: `backend/app/mapping/rules.py` (`audio_key_text`, `INSTRUMENT_TEXT`,
-`build_transcript`) and `backend/app/sonify/render.py` (`listening_guide`) plus
-`backend/app/sonify/spec.py` (`PHENOMENON_INFO`).
+The v15 candidate retains v14's three acoustic instruments and hall, but adds a disclosed seeded
+eight-frame chord phrase, relative within-frame contours, and activity-driven articulation. The
+backend streamed MP3 is authoritative; browser WebAudio is an approximate timbre renderer that
+uses scored notes, durations, and gains. Sources: `backend/app/mapping/rules.py`
+(`audio_key_text`, `INSTRUMENT_TEXT`, `build_transcript`) and
+`backend/app/sonify/render.py` (`listening_guide`).
 
 * **Which instrument carries which channel.** "Three instruments share the map, each with one job:
-  a low plucked string plays the average value of each slice - short notes, low in pitch; the harp
-  plays the highest value in each slice, an octave and more above it; a flute holds longer notes that
-  trace the change since the previous frame - it rises where values went up and falls where they went
-  down." `score.instruments` carries the same facts as data (`family`, `carries`, `entry`,
-  `note_range`) for anything that wants to render them as text.
-* **What rising and falling mean.** "A rising line means higher values and a falling line means
-  lower values. Loudness is kept almost level and carries no information." Pitch, not level, is the
-  data; silence always means no data or a voice that has not joined yet.
+  a low plucked string follows the average value of each slice; the harp follows the highest value;
+  a flute follows signed change since the previous frame." Within each frame, the contour is
+  continuous and relative, with minimum spans of 0.15 bass, 0.20 harp, and 0.05 flute. It is not
+  full-range rank expansion or an exact value reading. `score.instruments` carries the same facts
+  as data (`family`, `carries`, `entry`, `note_range`).
+* **What rising and falling mean.** Higher measured slices choose equal or higher tones within the
+  current chord. Every new attack is a current chord tone in the voice's two-octave register;
+  equal consecutive notes are tied through valid slots, not repeatedly retriggered. Activity also
+  controls density, ringing duration, and gain (floor 0.08), so quiet areas may contain rests.
 * **Position.** "The scan steps west to east and one set of notes sounds for each step, at a steady
   march that never speeds up or slows down, so early in a frame is the west edge of the map and late
   in the frame is the east. The sound sits in the middle with only a slight spread that never moves:
@@ -25,9 +27,13 @@ actually hear. Sources: `backend/app/mapping/rules.py` (`audio_key_text`, `INSTR
 * **Space and timbre.** "There is no drone, no drum and no weather sound: when the three lines sound
   together they form the chords. Each note rings on in a hall-like reverb, so a plucked string keeps
   fading after it has been played."
-* **Thresholds.** "The harp lifts one octave for the slice where the map first crosses one of the
-  named lines in the listening guide" - the marker is a note of an instrument that is already
-  playing, not a chime, so it is audible as pitch and readable in the transcript.
+* **Thresholds.** Named thresholds are text-only in v15: they remain in the listening guide,
+  transcript, and timeline copy. They do not trigger a chime or a harp-octave marker.
+* **Dynamics.** Activity is track-relative using the 10th/90th percentiles, a denominator floor
+  of 0.15, and a flat-activity cutoff of 0.05. It controls density, ringing duration, and gain;
+  the gain floor is 0.08. Renderer log controls are smoothed at 35 dB/s on voice buses plus 10
+  dB/s on the ensemble (45 dB/s combined). That is a control-automation bound, not a claim that
+  an acoustic-modelled pluck waveform has a 45 dB/s attack.
 * **Transcript entries** now say which instrument joined ("Frame 3: the harp joins - it carries the
   highest value found in that slice"), where a hot spot appears ("listen for the harp reaching its
   highest notes partway through each frame"), and that the fastest change is where "the flute moves
@@ -83,7 +89,9 @@ Accessibility is the core theme of the challenge, so it is a milestone (M3), not
 - [ ] Sonification has a **non-musical "clear" preset** (sine tone, pitch only) for users who find music distracting.
 - [ ] Provide **transcript** for each track: timeline of events ("0:12 hot-spot appears, over the Amazon, loud and bright").
 - [ ] Downloadable audio files so users can listen in their own player.
-- [ ] Avoid sudden loud sounds; max step in gain ≤ 6 dB per 100 ms.
+- [ ] Review loudness for safety. The renderer's log control automation is limited to 35 dB/s on
+      voice buses plus 10 dB/s on the ensemble (45 dB/s, or 4.5 dB per 100 ms); this does not
+      constrain the waveform attack of an acoustic-modelled pluck.
 
 ### Content
 - [ ] Descriptions written at ≤ grade 9 reading level, explain units.

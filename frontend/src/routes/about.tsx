@@ -5,36 +5,30 @@ import { api } from '../lib/api'
 const METHOD = [
   {
     n: '01',
-    title: 'One real frame per record',
-    body: 'Every record is a bundled frame from the published NASA visualization named on its sleeve — Black Marble, ECCO2, GEOS, GPM IMERG, Caldwell 73. Nothing on the jukebox, the disc labels or the analysis view is stock or redrawn. The painted backdrops behind the cabinet are illustration, and are credited as such; the data frames are never generated.',
+    title: 'Start with NASA’s measurements',
+    body: 'Each record uses frames from the NASA Scientific Visualization Studio product linked on its sleeve. The painted backgrounds and opening film are illustration, not scientific data. The frames and their source credits remain available in the Data Deck.',
   },
   {
     n: '02',
-    title: 'Measure, don’t interpret',
-    body:
-      'NumPy and Pillow read the colourbar printed in the frame itself, then match every pixel to the nearest colour on that bar in CIELAB. Colour therefore becomes a position on a measured scale instead of a guess about hue. The frame is reduced to a 96 × 48 grid of median scale positions; cells whose colour is not on the bar are marked as no data, and isolated specks are cleaned away. Nothing downstream looks at hue again — every note is a claim about a value.',
+    title: 'Recover values from the colourbar',
+    body: 'NumPy and Pillow match image colours against each track’s calibrated colourbar in CIELAB colour space. A 96 × 48 grid keeps median scale positions. Colours outside the matching tolerance are no data, not low values. Compression, missing pixels and the calibration limit what can be inferred.',
   },
   {
     n: '03',
-    title: 'Give each phenomenon its own physical model',
-    body: 'There is no shared oscillator bank. Each record runs a different mechanism: turbulence for air, an impact train of individual droplets for rain, damped modal resonators for fire and canopy, swelling bands for water, and Caldwell’s own scan for the space frame. The spec is declarative, so the browser and the offline renderer run the same rules.',
+    title: 'Let measured intensity shape the sound',
+    body: 'The bass follows a slice’s average, the harp its highest value, and the flute its signed change since the previous frame. The track’s defined phenomenon intensity controls level and fullness. Quiet areas get fewer notes; equal neighbouring tones are held instead of repeatedly struck. Gain changes are smoothed and the output is limited.',
   },
   {
     n: '04',
-    title: 'Let the ear check the physics',
-    body: 'Masking and stream segregation are the failure modes of parameter-mapped sonification, so redundant mappings are used (gust speed moves both the band centre and the gust level), it stays in the frequency range the ear is most sensitive to over long listening, loudness is never the only carrier of a value, and every impact keeps its own stereo position.',
+    title: 'Separate the music from the measurement',
+    body: 'A disclosed, repeating chord phrase gives the instruments a shared harmony. It is composition, not another Earth measurement. Within each frame, measured values choose ordered chord tones. Pitch conveys relative contour, not exact units; a chord change means raw pitches cannot be compared directly across frames.',
   },
 ]
 
-const MODELS: [string, string, string][] = [
-  ['Wind', 'turbulence + gust envelope', 'Air moving past a listener is broadband turbulence shaped by the space around it. A von-Karman-ish gust envelope drives a glottal-style turbulence generator through a moving band-pass, so each row of the frame becomes one gust: its speed sets the band the wind howls in, its texture sets how hard it hits, and a thin whistle appears in the strongest row.'],
-  ['Storm', 'individual raindrops + thunder', 'Rain is not a hiss. It is thousands of separate drops striking leaves and water, each a short resonance of 0.6–5 kHz decaying in about 12 ms. Bright cloud makes more of them, texture shifts their pitch, and thick dark cloud adds thunder: a bright crack with a rumble whose decay follows the cloud’s mass.'],
-  ['Fire', 'combustion crackle over a roar', 'Crackle is thousands of tiny implosions of sap and air — Poisson impulses through a damped resonator bank 1–8 kHz — over a low roar whose cutoff follows the flame area, plus a slow breath from the smoke plume. The hot-pixel fraction sets the crackle rate.'],
-  ['Ocean', 'swell, foam and water mass', 'A sub-bass bed for the mass of the sea, band-passed swells whose period comes from the measured gradient of the surf line, and brief bright hisses where the foam breaks.'],
-  ['City lights', 'discrete glints', 'Light is discrete, so each bright cell emits a damped glint. Pitch stays in the 420–1380 Hz band where the ear is most sensitive, and the panning follows the map.'],
-  ['Canopy', 'modal pings', 'A forest canopy is a resonant structure: each dense green cell is struck and rings at a pitch set by how textured it is, with three partials at independent decays.'],
-  ['Plume', 'transport beds + sparkle', 'A deep bed for the mass being carried, a moving band for the transport, and brief sparkles where the edge of the cloud is sharpest against the dark.'],
-  ['Deep space', 'Caldwell’s own scan', 'For Caldwell 73 the challenge’s reference method is reproduced: left to right is time along the scan axis, brightness is pitch, and vertical position is where the sound sits in the stereo image.'],
+const INSTRUMENTS = [
+  ['Bass', 'Average value', 'A low plucked string carries the average calibrated value of each longitude slice. Equal tones can ring as one held note rather than a stream of clicks.'],
+  ['Harp', 'Highest value', 'Ringing, slightly detuned strings carry the slice’s highest value. Stronger activity allows more occupied slots and a fuller sound. A genuinely flat peak can stay on the same tone.'],
+  ['Flute', 'Change since the previous frame', 'A sustained woodwind line follows signed change over matching valid cells. A single uploaded photo has no earlier frame, so it cannot supply a measured change line.'],
 ]
 
 export function AboutPage() {
@@ -49,88 +43,70 @@ export function AboutPage() {
         <h1 className="mt-1 font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
           A jukebox that plays the Earth
         </h1>
-        <p className="mt-2 max-w-[68ch] text-[13px] font-semibold leading-relaxed text-[#3a2a18cc]">
-          {data?.length ?? 9} records. Each one is a real NASA visualization, measured cell by cell
-          and played back through a physical model of the process it shows — so wind sounds
-          like moving air, fire crackles, and rain arrives with thunder. The cabinet
-          is the interface; the measurement is the music.
+        <p className="mt-2 max-w-[68ch] text-[13px] font-semibold leading-relaxed text-ink-soft">
+          {data?.length ?? 9} records made from NASA visualizations. Three instruments share a
+          measured map, with intensity shaping their level and fullness. The cabinet is the
+          interface; the audio key explains what the music can—and cannot—tell you.
         </p>
       </header>
 
-      <section className="grid gap-2.5 sm:grid-cols-2">
+      <section className="grid gap-2.5 sm:grid-cols-2" aria-label="The measurement and mapping process">
         {METHOD.map((m) => (
           <article key={m.n} className="tt-paper p-3.5">
-            <p className="font-mono text-[10px] font-bold tracking-[0.2em] text-[#a2641f]">{m.n}</p>
+            <p className="font-mono text-[10px] font-bold tracking-[0.2em] text-ink-soft">{m.n}</p>
             <h2 className="mt-0.5 font-display text-[17px] font-semibold text-ink">{m.title}</h2>
-            <p className="mt-1 text-[11.5px] leading-relaxed text-[#3a2a18cc]">{m.body}</p>
+            <p className="mt-1 text-[11.5px] leading-relaxed text-ink-soft">{m.body}</p>
           </article>
         ))}
       </section>
 
       <section className="tt-paper mt-3 p-3.5 sm:p-5">
-        <h2 className="font-display text-xl font-semibold text-ink">Eight physical models</h2>
-        <p className="mt-1 max-w-[70ch] text-[11.5px] leading-relaxed text-[#3a2a18bf]">
-          Grounded in the Sonification Handbook (parameter mapping, masking, loudness/pitch
-          interaction), NASA&apos;s and the University of Michigan&apos;s solar-wind sonifications, the York
-          weather-station pieces, <em>Atmospherics/Weather Works</em>, and Newstadt&apos;s{' '}
-          <em>Artificial Soundscapes</em>. The recurring finding across all of them is that timbre and
-          filtered noise carry physical identity far better than pitch sequences do.
-        </p>
-        <div className="mt-2.5 overflow-x-auto">
-          <table className="w-full min-w-[640px] border-separate border-spacing-y-1 text-left">
-            <thead>
-              <tr className="font-display text-[9.5px] uppercase tracking-[0.16em] text-ink-soft">
-                <th className="px-2">Model</th>
-                <th className="px-2">Synthesis</th>
-                <th className="px-2">Why it sounds like that</th>
-              </tr>
-            </thead>
-            <tbody>
-              {MODELS.map(([name, synth, why]) => (
-                <tr key={name} className="align-top">
-                  <td className="w-[14%] rounded-l-lg bg-[#fff8e8cc] px-2 py-1.5 font-display text-[11.5px] font-bold text-ink">
-                    {name}
-                  </td>
-                  <td className="w-[20%] bg-[#fff8e8cc] px-2 py-1.5 text-[10.5px] font-semibold text-[#8a5a1c]">
-                    {synth}
-                  </td>
-                  <td className="rounded-r-lg bg-[#fff8e8cc] px-2 py-1.5 text-[10.5px] leading-relaxed text-[#3a2a18cc]">
-                    {why}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <h2 className="font-display text-xl font-semibold text-ink">Three instruments, three channels</h2>
+        <div className="mt-2.5 grid gap-3 sm:grid-cols-3">
+          {INSTRUMENTS.map(([name, channel, description]) => (
+            <article key={name}>
+              <h3 className="font-display text-[17px] font-semibold text-ink">{name}</h3>
+              <p className="font-display text-[10px] font-bold text-ink-soft">{channel}</p>
+              <p className="mt-1 text-[11.5px] leading-relaxed text-ink-soft">{description}</p>
+            </article>
+          ))}
         </div>
+      </section>
+
+      <section className="tt-paper mt-3 p-3.5 sm:p-5">
+        <h2 className="font-display text-xl font-semibold text-ink">What a scan tells you</h2>
+        <p className="mt-1 text-[11.5px] leading-relaxed text-ink-soft">
+          Eight half-second slots traverse a frame from west to east. Early sound means western
+          longitude; later sound means eastern longitude. Each slot summarizes all latitudes in
+          that strip, so it cannot locate a feature north or south. This traversal is geography,
+          not observation time. Averaging can hide local peaks or cancel opposite changes.
+          Scanning is one exploration method, not a claim of ideal sonification.
+        </p>
+        <p className="mt-2 text-[11.5px] leading-relaxed text-ink-soft">
+          A rest can mean a quiet region. No-data slices trigger no new notes, although earlier
+          notes may still ring in the hall. The Data Deck keeps the values, dates, regions and
+          transcript alongside the sound. Accessibility controls are implemented, but this
+          candidate has not been validated with blind or low-vision listeners.
+        </p>
       </section>
 
       <section className="tt-paper mt-3 p-3.5 sm:p-5">
         <h2 className="font-display text-xl font-semibold text-ink">The records</h2>
         <p className="mt-1 text-[11.5px] font-semibold text-ink-soft">
-          Each sleeve links to the NASA product it came from. Every frame is bundled in the repo
-          with its credit line.
+          Each sleeve links to the NASA product it came from, with its credit line.
         </p>
         <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
           {(data ?? []).map((d) => (
-            <li key={d.id} className="flex items-start gap-2 rounded-xl border-2 border-[#e2c290cc] bg-[#fff8e8b2] p-1.5">
-              <img
-                src={api.frameUrl(d.id)}
-                alt=""
-                className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-[#a9773d]"
-              />
+            <li key={d.id} className="flex items-start gap-2 rounded-xl border border-ink-soft/20 p-2">
+              <img src={api.frameUrl(d.id)} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
               <div className="min-w-0">
                 <p className="truncate font-display text-[11.5px] font-bold text-ink">{d.short}</p>
                 <p className="text-[10px] font-semibold text-ink-soft">
-                  {d.svs_id ? `SVS ${d.svs_id}` : 'source page'} · {d.sensor} · {d.model}
+                  {d.svs_id ? `SVS ${d.svs_id}` : 'source page'} · {d.sensor}
                 </p>
                 {d.svs_url && (
-                  <a
-                    href={d.svs_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[10px] font-bold text-[#a2641f] hover:text-ink"
-                  >
-                    <ExternalLink size={9} /> open the source
+                  <a href={d.svs_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[10px] font-bold text-ink underline">
+                    <ExternalLink size={9} /> Open the source
                   </a>
                 )}
               </div>
@@ -141,32 +117,13 @@ export function AboutPage() {
 
       <section className="tt-paper mt-3 p-3.5 sm:p-5">
         <h2 className="font-display text-xl font-semibold text-ink">Under the hood</h2>
-        <ul className="mt-1.5 grid gap-1 text-[11.5px] text-[#3a2a18cc] sm:grid-cols-2">
-          <li>
-            <strong className="text-ink">Measurement</strong> — Python, OpenCV, NumPy; HSV, Laplacian,
-            Sobel, colour-fraction masks over a 6 × 12 grid
-          </li>
-          <li>
-            <strong className="text-ink">Models</strong> — declarative specs (filtered-noise beds,
-            partials, stochastic bursts) with a documented mapping per process
-          </li>
-          <li>
-            <strong className="text-ink">Browser audio</strong> — Web Audio synthesises the same spec
-            live, with an analyser feeding the cabinet&apos;s meters and halo
-          </li>
-          <li>
-            <strong className="text-ink">Offline render</strong> — NumPy one-pole / RBJ filters,
-            bursts and normalisation produce the downloadable WAV
-          </li>
-          <li>
-            <strong className="text-ink">Frontend</strong> — React 19, TanStack Router + Query, Tailwind
-            v4, Zustand; every control is keyboard operable
-          </li>
-          <li>
-            <strong className="text-ink">Accessibility</strong> — aria-live announcements, high
-            contrast, reduced motion, mechanism mute, per-frame text description
-          </li>
-        </ul>
+        <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink-soft">
+          FastAPI serves calibrated scores and deterministic NumPy renders. The jukebox streams
+          that audio through a live analyser. The Web Audio fallback plays the same scored notes,
+          durations and gain targets with approximate instrument timbres. Uploaded photos use
+          uncalibrated luminance mapping and are explicitly labelled artistic, not scientific.
+          React, TanStack Router and Query, and Zustand drive the interface.
+        </p>
       </section>
     </div>
   )
