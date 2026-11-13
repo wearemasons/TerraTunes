@@ -81,8 +81,13 @@ Used by explore mode. `cells_b64` is uint8, row-major north→south, 96×48: `0.
 ### `POST /analyze` (stretch)
 Multipart `file` (PNG/JPEG/WebP ≤ 10 MB), optional `preset`, optional `theme`. Returns a single-frame `score` (as above, one frame) with `calibrated: false`.
 
-### `GET /tracks/{id}/render?preset=default&format=wav|mp3` → audio file
-Pre-rendered if present, else rendered and cached. Returns `Content-Disposition` with a sensible filename.
+### `GET /tracks/{id}/render?mode=sweep|overview&format=mp3|wav&melody=true` → audio file
+The track's soundscape (natural sounds + spatial sweep + threshold chimes + optional data melody). Rendered on first request (~4 s), then cached on disk. `Content-Disposition` gives `terratunes-<id>-<mode>.<fmt>`.
+
+### Soundscape fields (mapping_version 2)
+- `TrackDetail.sound` / `Score.sound`: `{phenomenon, description, listening_guide, thresholds[{value,label,above}], render_url}`.
+- `FrameScore.layers`: `{intensity, column_intensity[16], band_intensity{north,tropics,south}, band_peak_value{…}, coverage, alerts[{label,value,x,y,region,share,new}], regions[{region,where,value,x,y}]}`.
+  `alerts[].new` is true only on the frame where a threshold is first crossed (chime there). `regions` are the three strongest, well-separated places with approximate names.
 
 ### `GET /tracks/{id}/describe?n=12` → `{ "text": "string" }`
 Template description for frame `n`.

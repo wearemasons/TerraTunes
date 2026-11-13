@@ -128,6 +128,7 @@ class ThresholdInfo(BaseModel):
 class SoundInfo(BaseModel):
     phenomenon: str
     description: str
+    listening_guide: str = Field(description="Key for the rendered audio (sweep mode with melody).")
     thresholds: list[ThresholdInfo]
     render_url: str | None = None
 

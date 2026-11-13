@@ -10,11 +10,13 @@ import argparse
 import json
 import logging
 import sys
+from typing import Literal
 
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.ingest.catalog import load_catalog
 from app.ingest.pipeline import build_track
+from app.sonify.render import Mode
 from app.svs.client import SvsClient
 
 EIC_GALLERY = 40467
@@ -85,24 +87,29 @@ def build(ids: list[str]) -> int:
     return 1 if failures else 0
 
 
-def render_playlist(ids: list[str], modes: list[str], fmt: str, melody: bool) -> int:
+def render_playlist(ids: list[str], modes: "list[Mode]", fmt: "Literal['wav', 'mp3']", melody: bool) -> int:
     """Render tracks and copy them to data/exports/playlist with captions and an .m3u playlist."""
     import shutil
 
-    from app.sonify.render import FRAME_S
+    from app.mapping.rules import lower_first
+    from app.sonify.render import FRAME_S, listening_guide
     from app.sonify.service import render_file
     from app.store import get_store
 
     settings = get_settings()
     out = settings.data_dir / "exports" / "playlist"
+    if out.exists() and not ids:
+        shutil.rmtree(out)  # full export: drop files from earlier numbering
     out.mkdir(parents=True, exist_ok=True)
     tracks = [t for t in get_store().all() if t.sound and (not ids or t.meta.id in ids)]
     m3u = ["#EXTM3U"]
     for n, track in enumerate(tracks, 1):
         detail = track.detail(None)
         score = track.score("musical")
+        spec = track.sound
+        assert spec is not None  # filtered above
         for mode in modes:
-            src = render_file(track, mode, fmt, melody)  # type: ignore[arg-type]
+            src = render_file(track, mode, fmt, melody)
             name = f"{n:02d}-{track.meta.id}-{mode}"
             shutil.copyfile(src, out / f"{name}.{fmt}")
             frame_s = FRAME_S[mode]
@@ -112,7 +119,7 @@ def render_playlist(ids: list[str], modes: list[str], fmt: str, melody: bool) ->
                 "",
                 detail.description,
                 "",
-                f"How to listen: {detail.audio_key}",
+                f"How to listen: {listening_guide(spec, lower_first(track.meta.legend.label), mode, melody)}",
                 "",
                 "Timeline:",
             ]
@@ -126,7 +133,7 @@ def render_playlist(ids: list[str], modes: list[str], fmt: str, melody: bool) ->
                             notes.append(f"chime: {a.label} near {a.region}")
                     if frame.layers.regions:
                         r = frame.layers.regions[0]
-                        notes.append(f"strongest near {r.region}")
+                        notes.append(f"highest values near {r.region}")
                 lines.append(f"  {stamp}  " + "; ".join(notes))
             (out / f"{name}.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
             m3u += [f"#EXTINF:-1,{track.meta.title} ({mode})", f"{name}.{fmt}"]
@@ -165,7 +172,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "build":
         return build(args.ids)
     if args.cmd == "render":
-        modes = ["sweep", "overview"] if args.mode == "both" else [args.mode]
+        modes: list[Mode] = ["sweep", "overview"] if args.mode == "both" else [args.mode]
         return render_playlist(args.ids, modes, args.format, not args.no_melody)
     return list_tracks()
 

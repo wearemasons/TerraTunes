@@ -9,7 +9,9 @@ BACKEND_ROOT = Path(__file__).resolve().parents[2]
 class Settings(BaseSettings):
     """Runtime settings. Override with TERRATUNES_* env vars or backend/.env."""
 
-    model_config = SettingsConfigDict(env_prefix="TERRATUNES_", env_file=BACKEND_ROOT / ".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_prefix="TERRATUNES_", env_file=BACKEND_ROOT / ".env", extra="ignore"
+    )
 
     data_dir: Path = BACKEND_ROOT / "data"
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:4173"]

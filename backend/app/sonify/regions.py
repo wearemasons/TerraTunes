@@ -17,6 +17,8 @@ _BOXES: list[tuple[str, float, float, float, float]] = [
     ("Europe", 36, 71, -10, 40),
     ("the Sahara and North Africa", 15, 37, -17, 33),
     ("the Middle East", 12, 42, 33, 63),
+    ("West Africa and the Sahel", 4, 15, -18, 16),
+    ("East Africa", -12, 15, 30, 52),
     ("Central Africa", -10, 15, 8, 40),
     ("Southern Africa", -35, -10, 10, 41),
     ("Madagascar", -26, -12, 43, 51),
@@ -38,10 +40,13 @@ _BOXES: list[tuple[str, float, float, float, float]] = [
 
 
 def region_name(x: float, y: float) -> str:
-    """x: 0..1 west→east, y: 0..1 north→south (equirectangular)."""
+    """x: 0..1 west→east, y: 0..1 north→south (equirectangular).
+
+    Falls back to coordinates rather than guessing a place name.
+    """
     lon = -180 + x * 360
     lat = 90 - y * 180
     for name, la0, la1, lo0, lo1 in _BOXES:
         if la0 <= lat <= la1 and lo0 <= lon <= lo1:
             return name
-    return "the open ocean"
+    return f"{abs(round(lat))}°{'N' if lat >= 0 else 'S'}, {abs(round(lon))}°{'E' if lon >= 0 else 'W'}"

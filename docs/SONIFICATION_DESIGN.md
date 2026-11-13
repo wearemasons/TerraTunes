@@ -1,5 +1,9 @@
 # Sonification Design
 
+> **v2 (2026-11-13): soundscape engine in the backend.** Pure pitch scanning (section 2 below) told
+> listeners *how much* but not *what*. v2 layers natural sounds (auditory icons) over the data:
+> see "Soundscape engine (v2)" at the end. Section 2 still describes the optional data melody.
+
 Goal: sound that is **traceable to the data** and **musical**. Every audible parameter has one documented meaning that is also written in the track's audio key.
 
 ## 1. Pipeline
@@ -77,3 +81,42 @@ Template:
 
 ## 9. Narrative (for the write-up)
 Explain per theme *why* the mapping fits the science: rising sea level = rising pad; fire = percussive, sudden; greenhouse gases = slow, thick, beating harmonics that never resolve. Keep the urgency honest: tension tracks real change, not drama.
+
+## 10. Soundscape engine (v2, backend)
+
+Code: `backend/app/sonify/`. Served by `GET /tracks/{id}/render`, exported with `uv run python -m app.cli render`.
+
+### Why
+Parameter mapping alone (pitch = value) needs learning before it means anything, and averaging columns lost latitude. Auditory icons (natural sounds) are recognised without training, so they carry **what** is happening; data drives **how much** and **where**; thresholds with real-world meaning replace abstract notes.
+
+### Layers
+| Layer | Carries | How |
+|---|---|---|
+| Phenomenon | What + how much | Procedural natural sound per track, intensity from real values (`sound.intensity` in the catalog) |
+| Spatial sweep | Where (west→east) | Each frame 4 s; the sound pans left→right with the scan, following each slice's intensity (weighted to the slice's strongest part, so a small storm is still loud) |
+| Bed | Whole map | Quieter, centred, follows the frame's overall intensity |
+| Thresholds | Meaningful lines | Rising two-note chime, panned to where the line is first crossed |
+| Data melody (optional) | Exact value | Soft plucks, pitch = value (section 2 rules) |
+| Frame tick | Time | Soft tick at each frame |
+
+### Sounds per track
+| Track | Sound | Data controls | Thresholds |
+|---|---|---|---|
+| Temperature | Cicadas (heat ≥ 20 °C) / icy wind and creaks (≤ 0 °C) | Chorus and ice intensity | Below freezing; 40 °C |
+| Wind | Filtered-noise wind with gusts, howl when strong | Pitch, loudness, gustiness | Beaufort 10 (24.5 m/s), 12 (32.7 m/s) |
+| Precipitation | Rain bed + droplets; rumble and thunder when extreme | Drop density, loudness | Heavy rain 7.6 mm |
+| Carbon monoxide | Fire crackle and roar | Crackle density, roar | Strong smoke plume > 200 ppb |
+| SST | Ocean surf | Timbre: icy/bright → warm/dark | 26.5 °C (fuels tropical cyclones) |
+| Vegetation | Birds and insects | Chorus density | none |
+| PM2.5, ozone | Haze (labelled metaphor: no natural sound exists) | Roughness and loudness | WHO PM2.5 15 µg/m³, US AQI 55.5; WHO ozone ~51 ppb |
+| NOx | Traffic hum (its main source) | Thickness | none |
+
+Rules: calm or dry = near silence (no fake drizzle); no data = silence; deterministic (seeded per track); peak ≤ −1 dBFS with a soft limiter.
+
+### Checked
+- Local loudness follows column intensity: r = 0.92 rain, 0.90 CO, 0.96 NOx, 0.44 wind, 0.56 temperature (measured on the rendered audio).
+- Stereo image moves left→right within every frame on all tracks.
+- Tests: storm in the east is louder on the right; no repeat chime while a line stays crossed; bounded, deterministic output.
+
+### Not yet proven
+Listening tests with blind and low-vision people (protocol in ACCESSIBILITY.md): identify the phenomenon, find the strongest place, judge change between frames, old scan vs soundscape.

@@ -180,3 +180,28 @@ def encode(audio: NDArray[np.float32], fmt: Literal["wav", "mp3"]) -> bytes:
         for packet in stream.encode(None):
             container.mux(packet)
     return buf.getvalue()
+
+
+def listening_guide(spec: SoundSpec, unit_label: str, mode: Mode = "sweep", melody: bool = True) -> str:
+    """Plain-language key for the rendered audio. Describes only what the renderer actually plays."""
+    parts = [spec.description]
+    if mode == "sweep":
+        parts.append(
+            f"Each frame lasts {FRAME_S['sweep']:.0f} seconds. The sound travels from your left ear (west) to your "
+            "right ear (east) as it scans the map, so you hear where things are. A quieter layer underneath "
+            "follows the whole map."
+        )
+    else:
+        parts.append(
+            f"Each frame is a {FRAME_S['overview']:.1f}-second snapshot of the whole map, so you hear change over time."
+        )
+    parts.append("A soft tick marks each new frame.")
+    if melody:
+        parts.append(f"Soft notes underneath give the value: higher notes mean higher {unit_label}.")
+    if spec.thresholds:
+        lines = "; ".join(t.label for t in spec.thresholds)
+        parts.append(
+            f"A rising two-note chime marks where the map first crosses a meaningful line, panned to that side: {lines}."
+        )
+    parts.append("Silence means calm conditions or no data. Best with headphones.")
+    return " ".join(parts)

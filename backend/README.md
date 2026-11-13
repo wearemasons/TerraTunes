@@ -28,6 +28,7 @@ data/catalog.yaml (human-curated) ──build──►
 | `uv run python -m app.cli discover` | Crawls the EIC gallery and its dashboards, ranks visualizations: flat world map + colorbar = best |
 | `uv run python -m app.cli build [ids…]` | Builds all enabled catalog tracks, or only the ids given |
 | `uv run python -m app.cli list` | Lists built tracks |
+| `uv run python -m app.cli render [ids…] [--mode sweep\|overview\|both] [--format mp3\|wav] [--no-melody]` | Renders soundscapes to `data/exports/playlist/` with a caption file per track and `playlist.m3u` |
 
 Calibration rules:
 - Values come from matching each pixel to the colorbar (ΔE ≤ 14 in CIELAB). Pixels that match nothing (land on ocean maps, labels) become **no data** and play as silence.
@@ -41,6 +42,7 @@ app/
   main.py            FastAPI app, CORS, error shape, request ids
   api/routes.py      /healthz, /tracks, /tracks/{id}, /score, /frames/{n}, /frames/{n}/grid, /thumbnail
   mapping/rules.py   image→music rules (single source of truth, MAPPING_VERSION)
+  sonify/            soundscape engine: sound specs, per-frame layers, procedural synth, render + cache
   vision/            colorbar extraction, value scales, frame calibration
   ingest/            catalog, video sampling, build pipeline
   svs/client.py      polite SVS client (rate limit, retries, disk cache, resumable downloads)

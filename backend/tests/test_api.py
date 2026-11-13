@@ -50,3 +50,49 @@ def test_errors_use_contract_shape(client: TestClient) -> None:
     assert r.json()["error"]["request_id"]
     assert client.get("/tracks/test-track/frames/99").status_code == 404
     assert client.get("/tracks/test-track/score?preset=loud").status_code == 422
+
+
+def test_soundscape_fields_and_render(client: TestClient) -> None:
+    from app.core.config import get_settings
+    from app.store import get_store
+
+    settings = get_settings()
+    settings.catalog_path.write_text(
+        """
+tracks:
+  - id: test-track
+    svs_id: 1
+    theme: sea_level
+    title: Test Track
+    summary: s
+    movie: m.mp4
+    colorbar: c.png
+    legend: {label: T, unit: u, ticks: [{position: 0, value: 0}, {position: 1, value: 1}]}
+    sound:
+      phenomenon: wind
+      intensity: {lo: -40, hi: 40}
+      thresholds: [{value: 30, label: very windy}]
+""",
+        encoding="utf-8",
+    )
+    get_store().reload()
+
+    detail = client.get("/tracks/test-track").json()
+    assert detail["sound"]["phenomenon"] == "wind"
+    assert detail["sound"]["render_url"].endswith("/tracks/test-track/render")
+    assert "left ear" in detail["sound"]["listening_guide"]
+
+    score = client.get("/tracks/test-track/score").json()
+    layers = score["frames"][1]["layers"]
+    assert len(layers["column_intensity"]) == 16
+    assert set(layers["band_intensity"]) == {"north", "tropics", "south"}
+
+    audio = client.get("/tracks/test-track/render?mode=overview&format=wav&melody=false")
+    assert audio.status_code == 200
+    assert audio.headers["content-type"] == "audio/wav"
+    assert audio.content[:4] == b"RIFF"
+    assert client.get("/tracks/test-track/render?format=ogg").status_code == 422
+
+
+def test_render_without_soundscape_is_404(client: TestClient) -> None:
+    assert client.get("/tracks/test-track/render").status_code == 404

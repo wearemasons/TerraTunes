@@ -25,6 +25,7 @@ from app.mapping.rules import (
     build_score,
     build_transcript,
     frame_duration_s,
+    lower_first,
 )
 from app.schemas.models import (
     Legend,
@@ -93,9 +94,12 @@ class StoredTrack:
     def sound_info(self, render_url: str | None = None) -> SoundInfo | None:
         if self.sound is None:
             return None
+        from app.sonify.render import listening_guide  # local: render imports schemas only
+
         return SoundInfo(
             phenomenon=self.sound.phenomenon,
             description=self.sound.description,
+            listening_guide=listening_guide(self.sound, lower_first(self.meta.legend.label)),
             thresholds=[
                 ThresholdInfo(value=t.value, label=t.label, above=t.above) for t in self.sound.thresholds
             ],
@@ -104,18 +108,10 @@ class StoredTrack:
 
     def detail(self, thumbnail_url: str | None, render_url: str | None = None) -> TrackDetail:
         score = self.score("musical")
-        key = audio_key_text(self.meta.legend)
-        if self.sound is not None:
-            alerts = "; ".join(t.label for t in self.sound.thresholds)
-            key = f"{self.sound.description} {key}" + (
-                f" A rising two-note chime marks where the map first crosses a meaningful line: {alerts}."
-                if alerts
-                else ""
-            )
         return TrackDetail(
             **self.summary(thumbnail_url).model_dump(),
             description=self.meta.description,
-            audio_key=key,
+            audio_key=audio_key_text(self.meta.legend),  # key for the browser engine
             sound=self.sound_info(render_url),
             legend=self.meta.legend,
             presets=["musical", "clear"],
