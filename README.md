@@ -49,17 +49,22 @@ TeraTones/
 
 ## Quick start
 
-```bash
-# backend (processed tracks are committed, so no download is needed)
-cd backend && uv sync && uv run fastapi dev app/main.py   # http://localhost:8000/docs
+Needs [Node](https://nodejs.org), [bun](https://bun.sh) and [uv](https://docs.astral.sh/uv/).
 
-# frontend, pointed at the backend
-cd frontend && bun install
-echo VITE_API_URL=http://localhost:8000 > apps/web/.env.local
-bun run dev:web                                            # http://localhost:3000
+```bash
+node dev.mjs            # installs what's missing, starts API (:8000) and web app (:3000)
 ```
 
-Without the backend the web app falls back to synthetic demo tracks. To refresh tracks from NASA (they update daily): `cd backend && uv run python -m app.cli build`.
+| Command | What it does |
+|---|---|
+| `node dev.mjs --open` | Same, and opens the browser |
+| `node dev.mjs --demo` | Web app only, on synthetic demo data (no Python needed) |
+| `node dev.mjs --rebuild` | Re-download the NASA visualizations (they update daily) and rebuild tracks first |
+| `API_PORT=8010 WEB_PORT=3010 node dev.mjs` | Other ports; CORS and the web app's API URL follow |
+
+Ctrl+C stops everything. Processed tracks are committed, so the first run needs no NASA downloads.
+
+Running the parts by hand: `cd backend && uv run fastapi dev app/main.py`, and `cd frontend && bun run dev:web` with `VITE_API_URL=http://localhost:8000` in `frontend/apps/web/.env.local`.
 
 ## Credits
 
