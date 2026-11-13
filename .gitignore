@@ -1,0 +1,28 @@
+# deps
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# env and secrets
+.env
+.env.*
+!.env.example
+
+# build output
+dist/
+.vite/
+*.tsbuildinfo
+
+# data (large or regenerable)
+backend/data/raw/
+backend/data/cache/
+backend/data/exports/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
