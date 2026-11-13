@@ -1,0 +1,52 @@
+backend/app/store.py
+  s_66a65e58ee11fe::t_dc9bab0561909b 1-20,22-26,29-140
+  s_66a65e58ee11fe::t_7fa2f90c87935f 21,27-28
+backend/app/core/config.py
+  s_66a65e58ee11fe::t_28d2afc90127bf 1-37
+backend/app/schemas/models.py
+  s_66a65e58ee11fe::t_742def64e95175 1-134
+backend/app/core/logging.py
+  s_66a65e58ee11fe::t_25d676ed4868c6 1-29,33-50
+  s_66a65e58ee11fe::t_59a1e6e499d4f6 30-32
+backend/tests/test_api.py
+  s_66a65e58ee11fe::t_e10c2f0f000df3 1-52
+backend/app/api/routes.py
+  s_66a65e58ee11fe::t_aa53eba9074839 1,3-21,23-89,93-107
+  s_66a65e58ee11fe::t_59a1e6e499d4f6 90-92
+  s_66a65e58ee11fe::t_de92cb833a9ccc 2,22
+backend/app/__init__.py
+  s_66a65e58ee11fe::t_5f420059a7b3f4 1-3
+backend/app/main.py
+  s_66a65e58ee11fe::t_f524be3989ef57 1-37,41-49
+  s_66a65e58ee11fe::t_59a1e6e499d4f6 38-40
+backend/tests/conftest.py
+  s_66a65e58ee11fe::t_bd9ad9f34c8b24 1-63
+backend/app/mapping/rules.py
+  s_66a65e58ee11fe::t_4e15678418ce5c 1-168,175-206,211-219,223-238,241-254,258-275
+  s_66a65e58ee11fe::t_59a1e6e499d4f6 169-174,207-210,220-222,239-240,255-257
+backend/tests/test_mapping.py
+  s_66a65e58ee11fe::t_2fba141dda0da0 1-18,22-29,33-50,54-57
+  s_66a65e58ee11fe::t_59a1e6e499d4f6 19-21,30-32,51-53
+backend/pyproject.toml
+  s_66a65e58ee11fe::t_de92cb833a9ccc 27
+  s_66a65e58ee11fe::t_59a1e6e499d4f6 37
+  s_66a65e58ee11fe::t_07f1db7c3a814b 1-26,28-36
+backend/uv.lock
+  s_66a65e58ee11fe::t_89295ea0da0364 1-2112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "509d26ae2e8dde9f628c4f5c4f7ae8b380952a65",
+  "prompts": {},
+  "sessions": {
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
