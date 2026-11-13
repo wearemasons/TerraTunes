@@ -161,6 +161,29 @@ def render(
         # 35 dB/s on voice buses + 10 dB/s on the ensemble = 45 dB/s, or 4.5 dB/100 ms.
         bus *= smooth_gain(gain_targets, step_s, n, GAIN_SLEW_DB_PER_S - 10.0)
         out += bus
+
+    # Sparse data accents sit beside the clear melodic line. They are deliberately
+    # anticipatory: a late-slot hotspot begins 120 ms before its scan slot so an
+    # eastern high value arrives as an arrival, not a rebound after the chord change.
+    accent = np.zeros((2, n), dtype=np.float32)
+    if melody and mode == "sweep":
+        for f, frame in enumerate(score.frames):
+            activity = frame.activity or [0.0] * steps
+            for k, a in enumerate(activity):
+                if a >= 0.70 and k % 2 == 0:
+                    beat = s.data_beat(min(1.0, 0.28 + 0.52 * float(a)), 0.14)
+                    _place(accent, beat * 0.28, f * frame_s + k * step_s, 0.0)
+            if frame.hotspot is not None and frame.stats.max >= 0.78:
+                k = min(steps - 1, max(0, int(frame.hotspot.x * steps)))
+                at = f * frame_s + k * step_s - min(0.12, step_s * 0.22)
+                strength = min(1.0, 0.35 + 0.9 * float(frame.hotspot.strength))
+                if spec.phenomenon in {"fire", "temperature"}:
+                    burst = s.heat_burst(strength)
+                    _place(accent, burst * 0.34, max(0.0, at), frame.hotspot.x * 2 - 1)
+                else:
+                    beat = s.data_beat(strength, 0.22)
+                    _place(accent, beat * 0.48, max(0.0, at), 0.0)
+        out += accent
     ensemble = [
         g
         for frame in score.frames
@@ -246,10 +269,15 @@ def listening_guide(spec: SoundSpec, unit_label: str, mode: Mode = "sweep", melo
     parts.append(
         "Louder and fuller means more intense activity relative to this track. Quiet "
         "areas are soft and sparse with longer notes; active areas gain more ringing "
-        "harp plucks and a stronger ensemble swell. There are no drums, drones or weather "
-        "sounds, only acoustic-modelled strings, flute and a hall tail. Rounded gain curves "
-        "join the measured targets and emphasize high-activity peaks without raising the output "
-        "ceiling. Slight seeded string drift adds organic timbre, not another data measurement."
+        "harp plucks and a stronger ensemble swell. The three measured lines carry the map and "
+        "nothing else adds information: no drone, no weather recording, no beat that stands for a "
+        "quantity. Sparse low beats mark "
+        "dense high-activity regions. A strong hotspot gets a short anticipatory accent just "
+        "before its scan slot, so late eastern peaks arrive clearly rather than bouncing after "
+        "the chord. Heat and smoke-indicator tracks use a restrained rising accent; it is "
+        "a contextual icon, not a measurement of fire. Rounded gain curves join the measured targets "
+        "and emphasize high-activity peaks without raising the output ceiling. Slight seeded string "
+        "drift adds organic timbre, not another data measurement."
     )
     if not melody:
         parts.append("This version plays the scored low plucked line alone: no harp or flute.")

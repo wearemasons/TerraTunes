@@ -3,7 +3,7 @@
 Input: a stack of value grids (uint8, 0..250 = normalized value, 255 = no data).
 Output: a deterministic Score the browser can play. Bump MAPPING_VERSION on any rule change.
 
-v16 — accepted v15 notes, rounded swells and stronger measured peaks
+v17 — accepted v16 notes, rounded swells and anticipatory data accents
 ==============================================================
 One authored, disclosed chord per frame; each voice chooses only its chord tones. The measured
 slice orders those tones monotonically. The relative contour is expanded within each frame so
@@ -39,7 +39,7 @@ from app.schemas.models import (
 )
 from app.vision.colorbar import ValueScale
 
-MAPPING_VERSION = "16"
+MAPPING_VERSION = "17"
 STEPS_PER_FRAME = 8
 ROOT_MIDI = 50  # D3
 GRID_MAX = 250
@@ -269,9 +269,14 @@ def audio_key_text(legend: Legend, progression: Sequence[str] = ()) -> str:
             "Each frame lasts four seconds, with eight half-second slots scanning west to east. Early "
             "in the frame is west; late is east. Some slots are rests, not a faster or slower scan. "
             "The instruments stay near the centre: location is time, not left or right.",
-            "There are no drums, drones or weather sounds. Plucked strings and flute ring in a hall; "
-            "the previous chord may linger briefly as the next begins. A gap can be a quiet-area rest; "
-            "a slice with no data makes no new sound, and a completely empty map is silent after the tail.",
+            "The three melodic lines carry the measurements; nothing else adds information. Sparse low "
+            "beats mark dense high-activity regions, and a strong hotspot gets a short accent slightly "
+            "before its own slot so a late eastern peak arrives instead of rebounding; heat and "
+            "smoke-indicator records use a restrained rising accent. These are presentation, not extra "
+            "measurements, and they are not environmental recordings. Plucked strings and flute ring in a "
+            "hall; the previous chord may linger briefly as the next begins. A gap can be a quiet-area "
+            "rest; a slice with no data makes no new sound, and a completely empty map is silent after "
+            "the tail.",
         ]
     )
 

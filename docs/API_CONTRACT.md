@@ -1,6 +1,24 @@
 # API Contract (v0)
 
-## mapping_version 16 changes (current)
+## mapping_version 17 changes (current)
+
+The contract is **unchanged**: same endpoints, same fields, same score shape, same
+`steps_per_frame`, `instruments[]` and `frames[].voices`. v17 changes the audio a render writes, not
+what `/score` returns.
+
+* `mapping_version` is the string `"17"`; the notes, durations, pitch targets, occupied/rest slots,
+  chords, rounded swells and peak emphasis are identical to v16. See
+  `docs/SONIFICATION_DESIGN.md` for the two presentational accents `backend/app/sonify/render.py`
+  adds (`data_beat` and the hotspot accent with `heat_burst`) and why they are placed 120 ms early.
+* Only prose fields changed: `audio_key`, `frames[].description`, `sound.listening_guide` and
+  `transcript` now disclose the sparse beat and the anticipatory hotspot accent as presentation, not
+  measurement, and say that the heat/smoke accent is not a measurement of fire. Field names, types
+  and ordering are as in the v16 section below.
+* `/render` response shape is unchanged, but cached audio invalidates: the cache key embeds the
+  mapping version, so a v16 file is not served for a v17 request. The accents appear only in
+  `mode=sweep` with `melody=true`.
+
+## mapping_version 16 changes (historical: the contract v17 keeps)
 
 `GET /tracks/{id}/score` (`TerraScore`) gained, and `docs/SONIFICATION_DESIGN.md` explains why:
 
@@ -97,7 +115,7 @@ Themes: the nine EIC areas plus `weather` and `ocean`.
 ### `GET /tracks/{id}/score?preset=default`
 ```json
 {
-  "mapping_version": "16",
+  "mapping_version": "17",
   "track_id": "sea-level-2023",
   "preset": "default",
   "key": { "root": "D3", "scale": "dorian", "bpm": 120 },
@@ -129,9 +147,10 @@ Multipart `file` (PNG/JPEG/WebP ≤ 10 MB), optional `preset`, optional `theme`.
 
 ### `GET /tracks/{id}/render?mode=sweep|overview&format=mp3|wav&melody=true` → audio file
 The authoritative backend realization of the score, normally streamed as MP3: v14 acoustic
-instruments and hall, v15 score structure, v16 activity gain contrast, and text-only threshold
+instruments and hall, v15 score structure, v16 activity gain contrast, v17 centred `data_beat` and
+anticipatory hotspot accent (sweep mode with `melody=true` only), and text-only threshold
 annotations. Gains remain multipliers (including values above 1); the rendered sample peak is
-still normalized to 0.89.
+still normalized to 0.89. The accents are presentation and add no measured field to the response.
 Rendered on first request, then cached on disk. `Content-Disposition` gives
 `terratunes-<id>-<mode>.<fmt>`.
 
@@ -139,7 +158,7 @@ Rendered on first request, then cached on disk. `Content-Disposition` gives
 - `TrackDetail.sound` / `Score.sound`: `{phenomenon, description, listening_guide, thresholds[{value,label,above}], render_url}`.
 - `FrameScore.layers`: `{intensity, column_intensity[16], band_intensity{north,tropics,south}, band_peak_value{…}, coverage, alerts[{label,value,x,y,region,share,new}], regions[{region,where,value,x,y}]}`.
 `alerts[].new` was true only on the frame where a threshold was first crossed (with a chime in
-that historical model). In v16 thresholds remain text-only; `regions` are historical fields.
+that historical model). In v16 and v17 thresholds remain text-only; `regions` are historical fields.
 
 ### `GET /tracks/{id}/describe?n=12` → `{ "text": "string" }`
 Template description for frame `n`.

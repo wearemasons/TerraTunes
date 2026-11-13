@@ -9,18 +9,18 @@
 4. **Demo video**, ≤ 3 minutes, captioned, with audio description of the visuals.
 5. **Repo**: README, docs, license, credits.
 
-## The opening film (0:00 – 0:15 of the app itself)
-The app now explains itself before anyone has to understand it: a 15-second animated cut scene,
-four sentences, played once per session on the home page.
+## The opening film (0:00 – 0:18 of the app itself)
+The app now explains itself before anyone has to understand it: an animated cut scene, 16.8 s of
+picture over an 18.0 s soundtrack, four sentences, played once per session on the home page.
 
 | | |
 |---|---|
 | What it says | "Every day, NASA paints our planet's weather. But if you can't see it, that story stays silent. TerraTunes measures every pixel — and scores it as sound. Don't just watch the Earth change. Listen." |
-| Why it is there | The pitch is the hardest part of this project to convey in a page of text. Fifteen seconds of picture and a measured voice do it, and the same four sentences are the film's text equivalent for a screen reader. |
-| How it is built | One generated 1280x720 cut scene plus a separate narration/music track, so the picture can stop on its last good frame while the last sentence is still being said. `frontend/tools/build_boot_film.sh` rebuilds it from raw inputs that are deliberately not in git. |
-| The hand-off | At 12.9 s the film freezes on a frame drawn to match the home page, and `src/lib/matchCut.ts` transforms the live cabinet and the girl onto that framing — the same object-cover crop the film used — so the dissolve lands on one picture instead of two. When the film is gone the page eases back to its own layout. |
-| Inside the film | At 9.4 s you hear a real TerraTunes render of NASA sea surface temperature (mapping_version 14, the first frame in which all three instruments are sounding) coming out of the painted cabinet. |
-| Accessibility | Sound is on by default and the browser gates it: if no gesture has happened the captions carry the story and one click starts the voice at the picture's current time. Mute is one press, the sentences are readable as text, and reduced motion gets a held frame with no film and no audio. |
+| Why it is there | The pitch is the hardest part of this project to convey in a page of text. Seventeen seconds of picture, with the voice running to 18.0 s, do it, and the same four sentences are the film's text equivalent for a screen reader. |
+| How it is built | One generated 1280x720 cut scene plus a separate narration/music track, so the picture can stop on its last good frame while the last sentence is still being said. The picture is delivered 1.12x longer than it was filmed and the narration is slowed (atempo 0.92) and starts 0.25 s in, because the read felt too fast at the old timing. Picture and voice are held together by a tested state machine in `src/lib/filmSync.ts`. `frontend/tools/build_boot_film.sh` rebuilds the film from raw inputs that are deliberately not in git. |
+| The hand-off | At 14.45 s the film freezes on a frame drawn to match the home page, and `src/lib/matchCut.ts` transforms the live cabinet and the girl onto that framing — the same object-cover crop the film used — so the dissolve lands on one picture instead of two. The fade then starts at 16.4 s and lasts 1.4 s, which is after the last word, so no sentence is cut off. When the film is gone the page eases back to its own layout. |
+| Inside the film | At 10.4 s you hear a real TerraTunes render of NASA sea surface temperature, produced by the mapping_version 17 backend at `/tracks/sea-surface-temperature/render`, coming out of the painted cabinet. |
+| Accessibility | Sound is on by default and the browser gates it: if no gesture has happened the captions carry the story and one click starts the voice at the picture's current time. Mute is one press, the sentences are readable as text, and reduced motion gets a held frame with no film and no audio. `?replay=1` on the home page shows the film again in a tab that already saw it, which is how the captions were checked against the delivered voice. |
 
 ## Judging lens (assumed; confirm on the challenge page)
 | Lens | How we address it |

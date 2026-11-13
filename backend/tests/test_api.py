@@ -83,7 +83,9 @@ tracks:
     assert detail["sound"]["phenomenon"] == "wind"
     assert detail["sound"]["render_url"].endswith("/tracks/test-track/render")
     guide = detail["sound"]["listening_guide"]
-    assert "west to east" in guide and "no drums" in guide
+    assert "west to east" in guide
+    assert "anticipatory accent" in guide  # v17: eastern peaks arrive rather than rebounding
+    assert "not a measurement of fire" in guide  # the heat accent is disclosed as contextual
     assert "left ear" not in guide  # v14: the melody no longer sweeps across the stereo field
     assert detail["sound"]["description"].startswith("Wind speed")
 

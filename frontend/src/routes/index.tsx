@@ -32,6 +32,19 @@ const MODEL_WORD: Record<string, string> = {
 /** one showing of the film per tab: nobody wants it again on a reload */
 const FILM_SEEN = 'terratunes.film.seen'
 
+/**
+ * `?replay` shows the film again in a tab that has already seen it. It exists for
+ * demos, for screen-reader and caption review, and because a bug you cannot
+ * reproduce on demand is a bug you cannot fix.
+ */
+const wantReplay = () => {
+  try {
+    return new URLSearchParams(window.location.search).has('replay')
+  } catch {
+    return false
+  }
+}
+
 /** film = the cut scene rolling, match = frozen on the frame the page is
  *  composed like, live = the cabinet is the page again */
 type Boot = 'film' | 'match' | 'live'
@@ -59,7 +72,7 @@ export function JukeboxPage() {
   const [progress, setProgress] = useState(0)
   const [flying, setFlying] = useState(false)
   const [deckOpen, setDeckOpen] = useState(false)
-  const [boot, setBoot] = useState<Boot>(() => (sessionStorage.getItem(FILM_SEEN) ? 'live' : 'film'))
+  const [boot, setBoot] = useState<Boot>(() => (!wantReplay() && sessionStorage.getItem(FILM_SEEN) ? 'live' : 'film'))
   /** the page only plays its own arrival animation if there was no film to sit in front of it */
   const seenFilmAtMount = useRef(boot === 'live')
   const cradleRef = useRef<HTMLDivElement>(null)

@@ -1,7 +1,7 @@
 /**
  * The opening film.
  *
- * One 15-second animated cut scene plays before the cabinet is ever touched. It
+ * One 16.8-second animated cut scene plays before the cabinet is ever touched. It
  * is the "why" of TerraTunes in four sentences: NASA paints the planet's
  * weather, blind and low-vision people are left out of that painting, every
  * pixel is measured and scored as sound, so listen.
@@ -14,8 +14,7 @@
  * and the live page cross-fades up underneath it while the last sentence is
  * still being spoken. Nothing in the film had to be re-cut to do it.
  *
- * The narration timings were measured from the delivered audio track (a 1.05x
- * speed correction on the recorded take), so every caption sits on a real word
+ * The narration is deliberately slowed to leave space between ideas, so every caption sits on a real word
  * boundary rather than a guess. The four sentences are also kept here in full:
  * that text is the equivalent of the film for a screen reader, for the
  * "read the film" panel, and for a video that fails to load.
@@ -35,13 +34,14 @@ export const BOOT_FILM = {
   /** first frame, so the overlay never flashes white */
   poster: '/art/boot-poster.webp',
   /** total picture length, in seconds */
-  duration: 15.0,
+  duration: 16.8,
   /** where the picture stops and the live cabinet takes over */
-  matchAt: 12.9,
+  matchAt: 14.45,
   /** how long that cross-fade lasts */
-  fadeMs: 1250,
-  /** where the sound ends */
-  audioEnd: 14.74,
+  fadeMs: 1500,
+  /** where the sound ends: later than the picture, because the voice keeps talking
+   *  over the live page while the frozen frame dissolves away */
+  audioEnd: 18.0,
 
   /** the film's own frame size, in px — the match-move crops against it */
   frame: [1280, 720],
@@ -56,10 +56,10 @@ export const BOOT_FILM = {
 } as const
 
 export const BOOT_CUES: readonly BootCue[] = [
-  { start: 0.0, end: 2.9, text: 'Every day, NASA paints our planet’s weather.' },
-  { start: 3.37, end: 6.43, text: 'But if you can’t see it, that story stays silent.' },
-  { start: 7.09, end: 11.04, text: 'TerraTunes measures every pixel — and scores it as sound.' },
-  { start: 11.64, end: 14.05, text: 'Don’t just watch the Earth change. Listen.' },
+  { start: 0.25, end: 3.76, text: 'Every day, NASA paints our planet’s weather.' },
+  { start: 4.08, end: 7.60, text: 'But if you can’t see it, that story stays silent.' },
+  { start: 8.30, end: 12.86, text: 'TerraTunes measures every pixel — and scores it as sound.' },
+  { start: 13.47, end: 16.28, text: 'Don’t just watch the Earth change. Listen.' },
 ] as const
 
 /** The whole narration as prose: the accessible text equivalent of the film. */

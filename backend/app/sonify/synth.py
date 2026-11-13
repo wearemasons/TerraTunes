@@ -1,8 +1,10 @@
-"""Procedural acoustic instruments and a Schroeder hall in NumPy — no samples, fully deterministic.
+"""Procedural instruments, data accents and a Schroeder hall in NumPy — deterministic.
 
 The reference is NASA's ocean-colour / phytoplankton sonification: three polyphonic lines, one per
 measured channel, entering one at a time, with chords emerging from the lines sounding together.
-Nothing else: no drones, no pads, no percussion, no environmental noise, no earcons.
+No drones, pads, environmental noise or earcons. Two small accent voices exist beside the lines, and
+neither carries a measurement of its own: `data_beat` marks dense high-activity regions and
+`heat_burst` is a contextual rising accent for heat and smoke-indicator records.
 
   * `plucked_bass` low string (upright bass / cello pizzicato): band-limited partial bank with a
     pick-position comb that mutes the harmonics that have a node under the finger, two body
@@ -97,20 +99,15 @@ class Synth:
         enforced by render.smooth_gain; an acoustic note attack is not a fader gain step.
         """
         att = max(5e-3, attack)
-        env = np.where(k < att, _FLOOR * (1.0 / _FLOOR) ** np.minimum(1.0, k / att), 1.0).astype(
-            np.float32
-        )
+        env = np.where(k < att, _FLOOR * (1.0 / _FLOOR) ** np.minimum(1.0, k / att), 1.0).astype(np.float32)
         if decay is not None and not sustain:
-            env = (env * (1.0 / _FLOOR) ** (-np.maximum(0.0, k - att) / max(1e-3, decay))).astype(
-                np.float32
-            )
+            env = (env * (1.0 / _FLOOR) ** (-np.maximum(0.0, k - att) / max(1e-3, decay))).astype(np.float32)
         if release is not None:
             rel = max(5e-3, release)
             start = max(att, total - rel)
             env = (
-                env * np.where(k <= start, 1.0, _FLOOR ** np.clip((k - start) / rel, 0.0, 1.0)).astype(
-                    np.float32
-                )
+                env
+                * np.where(k <= start, 1.0, _FLOOR ** np.clip((k - start) / rel, 0.0, 1.0)).astype(np.float32)
             ).astype(np.float32)
         return env
 
@@ -151,9 +148,7 @@ class Synth:
                     phase=float(rng.uniform(0.0, 2 * np.pi)),
                 )
                 phase_path = phases[idx - 1] + 2 * np.pi * np.cumsum(f * drift) / SR
-            out += (
-                level * np.sin(phase_path) * np.exp(-k / max(1e-3, tau))
-            ).astype(np.float32)
+            out += (level * np.sin(phase_path) * np.exp(-k / max(1e-3, tau))).astype(np.float32)
         return out
 
     # ---------------------------------------------------------------- the voices
@@ -205,12 +200,34 @@ class Synth:
         tone = np.sin(phase) + 0.2 * np.sin(2 * phase) + 0.06 * np.sin(3 * phase)
         trem = 1.0 + 0.04 * vib_on * np.sin(2 * np.pi * 3.6 * k)
         env = self.envelope(k, attack=0.05, total=dur, sustain=True, release=0.14)
-        air = (0.8 * np.exp(-np.maximum(0.0, k - 0.01) / 0.06) + 0.4 * (k > dur - 0.14)).astype(
-            np.float32
-        )
+        air = (0.8 * np.exp(-np.maximum(0.0, k - 0.01) / 0.06) + 0.4 * (k > dur - 0.14)).astype(np.float32)
         breath = self.band_noise(rng, 1600.0, 4800.0, n) * air * 0.07
         out = (tone * trem * env + breath * env).astype(np.float32)
         return (out / (np.abs(out).max() + 1e-9)).astype(np.float32)
+
+    def data_beat(self, strength: float = 0.7, dur: float = 0.16) -> F:
+        """A quiet analogue pulse for dense/high-activity scan regions."""
+        n = max(1, int(dur * SR))
+        k = np.arange(n, dtype=np.float32) / SR
+        rng = self._stream("beat", float(strength))
+        body = np.sin(2 * np.pi * 74.0 * k + 0.15 * np.sin(2 * np.pi * 3.0 * k))
+        click = self.band_noise(rng, 900.0, 4200.0, n) * np.exp(-k / 0.018) * 0.18
+        env = np.exp(-k / max(0.02, dur / 3.2)).astype(np.float32)
+        return ((0.82 * body + click) * env * float(np.clip(strength, 0.0, 1.0))).astype(np.float32)
+
+    def heat_burst(self, strength: float = 0.8, dur: float = 0.42) -> F:
+        """A rising, noisy flame-like accent for extreme heat / smoke indicators."""
+        n = max(1, int(dur * SR))
+        k = np.arange(n, dtype=np.float32) / SR
+        rng = self._stream("heat", float(strength))
+        noise = self.band_noise(rng, 180.0, 4200.0, n)
+        crack = self.band_noise(rng, 1200.0, 7200.0, n)
+        rise = np.clip(k / 0.08, 0.0, 1.0)
+        env = (rise * np.exp(-k / max(0.04, dur / 1.8))).astype(np.float32)
+        tone = np.sin(2 * np.pi * (92 + 38 * k / dur) * k)
+        return (
+            (0.58 * noise + 0.22 * crack + 0.34 * tone) * env * float(np.clip(strength, 0.0, 1.0))
+        ).astype(np.float32)
 
     # ----------------------------------------------------------------- the hall
     @staticmethod

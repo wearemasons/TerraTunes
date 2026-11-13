@@ -1,6 +1,27 @@
 # Accessibility
 
-## mapping_version 15 - what the spoken equivalents now say
+## mapping_version 17 - what the spoken equivalents now say
+
+Sources: `backend/app/mapping/rules.py` (`audio_key_text`, `build_transcript`) and
+`backend/app/sonify/render.py` (`listening_guide`); the wording is asserted in
+`backend/tests/test_api.py`. The score itself is v16's, so the instrument copy below still holds.
+
+* **The two presentational accents are now disclosed.** The audio key and the listening guide say
+  that a quiet low beat marks dense, high-activity regions, and that a short accent arrives about
+  120 ms before a strong hotspot's own scan slot so an eastern peak (Australia, on these maps) lands
+  as an arrival rather than a rebound off the previous chord's hall tail. Both are named as
+  presentation: neither carries a value, a pitch, or a unit.
+* **Heat and smoke records.** Where the phenomenon is `fire` or `temperature` the accent is a rising
+  contextual icon (`heat_burst`), and the spoken copy says plainly that it is "not a measurement of
+  fire".
+* **Nothing moves to the side.** Both accents are centred and unpanned, and they appear only in the
+  swept, melodic render, so no listener needs stereo hearing to follow the map.
+* **The opening film** has four sentences with measured caption timings that match the delivered
+  voice: 0.25-3.76, 4.08-7.60, 8.30-12.86, 13.47-16.28 s (`BOOT_CUES` in `frontend/src/lib/boot.ts`).
+  The same four sentences ship as text and reach a screen reader; `?replay=1` on the home page shows
+  the film again in a tab that already saw it, which is how those timings and the text were checked.
+
+## mapping_version 15 - what the spoken equivalents said then (historical, kept as written; the v17 note above supersedes the accent copy)
 
 The v15 candidate retains v14's three acoustic instruments and hall, but adds a disclosed seeded
 eight-frame chord phrase, relative within-frame contours, and activity-driven articulation. The
@@ -24,9 +45,15 @@ uses scored notes, durations, and gains. Sources: `backend/app/mapping/rules.py`
   in the frame is the east. The sound sits in the middle with only a slight spread that never moves:
   position comes from timing, not from left or right." The old hard left-to-right pan of the melody
   is gone, so no listener needs stereo hearing to follow the map.
-* **Space and timbre.** "There is no drone, no drum and no weather sound: when the three lines sound
-  together they form the chords. Each note rings on in a hall-like reverb, so a plucked string keeps
-  fading after it has been played."
+* **Space and timbre.** "The three measured lines carry the map and nothing else adds information: no
+  drone, no weather recording, no beat that stands for a quantity." That spoken line is v15/v16
+  wording and is kept here as history: from v17 it is no longer the whole truth. When the lines sound
+  together they form the chords, and each note rings on in a hall-like reverb, so a plucked string
+  keeps fading after it has been played. v17 adds two presentational layers that are disclosed as
+  such: a sparse low beat in dense high-activity regions, and a short accent placed slightly before a
+  strong hotspot's own scan slot so an eastern peak arrives rather than rebounding. Heat and
+  smoke-indicator records use a rising contextual accent, which is explicitly "not a measurement of
+  fire". None of these carry a measurement, and none is panned hard.
 * **Thresholds.** Named thresholds are text-only in v15: they remain in the listening guide,
   transcript, and timeline copy. They do not trigger a chime or a harp-octave marker.
 * **Dynamics.** Activity is track-relative using the 10th/90th percentiles, a denominator floor

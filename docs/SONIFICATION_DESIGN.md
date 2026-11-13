@@ -1,6 +1,40 @@
 # Sonification Design
 
-## mapping_version 16 — composed harmony, measured contour, and breathing dynamics (current)
+## mapping_version 17 — presentational accents over an unchanged v16 score (current)
+
+The v17 candidate keeps v16's scored notes, durations, pitch targets, occupied/rest slots, authored
+chord phrase, rounded swells and peak emphasis exactly unchanged. What v17 adds is a presentational
+accent layer in `backend/app/sonify/render.py` plus two new synth voices in
+`backend/app/sonify/synth.py`. Both accents sit in the centre of the image (no stereo pan) and both
+are disclosed in the listening guide and the audio key as presentation, not measurement. The
+backend's streamed MP3 remains the authoritative reference.
+
+| Accent layer | Fires on | Threshold | Level | Carries |
+| --- | --- | --- | --- | --- |
+| `data_beat`, a quiet low pulse | even scan steps within a frame | frame activity >= 0.70 | 0.28 | no measurement; marks dense, high-activity regions |
+| hotspot accent, about 120 ms before the hotspot's own scan slot | a frame that has a hotspot | frame stats max >= 0.78 | 0.48 with `data_beat`, 0.34 with `heat_burst` | no measurement; announces the arrival of the frame's peak |
+
+* **`data_beat`.** A quiet, centred low pulse placed on the even scan steps of frames whose activity
+  reaches 0.70. It is a region marker: a dense part of the map gets a heartbeat. It carries no value,
+  no pitch, and no unit, and it is never panned.
+* **`heat_burst`.** A restrained rising, noisy accent used as a contextual icon for heat and
+  smoke-indicator records (phenomenon `fire` and `temperature`). Where it carries the hotspot accent
+  the level drops to 0.34, against 0.48 with `data_beat`. The spoken copy says plainly that it is not
+  a measurement of fire.
+* **Why the accent arrives early.** On these longitude maps Australia sits far east, so its high
+  values land in the last slots of a frame, right where the previous chord's hall tail is still
+  ringing. Visitors heard a bounce instead of a clear arrival. Placing the accent about 120 ms before
+  the hotspot's own slot makes an eastern peak arrive rather than rebound.
+* **Scope.** The accents are realised only in `sweep` mode with `melody=true`. Overview, explore,
+  `melody=false`, and the browser fallback are untouched, because the score they read is identical to
+  v16's.
+* **Determinism.** `MAPPING_VERSION = "17"` in `backend/app/mapping/rules.py` is embedded in the
+  render cache key, so cached v16 audio invalidates instead of serving a mix without its accents.
+* **Checked.** `backend/tests/test_sonify.py` allows the documented 120 ms anticipation in the
+  grid-pulse test and asserts the mix stays centred; `backend/tests/test_api.py` asserts the new
+  disclosure wording. Backend suite: 41 passed, ruff and mypy clean.
+
+## mapping_version 16 — composed harmony, measured contour, and breathing dynamics (historical: the score v17 keeps unchanged)
 
 The v16 candidate keeps v15's scored notes, durations, pitch targets, occupied/rest slots,
 authored chord phrase, acoustic instruments, and hall. It composes a disclosed, seeded
@@ -68,11 +102,11 @@ the scored notes, durations, and gains.
 
 
 > **Historical v2 (2026-11-13): soundscape engine in the backend.** This earlier experiment layered
-> natural sounds over the data. It is retained for provenance only; v16 above is the current model.
+> natural sounds over the data. It is retained for provenance only; v17 above is the current model.
 
 Goal: sound that is **traceable to the data** and **musical**. Every audible parameter has one documented meaning that is also written in the track's audio key.
 
-> _Sections 1-10 below describe mapping_version 13 and earlier (the physical soundscape model). They are kept as history; v14's acoustic-instrument revision is also historical, and v16 above is the model in force._
+> _Sections 1-10 below describe mapping_version 13 and earlier (the physical soundscape model). They are kept as history; v14's acoustic-instrument revision and the v16 section above are also historical, and v17 is the model in force._
 
 ## 1. Pipeline
 

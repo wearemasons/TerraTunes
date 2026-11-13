@@ -1,30 +1,38 @@
+/**
+ * The opening film, and the two bugs this file used to have.
+ *
+ * 1. `onCanPlay` used to ask "is the picture paused? then play it". A `canplay`
+ *    event arrives whenever the browser has new data — including *after* the
+ *    picture had been paused on its match frame, and after it had ended. Calling
+ *    `play()` on an ended media starts it again from zero, so the film could
+ *    restart itself under the visitor, while `tryNarration()` dragged the voice
+ *    back to the picture's time. Freeze, rewind, repeat.
+ * 2. The sync loop hard-seeked the narration whenever it differed from the
+ *    picture by more than 0.12 s. If the picture stalled while the audio kept
+ *    running, that seek fired every animation frame: the narrator stuttered on
+ *    the same words, which is the "computer crashing" sound people described.
+ *
+ * So now: the roll is started exactly once, the picture is never played again
+ * after it has frozen or ended, and the voice follows the picture gently. Small
+ * drift is corrected with `playbackRate`; a big drift gets one seek with a
+ * cooldown; and if the picture itself stalls, the voice waits with it instead of
+ * being rewound. The handover is driven by media events *and* timers, so it
+ * completes whichever way the browser behaves.
+ *
+ * Accessibility is unchanged: the film arrives with sound, the captions carry the
+ * story if the browser refuses it, the whole narration is readable as text, mute
+ * is one always-visible control, reduced motion gets a held still, and a "skip"
+ * button is always available.
+ */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AlignLeft, ChevronDown, Pause, Play, Volume2, VolumeX } from 'lucide-react'
-import { BOOT_CUES, BOOT_FILM, BOOT_HINT, BOOT_TRANSCRIPT, cueAt } from '../lib/boot'
+import { BOOT_CUES, BOOT_FILM, BOOT_HINT, BOOT_SOUND_OFF, BOOT_TRANSCRIPT, cueAt } from '../lib/boot'
+import { DEFAULT_SYNC_LIMITS, STALL_LIMIT_MS, decideSync } from '../lib/filmSync'
 import { useUI } from '../lib/store'
 
 type Status = 'waiting' | 'rolling' | 'frozen' | 'still'
 
-/**
- * The opening film, playing once, before the cabinet is ever touched.
- *
- * It arrives with sound: the narration, the score and one window of genuine
- * NASA sonification. Browsers refuse to start audio before a visitor has touched
- * anything, so when that refusal happens the captions keep telling the story and
- * the first click, tap or key anywhere starts the voice where the picture
- * already is. Nothing waits for a permission nobody asked for.
- *
- * Muting is one control, always on screen, and the whole narration is readable
- * as text. With reduced motion the film never rolls at all: one held frame, the
- * text, and silence until it is asked for.
- *
- * At `matchAt` the picture freezes on the frame that the live page is composed
- * like, the cross-fade starts, and the last sentence finishes over the real
- * cabinet. If the film cannot load, or motion is reduced, the same frame is
- * shown as a still with the text beside it: nothing about the fallback loses
- * the story.
- */
 export function BootFilm({ onMatch, onDone }: { onMatch: () => void; onDone: () => void }) {
   const reduceMotion = useUI((s) => s.reduceMotion)
   const highContrast = useUI((s) => s.highContrast)
@@ -33,8 +41,18 @@ export function BootFilm({ onMatch, onDone }: { onMatch: () => void; onDone: () 
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const skipRef = useRef<HTMLButtonElement>(null)
+
+  /** one-way latches: no media event can undo them */
+  const startedRef = useRef(false)
   const matchedRef = useRef(false)
   const doneRef = useRef(false)
+  const voiceClaimedRef = useRef(false)
+  /** the voice is being held because the picture is */
+  const heldRef = useRef(false)
+  const lastSeekRef = useRef(-Infinity)
+  const lastPictureTimeRef = useRef(0)
+  const stalledSinceRef = useRef(0)
+  const wakeRef = useRef<(() => void) | null>(null)
 
   const [status, setStatus] = useState<Status>(reduceMotion ? 'still' : 'waiting')
   const [caption, setCaption] = useState(-1)
@@ -45,22 +63,33 @@ export function BootFilm({ onMatch, onDone }: { onMatch: () => void; onDone: () 
   const [needsGesture, setNeedsGesture] = useState(false)
   const [reading, setReading] = useState(false)
 
+  /** the picture has reached the frame the live cabinet is drawn to match */
+  const reachMatch = useCallback(() => {
+    if (matchedRef.current) return
+    matchedRef.current = true
+    const v = videoRef.current
+    if (v && !v.ended) v.pause() // hold the frame; never let a later event move it
+    setStatus('frozen')
+    onMatch()
+  }, [onMatch])
+
   /** the overlay never keeps you waiting: skip, and the cabinet is yours */
   const finish = useCallback(
     (quick = false) => {
       if (doneRef.current) return
       doneRef.current = true
-      const v = videoRef.current
-      const a = audioRef.current
-      if (v) v.pause()
-      if (a) a.pause()
-      if (!matchedRef.current) {
-        matchedRef.current = true
-        onMatch()
+      videoRef.current?.pause()
+      audioRef.current?.pause()
+      const wake = wakeRef.current
+      if (wake) {
+        window.removeEventListener('pointerdown', wake)
+        window.removeEventListener('keydown', wake)
+        wakeRef.current = null
       }
+      reachMatch()
       window.setTimeout(onDone, quick ? 260 : 0)
     },
-    [onDone, onMatch],
+    [onDone, reachMatch],
   )
 
   // A still film is not a film: with motion reduced we show the one frame the
@@ -86,70 +115,35 @@ export function BootFilm({ onMatch, onDone }: { onMatch: () => void; onDone: () 
     return () => window.removeEventListener('keydown', onKey)
   }, [finish, reading, status])
 
-  // Keep the caption on the spoken line, and hand over when the picture reaches
-  // the frame the live cabinet is drawn to match.
-  useEffect(() => {
-    if (status !== 'rolling') return
-    let raf = 0
-    const loop = () => {
-      raf = requestAnimationFrame(loop)
-      const v = videoRef.current
-      if (!v) return
-      const t = v.currentTime
-      setCaption(cueAt(t))
-      const a = audioRef.current
-      if (a && !a.paused && Math.abs(a.currentTime - t) > 0.12) a.currentTime = t
-      if (t >= BOOT_FILM.matchAt) {
-        cancelAnimationFrame(raf)
-        v.pause()
-        setStatus('frozen')
-        if (!matchedRef.current) {
-          matchedRef.current = true
-          onMatch()
-        }
-      }
-    }
-    raf = requestAnimationFrame(loop)
-    return () => {
-      cancelAnimationFrame(raf)
-    }
-  }, [status, onMatch])
-
-  // Once the picture has frozen, let go when the cross-fade is done — or when
-  // the last sentence is, if the narration was turned on. This lives in its own
-  // effect because the fade itself changes the status, and a timer set inside
-  // the effect it invalidates would be cleared the moment it was started.
-  useEffect(() => {
-    if (status !== 'frozen') return
-    const hold = narration
-      ? (BOOT_FILM.audioEnd - BOOT_FILM.matchAt) * 1000 + 320
-      : BOOT_FILM.fadeMs
-    const id = window.setTimeout(() => finish(), hold)
-    return () => window.clearTimeout(id)
-  }, [status, narration, finish])
-
   /**
-   * Ask for the sound. If autoplay is blocked, the next gesture gets it: the
-   * picture keeps running, so a silent opening still opens.
+   * Ask for the sound, once. If autoplay is blocked, the next gesture gets it:
+   * the picture keeps running, so a silent opening still opens.
    */
   const tryNarration = useCallback(
     (quiet = false) => {
       const a = audioRef.current
       const v = videoRef.current
-      if (!a || !v) return
-      a.currentTime = v.currentTime
+      if (!a || !v || voiceClaimedRef.current || doneRef.current) return
+      voiceClaimedRef.current = true // claim it before the promise resolves
+      // start where the picture is, but never past the end of the voice
+      const at = Math.min(v.currentTime, Math.max(0, (a.duration || v.currentTime) - 0.05))
+      a.currentTime = at
       a
         .play()
         .then(() => setHeard(true))
         .catch(() => {
+          voiceClaimedRef.current = false
           if (quiet) return
           setNarration(false)
           const wake = () => {
             window.removeEventListener('pointerdown', wake)
             window.removeEventListener('keydown', wake)
+            wakeRef.current = null
+            if (doneRef.current) return
             setNarration(true)
             void tryNarration(true)
           }
+          wakeRef.current = wake
           window.addEventListener('pointerdown', wake)
           window.addEventListener('keydown', wake)
         })
@@ -157,31 +151,130 @@ export function BootFilm({ onMatch, onDone }: { onMatch: () => void; onDone: () 
     [],
   )
 
+  /** start the roll exactly once: `canplay` fires many times, a roll happens once */
   const startRolling = useCallback(async () => {
     const v = videoRef.current
-    if (!v) return
+    if (!v || matchedRef.current || doneRef.current) return
+    if (startedRef.current) {
+      setStatus('rolling')
+      return
+    }
+    startedRef.current = true
     try {
       await v.play()
       setNeedsGesture(false)
       setStatus('rolling')
       tryNarration()
     } catch {
-      // some browsers refuse even a silent video: ask once, in plain sight
+      // we never got the picture moving, so a gesture is allowed to try again
+      startedRef.current = false
       setNeedsGesture(true)
       setStatus('rolling')
     }
   }, [tryNarration])
+
+  /**
+   * The clock: captions follow the picture, and the voice follows the picture
+   * without being yanked around.
+   */
+  useEffect(() => {
+    if (status !== 'rolling') return
+    let raf = 0
+    const loop = () => {
+      raf = requestAnimationFrame(loop)
+      const v = videoRef.current
+      const a = audioRef.current
+      if (!v) return
+      const t = v.currentTime
+      setCaption(cueAt(t))
+      if (t >= BOOT_FILM.matchAt) {
+        reachMatch()
+        return
+      }
+
+      const pictureMoving = !v.paused && !v.seeking && v.readyState >= 2 && !v.ended
+      if (pictureMoving) {
+        if (t !== lastPictureTimeRef.current) stalledSinceRef.current = 0
+        else if (!stalledSinceRef.current) stalledSinceRef.current = performance.now()
+        lastPictureTimeRef.current = t
+      }
+
+      if (a && !paused) {
+        const action = decideSync({
+          picture: { time: t, paused: v.paused, seeking: v.seeking, readyState: v.readyState, ended: v.ended },
+          voice: { time: a.currentTime, paused: a.paused, ended: a.ended, duration: a.duration },
+          nowMs: performance.now(),
+          lastSeekMs: lastSeekRef.current,
+          voiceHeldForPicture: heldRef.current,
+          // The handoff point belongs to the film, not to the policy: the two must never
+          // drift apart, or the voice would be nudged across a picture that has already frozen.
+          limits: { ...DEFAULT_SYNC_LIMITS, matchAt: BOOT_FILM.matchAt },
+        })
+        switch (action.kind) {
+          case 'hold-voice':
+            // wait together rather than rewinding the voice every frame
+            a.pause()
+            heldRef.current = true
+            if (stalledSinceRef.current && performance.now() - stalledSinceRef.current > STALL_LIMIT_MS) finish()
+            break
+          case 'resume':
+            heldRef.current = false
+            a.playbackRate = 1
+            void a.play().catch(() => undefined)
+            break
+          case 'seek':
+            lastSeekRef.current = performance.now()
+            a.playbackRate = 1
+            a.currentTime = action.to
+            break
+          case 'rate':
+            heldRef.current = false
+            a.playbackRate = action.value
+            break
+          case 'steady':
+            heldRef.current = false
+            if (a.playbackRate !== 1) a.playbackRate = 1
+            break
+          case 'hold':
+            if (action.reason === 'picture-stalled') {
+              if (stalledSinceRef.current && performance.now() - stalledSinceRef.current > STALL_LIMIT_MS) finish()
+            }
+            break
+        }
+      }
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+  }, [status, paused, finish, reachMatch])
+
+  // Once the picture has frozen, let go when the cross-fade is done — or when
+  // the last sentence is, whichever comes first. Timers *and* the voice's own
+  // `ended` event: if the browser throttles one, the other still lets go.
+  useEffect(() => {
+    if (status !== 'frozen') return
+    const a = audioRef.current
+    const remaining = a && Number.isFinite(a.duration) ? Math.max(0, a.duration - a.currentTime) : 2.2
+    const hold = narration && a && !a.ended ? remaining * 1000 + 320 : BOOT_FILM.fadeMs
+    const id = window.setTimeout(() => finish(), Math.min(Math.max(hold, 400), 4000))
+    return () => window.clearTimeout(id)
+  }, [status, narration, finish])
 
   const toggleNarration = useCallback(async () => {
     const a = audioRef.current
     const v = videoRef.current
     if (!a || !v) return
     if (a.paused) {
-      a.currentTime = v.currentTime
-      await a.play()
-      setNarration(true)
-      setHeard(true)
-      announce('Narration on. The words are also on screen as captions.')
+      voiceClaimedRef.current = true
+      a.currentTime = Math.min(v.currentTime, Math.max(0, (a.duration || v.currentTime) - 0.05))
+      try {
+        await a.play()
+        setNarration(true)
+        setHeard(true)
+        announce('Narration on. The words are also on screen as captions.')
+      } catch {
+        setNarration(false)
+        announce('The browser is holding the sound back. The captions tell the same story.')
+      }
     } else {
       a.pause()
       setNarration(false)
@@ -194,8 +287,9 @@ export function BootFilm({ onMatch, onDone }: { onMatch: () => void; onDone: () 
     const a = audioRef.current
     if (!v || status === 'frozen') return
     if (v.paused) {
+      startedRef.current = true
       void v.play()
-      if (narration && a) void a.play()
+      if (narration && a && !a.ended) void a.play().catch(() => undefined)
       setPaused(false)
     } else {
       v.pause()
@@ -240,7 +334,18 @@ export function BootFilm({ onMatch, onDone }: { onMatch: () => void; onDone: () 
           playsInline
           preload="auto"
           aria-hidden
-          onCanPlay={() => void (videoRef.current?.paused ? startRolling() : setStatus('rolling'))}
+          // `canplay` arrives on every buffer refill: only the very first one may
+          // start the roll, and nothing after the freeze may play the picture
+          onCanPlay={() => {
+            if (matchedRef.current || doneRef.current) return
+            const v = videoRef.current
+            if (v && !v.paused) setStatus('rolling')
+            else void startRolling()
+          }}
+          onPlaying={() => {
+            if (!matchedRef.current && !doneRef.current) setStatus('rolling')
+          }}
+          onEnded={() => finish(true)}
           onError={() => setStatus('still')}
         />
       )}
@@ -253,7 +358,10 @@ export function BootFilm({ onMatch, onDone }: { onMatch: () => void; onDone: () 
           src={BOOT_FILM.audio}
           preload="auto"
           aria-hidden
-          onEnded={() => setNarration(false)}
+          onEnded={() => {
+            setNarration(false)
+            if (matchedRef.current) finish()
+          }}
         />
       )}
 
@@ -405,4 +513,3 @@ export function BootFilm({ onMatch, onDone }: { onMatch: () => void; onDone: () 
     document.body,
   )
 }
-import { BOOT_SOUND_OFF } from '../lib/boot'

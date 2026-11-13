@@ -77,7 +77,7 @@ project. None of it is stock, and no asset in the app was lifted from another si
 | Jukebox cabinet, disc labels, the girl, meadow props | `public/art/jukebox-cabinet.webp`, `art/discs/`, `art/girl-*.webp` | Hand-drawn illustration made for this project. The cabinet is one painting; every overlay on it (dome, tubes, speaker, jewel, cradle) is positioned against measured coordinates in `src/lib/geometry.ts`. |
 | Sixteen world backdrops | `public/art/world-*.webp` | One painted scene per record's phenomenon — heat field, wind ridge, rain valley, haze, ozone, fire front, traffic, sea surface, canopy, storm cell, night lights, aurora, meadow, arrival. Each was painted from that record's own NASA frame as the reference, so the scenery and the music describe the same map. |
 | The girl in motion | `public/video/girl-{greet,point,listen}.webm` | VP9-with-alpha loops cut from one animated plate, rebuilt by `frontend/tools/build_girl_assets.sh`. The stills above are the settled end of the same windows, so reduced motion gets a sharp painting instead of a video. |
-| Opening film | `public/video/boot-film.mp4` + `.mp3`, `public/art/boot-{poster,match}.webp` | A 15-second generated cut scene with a separate narration/music track, rebuilt by `frontend/tools/build_boot_film.sh`. Its diegetic layer at 9.4 s is a genuine TerraTunes render of NASA sea surface temperature, fetched from `/tracks/sea-surface-temperature/render` — the same deterministic code path the jukebox uses. |
+| Opening film | `public/video/boot-film.mp4` + `.mp3`, `public/art/boot-{poster,match}.webp` | A generated cut scene, retimed by ffmpeg: the picture is delivered at 1.12x duration (16.8 s) and the narration at `atempo=0.92` (soundtrack 18.0 s), rebuilt by `frontend/tools/build_boot_film.sh`. Its diegetic layer at 10.4 s is a genuine mapping_version 17 TerraTunes render of NASA sea surface temperature, fetched from `/tracks/sea-surface-temperature/render` — the same deterministic code path the jukebox uses. |
 | Narration voice | inside `boot-film.mp3` | Synthesised speech, studio narrator voice; no human performer. The four sentences are shipped as text (`src/lib/boot.ts`, `BOOT_TRANSCRIPT`) and are the film's equivalent for a screen reader. |
 | Music bed | inside `boot-film.mp3` | Generated instrumental; no sampled material. |
 | Data frames, thumbnails, colourbars | served from `/api` | NASA SVS media, downloaded and processed by the backend. Every track carries its NASA credit line and source URL in `backend/data/tracks.json`, and the UI shows it. |
@@ -86,6 +86,15 @@ project. None of it is stock, and no asset in the app was lifted from another si
 `narration2.wav`, `son_sst.mp3` stay outside the repository and are passed to the build scripts as a
 directory argument. Committed files are the encoded output, which keeps the repo at the size rule
 above while making every visual reproducible from the scripts in `frontend/tools/`.
+
+**The film is retimed, not re-rendered**: `frontend/tools/build_boot_film.sh` stretches the picture
+with ffmpeg `setpts` to 1.12x (16.8 s delivered), slows the narration with `atempo=0.92` and places it
+0.25 s in, delays the diegetic sonification excerpt to 10.4 s, and lets the soundtrack run to 18.0 s
+while the video freezes at 14.45 s, so the last sentence ends before the fade at 16.4 s. That excerpt
+is a real mapping_version 17 backend render of NASA sea surface temperature, fetched from
+`/tracks/sea-surface-temperature/render`, the same code path the jukebox streams; it was not made up
+for the film. The caption timings in `src/lib/boot.ts` are measured off the delivered voice, not
+guessed.
 
 **Licensing**: NASA media is public domain with credit and carries no endorsement of this project.
 The original illustration, animation, film and audio generated for TerraTunes is released under the

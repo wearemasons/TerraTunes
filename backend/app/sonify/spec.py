@@ -19,7 +19,8 @@ _ENSEMBLE = (
     "values within a frame, not exact units or a comparison across chord changes. The defined "
     "phenomenon intensity, rescaled relative to this track, controls level and fullness. Equal "
     "tones are held; quiet areas have fewer attacks. A rest can mean low activity, while no-data "
-    "slices trigger no new notes. There are no weather noises, drums or extra string section."
+    "slices trigger no new notes. Sparse beats and restrained contextual accents may mark dense "
+    "or extreme regions; these are not extra measurements or environmental recordings."
 )
 
 PHENOMENON_INFO: dict[str, str] = {
