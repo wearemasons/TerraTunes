@@ -96,3 +96,62 @@ done
 
 echo ">> 3/3  sizes"
 du -h "$ROOT"/public/video/girl-*.webm "$ROOT"/public/art/girl-*.webp
+
+echo ">> 4/4  keyed sit/stand transitions (the source has no separate stand-up take)"
+mkdir -p "$WORK/transition-raw" "$WORK/sitdown" "$WORK/standup"
+# The complete crouch is the source's 6.75-10.75s action. It starts from the
+# standing end of the pointing business, includes the articulated knee bend,
+# and finishes after the crossed-leg seated settle. Keep the exact key used
+# above so the transition edges match the existing loops.
+ffmpeg -hide_banner -loglevel error -y -ss 6.75 -to 10.75 -i "$SRC" \
+  -vf "fps=$FPS,scale=400:-2,chromakey=$KEY:0.17:0.08,format=rgba" \
+  "$WORK/transition-raw/f%04d.png"
+python3 - "$WORK" "$ROOT/public" <<'PY'
+"""Make fixed-canvas, fixed-ground transition frames and their reverse."""
+from __future__ import annotations
+import os
+import sys
+from PIL import Image
+
+work, pub = sys.argv[1], sys.argv[2]
+raw = sorted(os.listdir(os.path.join(work, 'transition-raw')))
+imgs = [Image.open(os.path.join(work, 'transition-raw', name)).convert('RGBA') for name in raw]
+boxes = [im.getchannel('A').getbbox() for im in imgs]
+valid = [box for box in boxes if box]
+if not valid:
+    raise SystemExit('transition plate keyed to no visible pixels')
+
+margin = 6
+x0 = max(0, min(box[0] for box in valid) - margin)
+y0 = max(0, min(box[1] for box in valid) - margin)
+ground = min(imgs[0].height, max(box[3] for box in valid) + margin)
+x1 = min(imgs[0].width, max(box[2] for box in valid) + margin)
+
+for name, order in (
+    ('sitdown', range(len(imgs))),
+    ('standup', range(len(imgs) - 1, -1, -1)),
+):
+    out = os.path.join(work, name)
+    os.makedirs(out, exist_ok=True)
+    for number, index in enumerate(order, 1):
+        source = imgs[index]
+        box = boxes[index]
+        shift = 0 if not box else ground - box[3]
+        frame = source.crop((x0, y0, x1, ground))
+        if shift:
+            shifted = Image.new('RGBA', frame.size, (0, 0, 0, 0))
+            shifted.paste(frame, (0, min(shift, frame.height)))
+            frame = shifted
+        frame.save(os.path.join(out, f'{number:04d}.png'))
+
+    first = Image.open(os.path.join(out, '0001.png')).convert('RGBA')
+    first.save(os.path.join(pub, 'art', f'girl-{name}.webp'), 'WEBP', quality=92, method=6)
+    print(f'  {name:7s} shared box {(x0, y0, x1, ground)}  frames {len(imgs)}')
+PY
+for transition in sitdown standup; do
+  ffmpeg -hide_banner -loglevel error -y -framerate "$FPS" -i "$WORK/$transition/%04d.png" \
+    -c:v libvpx-vp9 -pix_fmt yuva420p -crf 34 -b:v 0 -an -auto-alt-ref 0 \
+    "$ROOT/public/video/girl-$transition.webm"
+done
+du -h "$ROOT"/public/video/girl-sitdown.webm "$ROOT"/public/video/girl-standup.webm \
+  "$ROOT"/public/art/girl-sitdown.webp "$ROOT"/public/art/girl-standup.webp

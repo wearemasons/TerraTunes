@@ -30,7 +30,7 @@ interface UIState {
   level: number
 
   setFilmUp: (v: boolean) => void
-  setArrived: () => void
+  setArrived: (v?: boolean) => void
   setPowered: (v: boolean) => void
   select: (id: string) => void
   setLoaded: (id: string) => void
@@ -58,7 +58,7 @@ export const useUI = create<UIState>((set) => ({
   level: 0,
 
   setFilmUp: (v) => set({ filmUp: v }),
-  setArrived: () => set({ arrived: true }),
+  setArrived: (v = true) => set({ arrived: v }),
   setPowered: (v) => set({ powered: v, ...(v ? {} : { isPlaying: false }) }),
   select: (id) => set({ selectedId: id }),
   setLoaded: (id) => set({ loadedId: id }),

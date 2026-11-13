@@ -13,6 +13,7 @@ dependencies = [
   "pillow>=10.4",
   "av>=13.0",
   "pyyaml>=6.0",
+  "python-multipart>=0.0.20",
 ]
 
 [dependency-groups]

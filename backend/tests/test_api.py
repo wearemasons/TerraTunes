@@ -17,9 +17,7 @@ def test_list_and_detail(client: TestClient) -> None:
     assert tracks[0]["thumbnail_url"].endswith("/tracks/test-track/thumbnail")
     detail = client.get("/tracks/test-track").json()
     assert detail["frame_count"] == 4
-    assert detail["audio_key"].startswith("The map measures")
-    assert "composition, not another data measurement" in detail["audio_key"]
-    assert "Louder and fuller" in detail["audio_key"]
+    assert detail["audio_key"].startswith("Pitch shows")
     assert detail["transcript"][0]["frame"] == 0
     assert detail["synthetic"] is False
 
@@ -82,16 +80,11 @@ tracks:
     detail = client.get("/tracks/test-track").json()
     assert detail["sound"]["phenomenon"] == "wind"
     assert detail["sound"]["render_url"].endswith("/tracks/test-track/render")
-    guide = detail["sound"]["listening_guide"]
-    assert "west to east" in guide
-    assert "anticipatory accent" in guide  # v17: eastern peaks arrive rather than rebounding
-    assert "not a measurement of fire" in guide  # the heat accent is disclosed as contextual
-    assert "left ear" not in guide  # v14: the melody no longer sweeps across the stereo field
-    assert detail["sound"]["description"].startswith("Wind speed")
+    assert "left ear" in detail["sound"]["listening_guide"]
 
     score = client.get("/tracks/test-track/score").json()
     layers = score["frames"][1]["layers"]
-    assert len(layers["column_intensity"]) == 8  # steps_per_frame follows MAPPING_VERSION 14
+    assert len(layers["column_intensity"]) == 16
     assert set(layers["band_intensity"]) == {"north", "tropics", "south"}
 
     audio = client.get("/tracks/test-track/render?mode=overview&format=wav&melody=false")
@@ -103,3 +96,13 @@ tracks:
 
 def test_render_without_soundscape_is_404(client: TestClient) -> None:
     assert client.get("/tracks/test-track/render").status_code == 404
+
+
+def test_orchestra_preset_plays_the_clear_tone_notes(client: TestClient) -> None:
+    clear = client.get("/tracks/test-track/score?preset=clear").json()
+    orchestra = client.get("/tracks/test-track/score?preset=orchestra")
+    assert orchestra.status_code == 200
+    body = orchestra.json()
+    assert body["preset"] == "orchestra"
+    assert [f["column_notes"] for f in body["frames"]] == [f["column_notes"] for f in clear["frames"]]
+    assert body["key"] == clear["key"]

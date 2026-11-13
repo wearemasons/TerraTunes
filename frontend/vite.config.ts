@@ -6,6 +6,12 @@ const API_TARGET = process.env.API_TARGET ?? 'http://127.0.0.1:8000'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  resolve: {
+    alias: {
+      '@main': new URL('./src/main-engine', import.meta.url).pathname,
+      '@': new URL('./src', import.meta.url).pathname,
+    },
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

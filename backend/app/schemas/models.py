@@ -17,10 +17,7 @@ ThemeId = Literal[
     "weather",
     "ocean",
 ]
-PresetId = Literal["musical", "clear"]
-#: The three voices of the ensemble model (mapping_version 15): one instrument family per
-#: measured channel. What each one carries is decided in app/mapping/rules.py.
-InstrumentId = Literal["bass", "harp", "flute"]
+PresetId = Literal["musical", "clear", "orchestra"]
 
 
 class LegendAnchor(BaseModel):
@@ -92,37 +89,6 @@ class FrameStats(BaseModel):
     extreme_share: float
 
 
-class VoicePart(BaseModel):
-    """One instrument's line: MIDI per steady slot, -1 = rest; all musical choices from rules.py."""
-
-    instrument: InstrumentId
-    notes: list[int]
-    gains: list[float] = Field(
-        default_factory=list,
-        description="Per-slot intensity gain automation multiplier (also controls ringing notes); 0 for no data.",
-    )
-    durations: list[float] = Field(default_factory=list, description="Per-slot note length in scan steps.")
-    values: list[float] = Field(
-        default_factory=list, description="Measured slice channel, before any pitch mapping."
-    )
-    pitch_targets: list[float] = Field(
-        default_factory=list,
-        description="Unrounded chord-ladder position; monotonic in values within this frame.",
-    )
-
-
-class InstrumentInfo(BaseModel):
-    """What a voice of the ensemble carries and when it joins. Written by rules.py."""
-
-    instrument: InstrumentId
-    family: str = Field(description="Acoustic description, e.g. 'harp (brighter plucked texture)'.")
-    carries: str = Field(description="The measured channel this voice plays, in plain language.")
-    entry: str = Field(description="When this voice joins the track.")
-    note_range: str = Field(description="Note-name range of this voice, e.g. 'D1-D3'.")
-    range_low: int = Field(description="Lowest MIDI this voice can play.")
-    range_high: int = Field(description="Highest MIDI this voice can play.")
-
-
 class Alert(BaseModel):
     label: str
     value: float
@@ -175,24 +141,6 @@ class FrameScore(BaseModel):
     brightness: float
     rhythm_density: int
     column_notes: list[int]
-    voices: list[VoicePart] = Field(
-        description=(
-            "Chord-constrained ensemble: bass = slice mean, harp = slice peak, flute = signed "
-            "change since the previous frame. MIDI, gain, duration and measured values per steady slot."
-        )
-    )
-    chord_name: str = Field(default="", description="One explicitly composed chord per frame.")
-    chord_pcs: list[int] = Field(
-        default_factory=list, description="Allowed pitch classes (MIDI modulo 12) of this frame's chord."
-    )
-    activity: list[float] = Field(
-        default_factory=list,
-        description="Per-slice phenomenon activity, track-relative 0..1; drives fullness and level, not pitch.",
-    )
-    gain_envelope: list[float] = Field(
-        default_factory=list,
-        description="Per-slot ensemble swell multiplier, interpolated smoothly in log gain.",
-    )
     hotspot: Hotspot | None
     stats: FrameStats
     description: str
@@ -215,16 +163,9 @@ class Score(BaseModel):
     mapping_version: str
     track_id: str
     preset: PresetId
-    seed: int = Field(
-        default=0, description="Recorded deterministic composition seed derived from track id and theme."
-    )
-    chord_progression: list[str] = Field(
-        default_factory=list, description="Seeded eight-frame phrase, repeated deterministically."
-    )
     key: ScoreKey
     grid: GridSize
     steps_per_frame: int
-    instruments: list[InstrumentInfo] = Field(description="What each voice carries, for the audio key.")
     frames: list[FrameScore]
     sound: SoundInfo | None = None
 

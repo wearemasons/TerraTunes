@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react'
-import { phenomena } from '../lib/audio/phenomena'
+import { useEffect, useRef } from "react";
+import { player } from "@main/audio/player";
 
 /**
  * The live output spectrum of the synthesizer.
@@ -10,85 +10,95 @@ import { phenomena } from '../lib/audio/phenomena'
  * and the component says so — it does not draw a decorative idle shape.
  */
 export function Spectrum({
-  accent = '#fcd34d',
-  label = 'no signal — the transport is stopped',
+  accent = "#fcd34d",
+  label = "no signal — the transport is stopped",
 }: {
-  accent?: string
-  label?: string
+  accent?: string;
+  label?: string;
 }) {
-  const ref = useRef<HTMLCanvasElement>(null)
-  const emptyRef = useRef<HTMLSpanElement>(null)
+  const ref = useRef<HTMLCanvasElement>(null);
+  const emptyRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    let raf = 0
-    let last = 0
+    let raf = 0;
+    let last = 0;
     // measured in Hz: 2048-point FFT over a 48 kHz context = 23.4 Hz per bin
-    const BIN_HZ = 48000 / 2048
+    let data = new Uint8Array(0);
 
     const loop = (now: number) => {
-      raf = requestAnimationFrame(loop)
-      if (now - last < 1000 / 30) return
-      last = now
-      const c = ref.current
-      if (!c) return
-      const data = phenomena.getFrequencyData()
+      raf = requestAnimationFrame(loop);
+      if (now - last < 1000 / 30) return;
+      last = now;
+      const c = ref.current;
+      if (!c) return;
+      const analyser = player.analyser;
+      const playing = player.getSnapshot().status === "playing";
+      if (analyser && data.length !== analyser.frequencyBinCount)
+        data = new Uint8Array(analyser.frequencyBinCount);
+      if (analyser) analyser.getByteFrequencyData(data);
 
-      if (emptyRef.current) emptyRef.current.style.opacity = data && phenomena.isPlaying ? '0' : '1'
-      if (!data || !phenomena.isPlaying) return
+      if (emptyRef.current)
+        emptyRef.current.style.opacity = analyser && playing ? "0" : "1";
+      if (!analyser || !playing) return;
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      const w = c.clientWidth
-      const h = c.clientHeight
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = c.clientWidth;
+      const h = c.clientHeight;
       if (c.width !== w * dpr || c.height !== h * dpr) {
-        c.width = w * dpr
-        c.height = h * dpr
+        c.width = w * dpr;
+        c.height = h * dpr;
       }
-      const ctx = c.getContext('2d')
-      if (!ctx) return
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.clearRect(0, 0, w, h)
+      const ctx = c.getContext("2d");
+      if (!ctx) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
 
       // the top half of the spectrum only: nearly all of the energy in these
       // models lives below ~6 kHz (bin 256 of 1024)
-      const top = Math.floor(256)
-      const bins = 60
-      ctx.beginPath()
+      const BIN_HZ = analyser.context.sampleRate / analyser.fftSize;
+      const top = Math.min(data.length, Math.floor(6000 / BIN_HZ));
+      const bins = 60;
+      ctx.beginPath();
       for (let i = 0; i < bins; i++) {
-        const a = Math.floor((i / bins) * top)
-        const b = Math.max(a + 1, Math.floor(((i + 1) / bins) * top))
-        let peak = 0
-        for (let k = a; k < b; k++) peak = Math.max(peak, data[k])
-        const v = peak / 255
-        const x = (i / (bins - 1)) * w
-        const y = h - Math.max(1.5, v ** 1.4 * h)
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+        const a = Math.floor((i / bins) * top);
+        const b = Math.max(a + 1, Math.floor(((i + 1) / bins) * top));
+        let peak = 0;
+        for (let k = a; k < b; k++) peak = Math.max(peak, data[k]);
+        const v = peak / 255;
+        const x = (i / (bins - 1)) * w;
+        const y = h - Math.max(1.5, v ** 1.4 * h);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
-      ctx.lineTo(w, h)
-      ctx.lineTo(0, h)
-      ctx.closePath()
-      const grad = ctx.createLinearGradient(0, 0, 0, h)
-      grad.addColorStop(0, `${accent}cc`)
-      grad.addColorStop(1, `${accent}12`)
-      ctx.fillStyle = grad
-      ctx.fill()
-      ctx.strokeStyle = accent
-      ctx.lineWidth = 1
-      ctx.stroke()
+      ctx.lineTo(w, h);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, `${accent}cc`);
+      grad.addColorStop(1, `${accent}12`);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
       // the frequency scale, in real hertz
-      ctx.fillStyle = `${accent}80`
-      ctx.font = '7px ui-monospace, monospace'
-      const ticks = [250, 500, 1000, 2000, 4000, 6000]
+      ctx.fillStyle = `${accent}80`;
+      ctx.font = "7px ui-monospace, monospace";
+      const ticks = [250, 500, 1000, 2000, 4000, 6000];
       for (const hz of ticks) {
-        const x = (Math.round(hz / BIN_HZ) / top) * w
-        if (x < 8 || x > w - 4) continue
-        ctx.fillRect(Math.round(x), 0, 1, 3)
-        ctx.fillText(hz >= 1000 ? `${hz / 1000}k` : `${hz}`, Math.round(x) + 2, 8)
+        const x = (Math.round(hz / BIN_HZ) / top) * w;
+        if (x < 8 || x > w - 4) continue;
+        ctx.fillRect(Math.round(x), 0, 1, 3);
+        ctx.fillText(
+          hz >= 1000 ? `${hz / 1000}k` : `${hz}`,
+          Math.round(x) + 2,
+          8,
+        );
       }
-    }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
-  }, [accent])
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [accent]);
 
   return (
     <div className="relative h-full w-full">
@@ -100,5 +110,5 @@ export function Spectrum({
         {label}
       </span>
     </div>
-  )
+  );
 }

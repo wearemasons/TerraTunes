@@ -7,13 +7,15 @@ TerraTunes turns EIC visual frames (sea level, air quality, wildfires, greenhous
 
 ## Status
 
+This is `main-engine-latest`: upstream main’s Orchestra/Clear tone/Musical engine in the illustrated jukebox, with the complete phenomenon-player controls restyled in the Data Deck. The previous Manus v17 engine and current visuals are preserved separately on `manus-engine-latest`. See [engine comparison and setup](docs/ENGINE_COMPARISON.md).
+
 Working end to end: nine tracks built from live NASA SVS visualizations (temperature, wind, rain, PM2.5, ozone, CO, NOx, sea surface temperature, vegetation), a FastAPI service that serves calibrated scores, and an accessible web jukebox that plays them. Plan and backlog: [docs/PLAN.md](docs/PLAN.md), [docs/TASKS.md](docs/TASKS.md).
 
 ## Stack
 
 | Layer | Choice |
 |---|---|
-| Frontend | React 19 + **TanStack Router** (+ TanStack Query), Vite, Tailwind 4, shadcn/ui (`packages/ui`), bun |
+| Frontend | React 19 + **TanStack Router** (+ TanStack Query), Vite, Tailwind 4, custom parchment/brass components, bun |
 | Audio (browser) | Web Audio API (Tone.js optional) |
 | Backend | **FastAPI** (Python 3.12, uv), Pydantic v2, NumPy, Pillow, PyAV (bundled ffmpeg), httpx |
 | Offline render | NumPy synth + soundfile → WAV/MP3 |
@@ -60,7 +62,9 @@ TerraTunes/
 Needs [Node](https://nodejs.org), [bun](https://bun.sh) and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-node dev.mjs            # installs what's missing, starts API (:8000) and web app (:5173)
+cd backend && uv sync && uv run python -m app.cli samples  # one-time CC0 instrument bank
+cd ..
+node dev.mjs            # starts API (:8000) and web app (:5173)
 ```
 
 | Command | What it does |
@@ -72,8 +76,7 @@ node dev.mjs            # installs what's missing, starts API (:8000) and web ap
 
 Ctrl+C stops everything. Processed tracks are committed, so the first run needs no NASA downloads.
 
-There is no client-only demo mode: every sound on the site is a measurement, so the
-API is not optional.
+The live API provides calibrated NASA grids and scores; there is no silent synthetic-demo fallback. Orchestra accompaniment is disclosed music around measured notes, not another measurement. Natural soundscape downloads are a separate renderer, not a capture of the active browser preset.
 
 Running the parts by hand: `cd backend && uv sync && uv run uvicorn app.main:app --port 8000`,
 then `cd frontend && bun install && bun run dev`. The app calls `/api` and Vite forwards it

@@ -5,7 +5,7 @@ Project: Earth Information Jukebox (NASA Space Apps 2026). Read [README.md](READ
 ## Stack
 - Frontend: `frontend/` — one flat package, no workspaces. React 19 + **TanStack Router** (+ TanStack Query) + Vite + Tailwind 4 + Zustand. There is no UI kit: the cabinet, the painted world and the opening film are hand-written components with their own stylesheet.
 - Backend: `backend/` = **FastAPI**, Python 3.12, `uv`, Pydantic v2, NumPy, Pillow, PyAV and ffmpeg. The calibrated measurement pipeline does not use OpenCV.
-- Contract: [docs/API_CONTRACT.md](docs/API_CONTRACT.md). Pydantic schemas are the source of truth; manually mirrored TS types in `frontend/src/lib/types.ts` must be updated together.
+- Contract: [docs/API_CONTRACT.md](docs/API_CONTRACT.md). Pydantic schemas are the source of truth; main types in `frontend/src/main-engine/lib/api/types.ts` and scene metadata in `frontend/src/lib/types.ts` must be updated together.
 
 ## Commands
 ```bash
@@ -27,12 +27,12 @@ in). If you change one, say so — the committed output is the only copy anyone 
 
 ## Non-negotiables
 1. **Accessibility first.** Every UI change must be keyboard operable, labelled, and have a text equivalent for any audio or visual-only information. See [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md). The cabinet never starts playing by itself. The one exception is the opening film, which arrives with its narration on: browsers still gate that, so if no gesture has happened the captions carry the story and the first click, tap or key starts the voice at the picture's current time. Muting is one always-visible control, the four sentences are readable as text, and reduced motion gets a held frame instead of a film.
-2. **Mapping logic lives in one place:** `backend/app/mapping/`. The frontend consumes score fields; it does not re-derive musical decisions.
+2. **Mapping logic lives in one place:** `backend/app/mapping/`. The frontend consumes main’s score fields. Main’s imported Orchestra player derives accompaniment from those notes; do not substitute Manus v17 mappings on this branch.
 3. **Honest sonification.** Values come from colormap calibration, not hue guesswork. Uncalibrated output must be labelled as artistic.
 4. **Determinism.** Same input → same score. Seed any randomness and store the seed.
 5. **Contract first.** Changing an endpoint or field = update schemas, then `docs/API_CONTRACT.md`, then clients, in the same PR. Bump `mapping_version` when mapping rules change.
 6. **Credits and licensing.** Every media asset needs a credit and source URL in `backend/data/tracks.json`. No raw videos in git.
-7. **Safety of audio.** Master limiter, no sudden gain jumps (> 6 dB / 100 ms), exponential ramps.
+7. **Safety of audio.** Master limiter, no sudden gain jumps (> 6 dB / 100 ms), smoothed ramps. Preserve main’s graph and do not reuse v17 loudness measurements for it.
 8. **No secrets in the repo.** `.env` files are git-ignored. The app reads none: it calls `/api`, and `API_TARGET` decides where Vite forwards that.
 9. **The look is drawn, not installed.** No component library on this branch. Illustration lives in `frontend/public/art` and `public/video`; layout and motion in `src/styles/scene.css`, with the shared tokens in `src/index.css`. Where a literal colour is unavoidable — painted scenery sampled from the art, brass and wood on the cabinet — keep it in one place and say why in a comment. Do not scatter palette classes.
 

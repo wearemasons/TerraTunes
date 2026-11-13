@@ -2,9 +2,11 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app import __version__
 from app.api.routes import router
+from app.api.uploads import router as uploads_router
 from app.core.config import get_settings
 from app.core.logging import request_id_middleware, request_id_var, setup_logging
 
@@ -47,3 +49,8 @@ async def validation_error(_: Request, exc: RequestValidationError) -> JSONRespo
 
 
 app.include_router(router)
+app.include_router(uploads_router)
+# Recorded orchestral notes for the browser's Orchestra sound (`python -m app.cli samples`).
+app.mount(
+    "/samples", StaticFiles(directory=settings.data_dir / "samples" / "web", check_dir=False), name="samples"
+)

@@ -1,226 +1,51 @@
-# Sonification Design
+# Sonification design — main-engine-latest
 
-## mapping_version 17 — presentational accents over an unchanged v16 score (current)
+This branch uses upstream main at d7674b9. The preserved Manus v17 version is on manus-engine-latest; its held-note, three-line engine is not active here. See [ENGINE_COMPARISON.md](ENGINE_COMPARISON.md).
 
-The v17 candidate keeps v16's scored notes, durations, pitch targets, occupied/rest slots, authored
-chord phrase, rounded swells and peak emphasis exactly unchanged. What v17 adds is a presentational
-accent layer in `backend/app/sonify/render.py` plus two new synth voices in
-`backend/app/sonify/synth.py`. Both accents sit in the centre of the image (no stereo pan) and both
-are disclosed in the listening guide and the audio key as presentation, not measurement. The
-backend's streamed MP3 remains the authoritative reference.
+## Scientific pipeline
 
-| Accent layer | Fires on | Threshold | Level | Carries |
-| --- | --- | --- | --- | --- |
-| `data_beat`, a quiet low pulse | even scan steps within a frame | frame activity >= 0.70 | 0.28 | no measurement; marks dense, high-activity regions |
-| hotspot accent, about 120 ms before the hotspot's own scan slot | a frame that has a hotspot | frame stats max >= 0.78 | 0.48 with `data_beat`, 0.34 with `heat_burst` | no measurement; announces the arrival of the frame's peak |
+NASA frames → calibrated colourbar matching → normalized value grids → main's backend build_score → main's browser player. False colour is not physical data without calibration. No-data cells are encoded separately as 255. Legends convert positions to units through their own ticks/log rule. Compression, matching tolerance and spatial reduction limit accuracy.
 
-* **`data_beat`.** A quiet, centred low pulse placed on the even scan steps of frames whose activity
-  reaches 0.70. It is a region marker: a dense part of the map gets a heartbeat. It carries no value,
-  no pitch, and no unit, and it is never panned.
-* **`heat_burst`.** A restrained rising, noisy accent used as a contextual icon for heat and
-  smoke-indicator records (phenomenon `fire` and `temperature`). Where it carries the hotspot accent
-  the level drops to 0.34, against 0.48 with `data_beat`. The spoken copy says plainly that it is not
-  a measurement of fire.
-* **Why the accent arrives early.** On these longitude maps Australia sits far east, so its high
-  values land in the last slots of a frame, right where the previous chord's hall tail is still
-  ringing. Visitors heard a bounce instead of a clear arrival. Placing the accent about 120 ms before
-  the hotspot's own slot makes an eastern peak arrive rather than rebound.
-* **Scope.** The accents are realised only in `sweep` mode with `melody=true`. Overview, explore,
-  `melody=false`, and the browser fallback are untouched, because the score they read is identical to
-  v16's.
-* **Determinism.** `MAPPING_VERSION = "17"` in `backend/app/mapping/rules.py` is embedded in the
-  render cache key, so cached v16 audio invalidates instead of serving a mix without its accents.
-* **Checked.** `backend/tests/test_sonify.py` allows the documented 120 ms anticipation in the
-  grid-pulse test and asserts the mix stays centred; `backend/tests/test_api.py` asserts the new
-  disclosure wording. Backend suite: 41 passed, ruff and mypy clean.
+## Main mappings
 
-## mapping_version 16 — composed harmony, measured contour, and breathing dynamics (historical: the score v17 keeps unchanged)
+| Input | Main behavior |
+|---|---|
+| Longitude slice values | Column pitch summarizes half the mean plus half the maximum, quantized to the theme scale |
+| West–east position | Scan ordering and stereo position |
+| Mean / extreme-value share | Frame loudness and brightness |
+| Spatial variation | Rhythm density |
+| Valid-cell change from prior frame | Tension, including up to 20% tempo push in the browser |
+| Strong isolated maximum | Hotspot pitch, position and accent |
+| Missing cells | No invented value or data note |
 
-The v16 candidate keeps v15's scored notes, durations, pitch targets, occupied/rest slots,
-authored chord phrase, acoustic instruments, and hall. It composes a disclosed, seeded
-eight-frame chord phrase around measured contours; the phrase is authored musical structure,
-not a measurement of environmental change. The backend's streamed MP3 is the authoritative
-reference; the browser WebAudio renderer is an approximate timbre realization that still uses
-the scored notes, durations, and gains.
+The backend is authoritative for column MIDI notes and frame metrics. Main's browser orchestration derives accompaniment from those notes. Accompaniment is musical structure, not an additional environmental measurement.
 
-| Channel measured per scan slice | Voice | Instrument family | Register |
-| --- | --- | --- | --- |
-| mean calibrated value of the slice | `bass` | low plucked string (upright bass / cello pizzicato) | D1-D3 |
-| highest calibrated value of the slice | `harp` | harp (three detuned strings, inharmonic, long ring) | D3-D5 |
-| signed change of the slice vs the previous frame | `flute` | flute (soft attack, steady sustain, late vibrato, breath) | D4-D6 |
+## Three sounds
 
-* **Grid and spatial reading.** The static spatial scan is still eight half-second slots per
-  frame: `STEPS_PER_FRAME = 8`, `step_s = 4.0 s / 8 = 0.5 s`, one quarter note at 120 BPM.
-  The pulse never changes with data; early slots are west and late slots are east. Empty or
-  low-activity slots may be rests.
-* **Harmony is disclosed composition.** The seed selects a documented eight-frame chord phrase
-  for the theme. It is not an environmental-change signal. Every newly attacked note is a tone
-  of the current frame chord and remains within that voice's two-octave register.
-* **Measured contour.** Bass follows slice mean, harp slice peak, and flute signed change from
-  the prior frame. Within each frame, the mapping is continuous and relative: its minimum useful
-  spans are 0.15 bass, 0.20 harp, and 0.05 flute. This is not full-range rank expansion; pitch is
-  a relative contour, not an exact reading in units. Equal measured values remain equal. Equal
-  consecutive notes are tied through valid slots rather than repeatedly attacked.
-* **Activity and articulation.** Track-relative activity uses the 10th/90th percentiles with a
-  denominator floor of 0.15; a flat-activity range below 0.05 skips that expansion. Activity
-  chooses the same v15 density, occupancy, and longer ringing, with a gain floor of 0.08. The
-  v16 activity multiplier is
-  `VOICE_GAIN * (.08 + .92 * a**1.6) * (1 + .40 * a**4)`: it is monotone with stronger
-  high-activity contrast, reaches at most 1.4 times the old maximum (about 2.92 dB higher
-  target), and leaves the floor unchanged. No-data slices schedule no new notes; low activity
-  can produce rests, while hall tails may linger.
-* **Rendering and dynamics.** v14's acoustic-modelled bass, harp, flute, and Schroeder hall are
-  retained. `smooth_gain` is C1 cubic easing in dB, `3u² - 2u³`, with no overshoot; knot
-  differences are clamped to `max_db_s * step_s / 1.5`. Voice automation is 35 dB/s and the
-  ensemble is 10 dB/s, keeping the combined derivative at or below 45 dB/s. Swells interpolate
-  measured gain targets; there is no arbitrary waveform LFO applied to data. The overall
-  rendered sample peak is still normalized to 0.89, not raised to a higher output ceiling:
-  stronger peaks are relative contrast, not guaranteed absolute loudness. The master remains
-  fade-in -> hall -> soft-knee limiter -> peak normalise 0.89.
-* **Instrument texture.** A separate synth texture layer uses softer approximately 15 ms bass
-  and 12 ms harp attacks, reduced bass scrape and harp hammer, and a longer low-frequency ring.
-  Deterministic continuous partial drift of at most 2 cents gives an analog-like organic timbre;
-  this is not analog hardware and is not an additional data variable or score control. Equal
-  consecutive notes remain tied, with no repeated attacks.
-* **Imaging.** Fixed per-instrument offsets, |pan| <= 0.10 (bass centre, harp slightly right, flute
-  slightly left); measured L/R correlation 0.98-0.99, L/R energy difference 0.45-0.8 dB. The hall is
-  70 % shared between the ears and 30 % per-channel decorrelated, so it feels wide but the image
-  never moves.
-* **Reverb.** `synth.py:Synth.reverb`: Schroeder topology - four damped feedback combs
-  (29.7/37.1/41.1/43.7 ms) in parallel into three all-pass diffusers (5.0/1.7/3.1 ms), RT60 2.2 s,
-  26 ms pre-delay, wet 0.30 of the dry RMS, measured to an impulse response per channel and applied
-  by FFT convolution. Tuning jitter comes from the render seed, so the hall is identical for the
-  same (track, mode).
-* **Determinism and fallback.** `MAPPING_VERSION = "16"`; the phrase and score seed are derived
-  from the track/theme, while the render seed is derived from track/mode. The browser fallback
-  (`frontend/src/lib/audio/phenomena.ts`) is approximate and must consume `FrameScore.voices`
-  rather than choose pitches; the backend `/tracks/{id}/render` stream remains authoritative.
-* **Candidate measurements and limits.** Historical v15 candidate EBU LRA measurements are SST
-  5.3 LU, wind 13.4 LU, and vegetation 13.6 LU. They are not v16 measurements. These are
-  measurements of candidate renders, not a claim of an ideal sonification, and the candidate has
-  not been validated with blind users.
+**Orchestra**, the UI default, plays the Clear tone data melody on a graph-specific lead instrument. Whole-octave fitting retains its intervals. Bass, chord pad, movement and optional hotspot instruments are chosen by visualization. Half-frame chords are selected from the data notes with voice-leading. These choices remain main's unchanged algorithm.
 
+The recordings are VSCO-2 Community Edition (CC0, Versilian Studios). Main's sample preparation trims initial silence, checks actual recorded pitch and writes a browser manifest. The player pitch-shifts the nearest recorded note. When a lead recording is not yet decoded it falls back to the Clear tone; unready accompaniment waits. The UI exposes actual required-instrument readiness instead of treating an API URL as proof that samples loaded.
 
-> **Historical v2 (2026-11-13): soundscape engine in the backend.** This earlier experiment layered
-> natural sounds over the data. It is retained for provenance only; v17 above is the current model.
+**Clear tone** is the focused data melody without orchestral accompaniment. **Musical** uses main's theme-specific synthetic timbres, rhythm and hotspot accents. The audio key, not a colour-band-to-instrument metaphor, describes their meaning.
 
-Goal: sound that is **traceable to the data** and **musical**. Every audible parameter has one documented meaning that is also written in the track's audio key.
+## Three modes
 
-> _Sections 1-10 below describe mapping_version 13 and earlier (the physical soundscape model). They are kept as history; v14's acoustic-instrument revision and the v16 section above are also historical, and v17 is the model in force._
+**Scan:** sixteen west–east steps per frame. A step lasts 60/BPM/2/(1+0.2×tension). **Overview:** four chord steps per frame, each 60/BPM/(1+0.2×tension). **Explore:** playback pauses; pointer/touch/arrows probe a local calibrated value with pitch and stereo location. Enter or Space reads the value via the screen-reader live region. Spatial scan time is geography, not observation time; observation dates come from frame labels.
 
-## 1. Pipeline
+The map playhead comes from the actual player clock. The Data Deck offers frame stepping and seeking, numeric/MIDI legend, waveform, change-over-time timeline, transcript, sources and calibration flags. These are complementary views rather than a claim that scanning is universally optimal.
 
-```
-frame (PNG) → downsample to grid (e.g. 96×54) → recover VALUE per cell via colormap
-           → smooth → features → mapping rules → score → synth
-```
+## Natural soundscape exports
 
-### Recovering values (the honesty step)
-EIC frames are false-color renderings. Hue alone is not data. For each curated track:
-1. Store `colormaps/<id>.json`: list of `{rgb, value}` anchors read from the on-image colorbar, plus `unit`, `min`, `max`, `label`.
-2. For each cell, find nearest colormap position (Lab color distance, interpolate between anchors) → `value ∈ [0,1]` normalized, plus real value.
-3. Cells that match no anchor within a tolerance are `background` (land/ocean base map, text) and are silent.
+Main's separate backend render still creates procedural natural sounds (wind/rain/fire-like/ocean/haze etc.) with intensity, stereo sweep, threshold cues and optional melody. It is downloadable as MP3/WAV. This renderer is not a capture of the browser Orchestra/Clear/Musical preset. All links label the distinction.
 
-Fallback for uploaded images with no colormap: use luminance as value and hue as secondary timbre control. Mark the track as "artistic mapping, not calibrated".
+## Illustrated presentation
 
-## 2. Mapping table (default preset)
+The film, narrator, animated girl, cabinet and painted worlds are retained unchanged. The film's existing v17 sonification excerpt is preserved within its soundtrack as media provenance; the live engine is main. The film has its own clock and soundtrack, not the scientific player. Sample-bank loading waits for the film to hand over.
 
-| Visual / data property | Audio parameter | Rule | Why |
-|---|---|---|---|
-| Value (low→high) | **Pitch** | Quantize to scale degrees across 3 octaves | Higher = more; universal, most accurate channel |
-| Value of the *scanned column* | Melody | Scanline sweeps x left→right over the clip duration; at each step play the cells in that column | Preserves spatial layout |
-| Row (y, north→south) | **Stereo pan / register split** | Optional: top rows brighter timbre | Gives spatial cue |
-| Column (x) | **Time** (scan mode) / **pan** (static mode) | x → time or left→right | Matches reading order |
-| Share of "extreme" cells | **Loudness** and **filter cutoff** | More extreme area → louder, brighter | Magnitude cue |
-| Spatial variance / edge density | **Rhythmic density** | 1 / 2 / 4 / 8 events per beat bands | Busy picture = busy rhythm |
-| Frame-to-frame change (Δ) | **Tension** | Higher Δ → more dissonant intervals, faster tempo (+0–20 BPM), added minor-2nd/tritone | Urgency of change |
-| Hot-spot (max-value region) | **Accent voice** | Bell/pluck at hot-spot pitch, panned to its x | Draws attention to the event |
-| Background / no-data | Silence or soft drone | Drone on tonic | Context without clutter |
-| Theme (EIC area) | **Instrument palette** | See below | Identity per topic |
+## Uploaded images
 
-## 3. Musical rules (keep it pleasant)
-- **Scale per theme**, quantize all pitches to it. Default: D minor pentatonic (calm), D Phrygian for hazards.
-- Max **4 simultaneous voices**; one drone, one melody, one rhythm, one accent.
-- Tempo fixed per track (60–96 BPM) ± change-driven drift; never random.
-- Smooth parameters with attack/release (≥ 50 ms) and exponential ramps to avoid clicks.
-- Master limiter, target −16 LUFS, no clipping.
-- Same input → same output (seeded randomness only, seed in score).
+The compatibility endpoint scores image luminance with main's build_score. It is artistic, not calibrated to a NASA colourbar, and is labelled accordingly. Its one frame cannot measure temporal change. Visual-inspection labels do not manufacture physical measurements or change the scorer.
 
-## 4. Theme palettes (initial)
+## Validation and limits
 
-| EIC theme | Scale | Timbre | Mapping emphasis |
-|---|---|---|---|
-| Sea level change | Dorian | Warm pad + sine swells | Value → pitch rising slowly; Δ → swell |
-| Air quality | Pentatonic minor | Granular/airy noise through filter | Value → filter brightness + pitch |
-| Wildfires | Phrygian | Plucks + low rumble | Hot-spots → accents, density → rhythm |
-| Greenhouse gases | Whole-tone | Sustained saw pad, slow LFO | Value → pitch and slow beating (dissonance) |
-| Water resources | Lydian | Soft bells, water-like arpeggios | Value → arpeggio register |
-| Agriculture | Major pentatonic | Marimba / kalimba | Greenness → brightness, density → rhythm |
-| Biodiversity | Major pentatonic | Layered chimes, many voices (≤4) | Richness → added voices |
-| Energy | Mixolydian | Synth bass + pulse | Intensity → pulse rate |
-| Disasters | Phrygian dominant | Brass-like pad + percussion | Δ and extremes → tension |
-
-## 5. Modes
-
-1. **Scan** (default): playhead sweeps the frame; melody follows columns.
-2. **Overview**: one chord per frame (mean value → root, spread → chord extension), good for animations.
-3. **Explore**: pointer, touch, or arrow keys play the local value ("sonic fingertip"). Space speaks the value in text via live region ("Sea level anomaly +12 cm, northeast Pacific").
-4. **Time series**: Overview plus Δ tension across the whole animation, ends with a resolving cadence.
-
-## 6. Score format (summary)
-Defined in [API_CONTRACT.md](API_CONTRACT.md). The current score stores the eight-slot frame grid,
-authored chord name/pitches, per-voice notes, gains, durations, measured values, pitch targets,
-activity, and gain envelope so clients realize rather than re-derive the mapping.
-
-## 7. Audio key (shown and read aloud per track)
-Template:
-> "Pitch shows {label} in {unit}: low notes are {min}, high notes are {max}. Louder and brighter means a larger area of extreme values. Faster rhythm means a more detailed picture. Tense, clashing notes mean rapid change between frames. The sweep moves west to east."
-
-## 8. Validation
-- **Monotonicity test**: increasing value never lowers pitch (unit test on `mapping/pitch.py`).
-- **Determinism test**: same frame → identical score hash.
-- **Round-trip sanity**: synthetic gradient image must produce a monotonic rising scan.
-- **Listening review**: 3 people rate each track for pleasantness and clarity (1–5). Target ≥ 4 avg, otherwise tune preset.
-- **Comprehension test**: 3 people (incl. one blind/low-vision if available) answer "where is the hottest region?" from audio only.
-
-## 9. Narrative (for the write-up)
-Explain per theme *why* the mapping fits the science: rising sea level = rising pad; fire = percussive, sudden; greenhouse gases = slow, thick, beating harmonics that never resolve. Keep the urgency honest: tension tracks real change, not drama.
-
-## 10. Historical soundscape engine (v2, backend)
-
-Code: `backend/app/sonify/`. Served by `GET /tracks/{id}/render`, exported with `uv run python -m app.cli render`.
-
-### Why
-Parameter mapping alone (pitch = value) needs learning before it means anything, and averaging columns lost latitude. Auditory icons (natural sounds) are recognised without training, so they carry **what** is happening; data drives **how much** and **where**; thresholds with real-world meaning replace abstract notes.
-
-### Layers
-| Layer | Carries | How |
-|---|---|---|
-| Phenomenon | What + how much | Procedural natural sound per track, intensity from real values (`sound.intensity` in the catalog) |
-| Spatial sweep | Where (west→east) | Each frame 4 s; the sound pans left→right with the scan, following each slice's intensity (weighted to the slice's strongest part, so a small storm is still loud) |
-| Bed | Whole map | Quieter, centred, follows the frame's overall intensity |
-| Thresholds | Meaningful lines | Rising two-note chime, panned to where the line is first crossed |
-| Data melody (optional) | Exact value | Soft plucks, pitch = value (section 2 rules) |
-| Frame tick | Time | Soft tick at each frame |
-
-### Sounds per track
-| Track | Sound | Data controls | Thresholds |
-|---|---|---|---|
-| Temperature | Cicadas (heat ≥ 20 °C) / icy wind and creaks (≤ 0 °C) | Chorus and ice intensity | Below freezing; 40 °C |
-| Wind | Filtered-noise wind with gusts, howl when strong | Pitch, loudness, gustiness | Beaufort 10 (24.5 m/s), 12 (32.7 m/s) |
-| Precipitation | Rain bed + droplets; rumble and thunder when extreme | Drop density, loudness | Heavy rain 7.6 mm |
-| Carbon monoxide | Fire crackle and roar | Crackle density, roar | Strong smoke plume > 200 ppb |
-| SST | Ocean surf | Timbre: icy/bright → warm/dark | 26.5 °C (fuels tropical cyclones) |
-| Vegetation | Birds and insects | Chorus density | none |
-| PM2.5, ozone | Haze (labelled metaphor: no natural sound exists) | Roughness and loudness | WHO PM2.5 15 µg/m³, US AQI 55.5; WHO ozone ~51 ppb |
-| NOx | Traffic hum (its main source) | Thickness | none |
-
-Rules: calm or dry = near silence (no fake drizzle); no data = silence; deterministic (seeded per track); peak ≤ −1 dBFS with a soft limiter.
-
-### Checked
-- Local loudness follows column intensity: r = 0.92 rain, 0.90 CO, 0.96 NOx, 0.44 wind, 0.56 temperature (measured on the rendered audio).
-- Stereo image moves left→right within every frame on all tracks.
-- Tests: storm in the east is louder on the right; no repeat chime while a line stays crossed; bounded, deterministic output.
-
-### Not yet proven
-Listening tests with blind and low-vision people (protocol in ACCESSIBILITY.md): identify the phenomenon, find the strongest place, judge change between frames, old scan vs soundscape.
+Engine source parity, deterministic main backend regressions, upload/transport tests, typechecking and UI checks establish implementation behavior. They do not prove ideal sonification or blind-user comprehension. Listening studies should compare phenomenon identification, peak location, temporal trends and preference between the two branches. Quantization loses resolution; column reduction loses latitude; accompaniment adds perceptual complexity. Clear tone and Explore remain available for focused inspection.
