@@ -3,8 +3,8 @@
 
 import { bump, fbm, rng } from "./noise";
 
-export const GRID_COLS = 64;
-export const GRID_ROWS = 32;
+export const GRID_COLS = 96;
+export const GRID_ROWS = 48;
 
 const WORLD_SEED = 7;
 const LAND_SHARE = 0.32;
@@ -30,7 +30,7 @@ export function landMask(): Uint8Array {
   const mask = new Uint8Array(values.length);
   values.forEach((value, i) => {
     const row = Math.floor(i / GRID_COLS);
-    const polar = row >= GRID_ROWS - 3; // southern ice continent
+    const polar = row >= GRID_ROWS - 4; // southern ice continent
     mask[i] = value >= threshold || polar ? 1 : 0;
   });
   landCache = mask;
@@ -78,9 +78,9 @@ let firesCache: Fire[] | null = null;
 export function fires(): Fire[] {
   if (firesCache) return firesCache;
   const random = rng(29);
-  firesCache = [...placeOnLand(7, 31, 0.15, 0.35), ...placeOnLand(5, 37, 0.5, 0.72)].map((p) => ({
+  firesCache = [...placeOnLand(7, 31, 0.15, 0.35), ...placeOnLand(5, 37, 0.5, 0.72)].map((p, i) => ({
     ...p,
-    start: random() * 0.7,
+    start: i === 0 ? -0.1 : random() * 0.7,
     length: 0.2 + random() * 0.3,
   }));
   return firesCache;

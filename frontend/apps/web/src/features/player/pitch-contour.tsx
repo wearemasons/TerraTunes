@@ -32,7 +32,7 @@ export function PitchContour({ score, frame }: { score: Score; frame: FrameScore
   return (
     <figure className="grid gap-2" aria-labelledby="contour-caption">
       <ChartContainer config={config} className="aspect-auto h-36 w-full" aria-hidden="true">
-        <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+        <LineChart accessibilityLayer={false} data={data} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
           <CartesianGrid vertical={false} />
           <XAxis
             dataKey="step"

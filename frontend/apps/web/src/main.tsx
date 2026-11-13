@@ -5,11 +5,17 @@ import ReactDOM from "react-dom/client";
 import { player } from "./audio/player";
 import Loader from "./components/loader";
 import { PageError, PageNotFound } from "./components/status";
+import { NotFoundError } from "./lib/api/source";
 import { getPrefs } from "./lib/prefs";
 import { routeTree } from "./routeTree.gen";
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
+  defaultOptions: {
+    queries: {
+      retry: (count, error) => !(error instanceof NotFoundError) && count < 1,
+      refetchOnWindowFocus: false,
+    },
+  },
 });
 
 const router = createRouter({

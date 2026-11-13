@@ -35,6 +35,7 @@ export function TensionTimeline({ score, legend, frame }: { score: Score; legend
       {/* Mouse shortcut for seeking; keyboard users have the frame slider. */}
       <ChartContainer config={config} className="aspect-auto h-32 w-full" aria-hidden="true">
         <ComposedChart
+          accessibilityLayer={false}
           data={data}
           margin={{ top: 8, right: 8, bottom: 0, left: -8 }}
           onClick={(state) => {

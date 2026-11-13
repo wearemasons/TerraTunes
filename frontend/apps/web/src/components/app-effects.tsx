@@ -1,5 +1,5 @@
-import { useRouterState } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useRouter, useRouterState } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import { player } from "@/audio/player";
 import { usePlayer } from "@/audio/use-player";
@@ -11,7 +11,7 @@ export function AppEffects() {
   const prefs = usePrefs();
   const { volume, muted } = usePlayer();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const firstPath = useRef(true);
+  const router = useRouter();
 
   // High contrast = a class that remaps theme tokens (see index.css).
   useEffect(() => {
@@ -36,21 +36,19 @@ export function AppEffects() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Move focus to the new page's heading after client-side navigation.
+  // Move focus to the new page's heading once the destination has rendered (not on first load,
+  // not for search-only changes such as filters or player mode).
   useEffect(() => {
-    if (firstPath.current) {
-      firstPath.current = false;
-      return;
-    }
-    const id = window.setTimeout(() => {
-      const heading = document.querySelector<HTMLElement>("#main h1");
-      if (heading) {
+    return router.subscribe("onRendered", (event) => {
+      if (!event.fromLocation || !event.pathChanged) return;
+      requestAnimationFrame(() => {
+        const heading = document.querySelector<HTMLElement>("#main h1");
+        if (!heading) return;
         heading.tabIndex = -1;
-        heading.focus({ preventScroll: false });
-      }
-    }, 50);
-    return () => window.clearTimeout(id);
-  }, [pathname]);
+        heading.focus();
+      });
+    });
+  }, [router]);
 
   // Leaving a track page stops the sound.
   useEffect(() => {

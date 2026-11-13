@@ -119,15 +119,16 @@ export function Transport({
           <span id="volume-label" className="sr-only">
             Volume
           </span>
-          <Slider
-            className="w-24"
-            aria-labelledby="volume-label"
-            min={0}
-            max={100}
-            step={5}
-            value={[Math.round(volume * 100)]}
-            onValueChange={(value) => player.setVolume(first(value) / 100)}
-          />
+          <div className="w-24">
+            <Slider
+              aria-labelledby="volume-label"
+              min={0}
+              max={100}
+              step={5}
+              value={[Math.round(volume * 100)]}
+              onValueChange={(value) => player.setVolume(first(value) / 100)}
+            />
+          </div>
         </div>
       </div>
 

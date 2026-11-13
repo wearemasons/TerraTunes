@@ -22,7 +22,8 @@ export function formatLatLon(x: number, y: number): string {
 
 /** Rough region name for spoken descriptions. Honest about being approximate. */
 export function describeRegion(x: number, y: number): string {
-  const ns = y < 0.33 ? "northern" : y > 0.67 ? "southern" : "equatorial";
+  const lat = 90 - y * 180;
+  const ns = lat > 23.5 ? "northern" : lat < -23.5 ? "southern" : "tropical";
   const ew = x < 0.33 ? "western" : x > 0.67 ? "eastern" : "central";
   return `${ns} ${ew} part of the map (${formatLatLon(x, y)})`;
 }

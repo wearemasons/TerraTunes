@@ -50,7 +50,9 @@ export function ShortcutsDialog() {
                   <dt>
                     <KbdGroup>
                       {shortcut.keys.map((key) => (
-                        <Kbd key={key}>{key}</Kbd>
+                        <Kbd key={key} className="text-foreground">
+                          {key}
+                        </Kbd>
                       ))}
                     </KbdGroup>
                   </dt>
