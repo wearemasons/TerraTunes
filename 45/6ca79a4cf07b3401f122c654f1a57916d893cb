@@ -1,0 +1,58 @@
+.claude/agents/a11y-reviewer.md
+  s_66a65e58ee11fe::t_6618f46ab7472f 1-19
+docs/ACCESSIBILITY.md
+  s_66a65e58ee11fe::t_73d137b7c324d6 1-60
+docs/ARCHITECTURE.md
+  s_66a65e58ee11fe::t_33dcc916622c95 1-72,74-104
+  s_66a65e58ee11fe::t_5ff21f0f22650f 73
+.claude/agents/sonification-engineer.md
+  s_66a65e58ee11fe::t_363628c6c18c7d 1-21
+.claude/agents/data-curator.md
+  s_66a65e58ee11fe::t_00de6d7289bf57 1-19
+.gitignore
+  s_66a65e58ee11fe::t_bceba67598da0a 1-28
+AGENTS.md
+  s_66a65e58ee11fe::t_d880d1718da286 1-5,7-11,13-49
+  s_66a65e58ee11fe::t_5ff21f0f22650f 6,12
+docs/DATA_SOURCES.md
+  s_66a65e58ee11fe::t_4fbfd1fc7e13fc 1-52
+docs/TASKS.md
+  s_66a65e58ee11fe::t_c621d5d52d2e73 1-65
+.claude/agents/backend-fastapi.md
+  s_66a65e58ee11fe::t_8ff0ec76b0f4f6 1-21
+docs/PLAN.md
+  s_66a65e58ee11fe::t_0586edc9985099 1-103
+.claude/agents/frontend-tanstack.md
+  s_66a65e58ee11fe::t_5ff21f0f22650f 3
+  s_66a65e58ee11fe::t_18e8be300d77af 1-2,4-20
+docs/SUBMISSION.md
+  s_66a65e58ee11fe::t_c774b03483766b 1-51
+docs/API_CONTRACT.md
+  s_66a65e58ee11fe::t_f79846026dd840 1-72,74-81
+  s_66a65e58ee11fe::t_5ff21f0f22650f 73
+CLAUDE.md
+  s_66a65e58ee11fe::t_5ff21f0f22650f 15
+  s_66a65e58ee11fe::t_a3b9c9dda169d3 1-14
+README.md
+  s_66a65e58ee11fe::t_5ff21f0f22650f 53
+  s_66a65e58ee11fe::t_158c0744b0e24b 1-25,27-52,54-61
+  s_66a65e58ee11fe::t_f29572e39c2190 26
+docs/SONIFICATION_DESIGN.md
+  s_66a65e58ee11fe::t_98cd7f31bec4d9 1-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "456ca79a4cf07b3401f122c654f1a57916d893cb",
+  "prompts": {},
+  "sessions": {
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
