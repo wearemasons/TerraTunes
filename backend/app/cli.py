@@ -1,4 +1,4 @@
-"""TeraTones data CLI.
+"""TerraTunes data CLI.
 
 uv run python -m app.cli discover            # crawl the EIC gallery, rank sonifiable visualizations
 uv run python -m app.cli build               # build every enabled track in data/catalog.yaml
@@ -20,7 +20,7 @@ from app.svs.client import SvsClient
 EIC_GALLERY = 40467
 SONIFIABLE = {"Visualization", "Animation", "Hyperwall Visual"}
 
-log = logging.getLogger("teratones.cli")
+log = logging.getLogger("terratunes.cli")
 
 
 def discover(gallery_id: int) -> int:
@@ -96,7 +96,7 @@ def list_tracks() -> int:
 
 def main(argv: list[str] | None = None) -> int:
     setup_logging()
-    parser = argparse.ArgumentParser(prog="teratones")
+    parser = argparse.ArgumentParser(prog="terratunes")
     sub = parser.add_subparsers(dest="cmd", required=True)
     d = sub.add_parser("discover", help="Rank EIC visualizations by how well they can be sonified")
     d.add_argument("--gallery", type=int, default=EIC_GALLERY)

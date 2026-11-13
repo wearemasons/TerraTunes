@@ -1,4 +1,4 @@
-# TeraTones frontend
+# TerraTunes frontend
 
 The Earth Information Jukebox web app: pick a NASA Earth visualization, watch it and hear it.
 React 19 · TanStack Router + Query · Vite · Tailwind 4 · shadcn/ui (`base-lyra`) · Web Audio · bun.

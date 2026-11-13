@@ -15,7 +15,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/about")({
   component: AboutPage,
-  head: () => ({ meta: [{ title: "How it works · TeraTones" }] }),
+  head: () => ({ meta: [{ title: "How it works · TerraTunes" }] }),
 });
 
 const MAPPINGS = [
@@ -41,7 +41,7 @@ function AboutPage() {
         <Badge variant="outline">How it works</Badge>
         <h1 className="text-3xl font-semibold tracking-tight text-balance">Turning Earth pictures into sound you can trust</h1>
         <p className="text-base text-muted-foreground">
-          NASA's Earth Information Center shows how our planet is changing, but only to people who can see it. TeraTones reads
+          NASA's Earth Information Center shows how our planet is changing, but only to people who can see it. TerraTunes reads
           each visualization frame and plays it back as music, so the same story reaches listeners who are blind or have low
           vision, and gives everyone a second sense for the data.
         </p>
@@ -130,7 +130,7 @@ function AboutPage() {
         </h2>
         <p className="text-sm leading-relaxed">
           Visualizations come from NASA's Earth Information Center and Scientific Visualization Studio. NASA imagery is generally
-          in the public domain; each track lists its own credit line and source link. TeraTones is not endorsed by NASA.
+          in the public domain; each track lists its own credit line and source link. TerraTunes is not endorsed by NASA.
         </p>
         <p className="text-sm leading-relaxed">
           When the backend is not connected, the jukebox plays <strong>demo tracks</strong> built from synthetic, Earth-like fields

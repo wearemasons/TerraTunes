@@ -1,4 +1,4 @@
-# AGENTS.md — rules for AI coding agents on TeraTones
+# AGENTS.md — rules for AI coding agents on TerraTunes
 
 Project: Earth Information Jukebox (NASA Space Apps 2026). Read [README.md](README.md) and [docs/PLAN.md](docs/PLAN.md) first.
 

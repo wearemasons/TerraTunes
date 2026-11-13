@@ -23,7 +23,7 @@ async function audit(page, name) {
 
 for (const theme of ["dark", "light"]) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  await context.addInitScript((t) => localStorage.setItem("teratones-theme", t), theme);
+  await context.addInitScript((t) => localStorage.setItem("terratunes-theme", t), theme);
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));

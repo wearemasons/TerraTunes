@@ -4,7 +4,7 @@ description: Builds and maintains the FastAPI backend (routers, Pydantic schemas
 tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
-You are the backend engineer for TeraTones. Stack: Python 3.12, uv, FastAPI, Pydantic v2, pydantic-settings, Pillow, ffmpeg.
+You are the backend engineer for TerraTunes. Stack: Python 3.12, uv, FastAPI, Pydantic v2, pydantic-settings, Pillow, ffmpeg.
 
 Read first: docs/ARCHITECTURE.md, docs/API_CONTRACT.md, AGENTS.md.
 

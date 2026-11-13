@@ -1,7 +1,7 @@
 [project]
-name = "teratones-backend"
+name = "terratunes-backend"
 version = "0.1.0"
-description = "TeraTones API: turns NASA Earth Information Center visualizations into sonification scores."
+description = "TerraTunes API: turns NASA Earth Information Center visualizations into sonification scores."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

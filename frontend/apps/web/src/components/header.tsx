@@ -31,9 +31,9 @@ export default function Header() {
   return (
     <header className="border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2 sm:gap-4">
-        <Link to="/" className="flex items-center gap-2 py-1 text-sm font-semibold tracking-tight" aria-label="TeraTones home">
+        <Link to="/" className="flex items-center gap-2 py-1 text-sm font-semibold tracking-tight" aria-label="TerraTunes home">
           <AudioWaveform className="size-5 text-primary" aria-hidden="true" />
-          <span>TeraTones</span>
+          <span>TerraTunes</span>
         </Link>
 
         <nav aria-label="Main" className="flex items-center">

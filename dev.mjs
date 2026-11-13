@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Run the whole TeraTones project: FastAPI backend + web app, with one command.
+// Run the whole TerraTunes project: FastAPI backend + web app, with one command.
 //
 //   node dev.mjs              install what's missing, start API (:8000) and web (:3000)
 //   node dev.mjs --demo       web app only, on synthetic demo data (no Python needed)
@@ -188,7 +188,7 @@ if (!DEMO) {
   say(`Starting API on ${API_URL}`);
   start("api", cyan, "uv", ["run", "uvicorn", "app.main:app", "--reload", "--port", String(API_PORT)], BACKEND, {
     // Let the web app's origin through CORS, whatever port it runs on.
-    TERATONES_CORS_ORIGINS: JSON.stringify([WEB_URL, `http://127.0.0.1:${WEB_PORT}`]),
+    TERRATUNES_CORS_ORIGINS: JSON.stringify([WEB_URL, `http://127.0.0.1:${WEB_PORT}`]),
   });
   await waitFor(`${API_URL}/healthz`, "API");
   const health = await (await fetch(`${API_URL}/healthz`)).json().catch(() => ({}));
@@ -207,7 +207,7 @@ start(
 await waitFor(WEB_URL, "Web app");
 
 console.log(
-  `\n${green("TeraTones is running")}\n` +
+  `\n${green("TerraTunes is running")}\n` +
     `  Web app   ${WEB_URL}\n` +
     (DEMO ? `  Data      synthetic demo tracks\n` : `  API       ${API_URL}  (docs: ${API_URL}/docs)\n`) +
     `  Stop      Ctrl+C\n`,

@@ -1,4 +1,4 @@
-# Project Plan — TeraTones
+# Project Plan — TerraTunes
 
 ## 1. Challenge summary
 

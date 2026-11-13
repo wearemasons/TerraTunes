@@ -1,4 +1,4 @@
-# TeraTones backend
+# TerraTunes backend
 
 FastAPI service that turns NASA Earth Information Center visualizations into **sonification scores**.
 It downloads visualizations from NASA's Scientific Visualization Studio (SVS), recovers real data values from the false-colour frames using each visualization's own colorbar, and serves the scores the web app plays.
@@ -64,4 +64,4 @@ uv run mypy app
 
 - SVS pages used here are **updated daily**. A rebuild captures the latest run; frame labels are forecast steps (GEOS-FP) or approximate dates (SST), because frame timestamps are only burned into the pixels.
 - Colours that appear twice on a colorbar can be confused; the per-cell median keeps this rare. `valid_share` in each `meta.json` reports how much of the map matched.
-- NASA media is generally public domain. Each track keeps its SVS credit and source link; TeraTones is not endorsed by NASA.
+- NASA media is generally public domain. Each track keeps its SVS credit and source link; TerraTunes is not endorsed by NASA.

@@ -24,7 +24,7 @@ def setup_logging(level: int = logging.INFO) -> None:
     root.setLevel(level)
 
 
-log = logging.getLogger("teratones.http")
+log = logging.getLogger("terratunes.http")
 
 
 async def request_id_middleware(

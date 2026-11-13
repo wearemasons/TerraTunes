@@ -1,4 +1,4 @@
-# Curated TeraTones tracks. Source: NASA SVS, Earth Information Center gallery (SVS 40467).
+# Curated TerraTunes tracks. Source: NASA SVS, Earth Information Center gallery (SVS 40467).
 # Value ticks are transcribed from each visualization's labelled colorbar. Positions are 0..1 along
 # the gradient strip. `colorbar_box` pins the strip (x0, y0, x1, y1 px) when auto-detection is unsure.
 # `masks` hide logos and date stamps (normalized x0, y0, x1, y1) so they aren't read as data.
@@ -83,7 +83,7 @@ tracks:
     description: >-
       Near-surface ozone estimated by NASA's GEOS-CF model. Ozone high in the sky protects us from ultraviolet light,
       but at nose level it harms lungs. It builds up downwind of cities in sunny weather. Large grey areas, mostly over
-      the southern oceans, use shades that are not on the colorbar, so TeraTones leaves them silent rather than guess
+      the southern oceans, use shades that are not on the colorbar, so TerraTunes leaves them silent rather than guess
       their values.
     movie: MC02_stage4_GMAO_O3_2048x1024_en.mp4
     colorbar: O3_colorbar_plain.png

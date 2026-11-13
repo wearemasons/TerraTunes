@@ -45,8 +45,8 @@ CI guard (P1): a script `scripts/check-theme-tokens.mjs` that fails if `apps/web
 | Router, Vite, Tailwind 4, theme provider | Working scaffold | Keep |
 | `packages/ui` components | button, card, checkbox, dropdown-menu, empty, input, input-group, label, skeleton, sonner, textarea, tooltip, plus bubble, message, message-scroller, attachment, marker | Chat-style extras (bubble, message*, attachment, marker) look unused: confirm, then remove |
 | `routes/index.tsx` | ASCII "BETTER T STACK" placeholder | Replace with Jukebox |
-| `routes/__root.tsx` | Title "my-better-t-app" | Rename to TeraTones, add skip link and live region |
-| Package scope `@my-better-t-app/*` | Works | Optional rename to `@teratones/*` (touches imports, `bun.lock`), do before feature work or never |
+| `routes/__root.tsx` | Title "my-better-t-app" | Rename to TerraTunes, add skip link and live region |
+| Package scope `@my-better-t-app/*` | Works | Optional rename to `@terratunes/*` (touches imports, `bun.lock`), do before feature work or never |
 | Port | 3000 | Done |
 | API client, Query, audio | None | Build (below) |
 
@@ -99,8 +99,8 @@ components/             # app-level wrappers only (header, theme-provider), shad
 ## 6. Phases
 
 ### Phase 0 — Foundations (≈ 2 h)
-- [ ] Rename app title and metadata to TeraTones; remove ASCII placeholder.
-- [ ] Decide on the `@teratones/*` scope rename and do it now or skip.
+- [ ] Rename app title and metadata to TerraTunes; remove ASCII placeholder.
+- [ ] Decide on the `@terratunes/*` scope rename and do it now or skip.
 - [ ] Remove unused chat components after confirming no imports.
 - [ ] Add deps: `@tanstack/react-query`, `openapi-typescript`, `tone` (or raw Web Audio).
 - [ ] `QueryClientProvider` in root; router context carries `queryClient`.

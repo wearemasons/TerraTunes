@@ -12,7 +12,7 @@ setup_logging()
 settings = get_settings()
 
 app = FastAPI(
-    title="TeraTones API",
+    title="TerraTunes API",
     version=__version__,
     description="Sonification scores for NASA Earth Information Center visualizations.",
 )

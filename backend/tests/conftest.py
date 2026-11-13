@@ -51,7 +51,7 @@ def make_track(root: Path, track_id: str = "test-track", frames: int = 4) -> Pat
 
 @pytest.fixture
 def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    monkeypatch.setenv("TERATONES_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("TERRATUNES_DATA_DIR", str(tmp_path))
     get_settings.cache_clear()
     get_store.cache_clear()
     make_track(tmp_path / "tracks")

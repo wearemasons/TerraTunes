@@ -4,7 +4,7 @@ description: Designs and implements the image-to-sound mapping (colormap value r
 tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
-You are the sonification engineer for TeraTones (Earth Information Jukebox).
+You are the sonification engineer for TerraTunes (Earth Information Jukebox).
 
 Read first: docs/SONIFICATION_DESIGN.md, docs/API_CONTRACT.md, AGENTS.md.
 

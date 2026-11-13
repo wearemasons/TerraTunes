@@ -27,11 +27,11 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   component: RootComponent,
   head: () => ({
     meta: [
-      { title: "TeraTones · The Earth Information Jukebox" },
+      { title: "TerraTunes · The Earth Information Jukebox" },
       {
         name: "description",
         content:
-          "Hear NASA Earth Information Center visualizations. TeraTones turns every frame into an accessible, musical soundscape.",
+          "Hear NASA Earth Information Center visualizations. TerraTunes turns every frame into an accessible, musical soundscape.",
       },
     ],
     links: [{ rel: "icon", href: "/favicon.svg", type: "image/svg+xml" }],
@@ -42,7 +42,7 @@ function RootComponent() {
   return (
     <>
       <HeadContent />
-      <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange storageKey="teratones-theme">
+      <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange storageKey="terratunes-theme">
         <TooltipProvider delay={300}>
           <a
             href="#main"

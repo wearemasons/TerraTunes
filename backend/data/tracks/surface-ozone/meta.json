@@ -4,7 +4,7 @@
  "title": "Near-Surface Ozone",
  "theme": "air_quality",
  "summary": "Ground-level ozone, a lung irritant that builds up in sunny, polluted air.",
- "description": "Near-surface ozone estimated by NASA's GEOS-CF model. Ozone high in the sky protects us from ultraviolet light, but at nose level it harms lungs. It builds up downwind of cities in sunny weather. Large grey areas, mostly over the southern oceans, use shades that are not on the colorbar, so TeraTones leaves them silent rather than guess their values.",
+ "description": "Near-surface ozone estimated by NASA's GEOS-CF model. Ozone high in the sky protects us from ultraviolet light, but at nose level it harms lungs. It builds up downwind of cities in sunny weather. Large grey areas, mostly over the southern oceans, use shades that are not on the colorbar, so TerraTunes leaves them silent rather than guess their values.",
  "date_range": "About 29 Oct to 13 Nov 2026, hourly (approximate)",
  "frame_labels": [
   "about 29 Oct",

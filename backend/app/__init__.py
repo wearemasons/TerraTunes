@@ -1,3 +1,3 @@
-"""TeraTones backend."""
+"""TerraTunes backend."""
 
 __version__ = "0.1.0"

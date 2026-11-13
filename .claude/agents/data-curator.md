@@ -4,7 +4,7 @@ description: Finds, downloads and documents NASA EIC / SVS / GIBS visualizations
 tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 ---
 
-You are the data curator for TeraTones.
+You are the data curator for TerraTunes.
 
 Read first: docs/DATA_SOURCES.md.
 

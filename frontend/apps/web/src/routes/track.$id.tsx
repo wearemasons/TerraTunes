@@ -49,7 +49,7 @@ export const Route = createFileRoute("/track/$id")({
       throw error;
     }
   },
-  head: ({ loaderData }) => ({ meta: [{ title: loaderData ? `${loaderData.title} · TeraTones` : "TeraTones" }] }),
+  head: ({ loaderData }) => ({ meta: [{ title: loaderData ? `${loaderData.title} · TerraTunes` : "TerraTunes" }] }),
   pendingComponent: TrackPending,
   component: TrackPage,
 });

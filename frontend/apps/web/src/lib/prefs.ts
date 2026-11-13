@@ -11,7 +11,7 @@ export interface Prefs {
   announceFrames: boolean;
 }
 
-const KEY = "teratones:prefs:v1";
+const KEY = "terratunes:prefs:v1";
 const DEFAULTS: Prefs = {
   volume: 0.7,
   muted: false,

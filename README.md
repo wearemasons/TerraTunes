@@ -1,9 +1,9 @@
-# TeraTones — The Earth Information Jukebox
+# TerraTunes — The Earth Information Jukebox
 
 > NASA Space Apps 2026 challenge: *The Earth Information Jukebox*.
 > Pick a NASA Earth Information Center (EIC) visualization. Watch it. **Hear it.**
 
-TeraTones turns EIC visual frames (sea level, air quality, wildfires, greenhouse gases, water, agriculture, biodiversity, energy, disasters) into musical soundscapes in real time. Blind and low-vision users get an equal way in. Sighted users get a second sense for the data.
+TerraTunes turns EIC visual frames (sea level, air quality, wildfires, greenhouse gases, water, agriculture, biodiversity, energy, disasters) into musical soundscapes in real time. Blind and low-vision users get an equal way in. Sighted users get a second sense for the data.
 
 ## Status
 
@@ -22,7 +22,7 @@ Working end to end: nine tracks built from live NASA SVS visualizations (tempera
 ## Repo layout
 
 ```
-TeraTones/
+TerraTunes/
 ├─ frontend/               # frontend monorepo (bun workspaces)
 │  ├─ apps/web/            # TanStack Router app
 │  └─ packages/ui/         # shared shadcn/ui
