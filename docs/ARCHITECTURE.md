@@ -102,3 +102,8 @@ lib/a11y/          # announce(), focus helpers, shortcuts
 | 2026-11-13 | Keep TanStack Router + Vite SPA | Already scaffolded; SSR not needed |
 | 2026-11-13 | FastAPI backend, score-based contract | Python CV ecosystem; one mapping source of truth |
 | 2026-11-13 | No DB | Static catalogue + file cache is enough for 48 h |
+| 2026-11-13 | Movies + PyAV instead of frame PNGs | SVS frame PNGs are 6 MB each (2.4 GB per track); movies are 33–84 MB; PyAV wheels bundle ffmpeg |
+| 2026-11-13 | Legend ticks with log/piecewise scales | PM2.5, NOx and CO colorbars are non-linear |
+| 2026-11-13 | Added `weather` and `ocean` themes | Temperature, wind and SST don't fit the nine EIC areas honestly |
+| 2026-11-13 | Commit processed tracks (~20 MB) | Demo works offline and without 350 MB of downloads |
+| 2026-11-13 | Unmatched colours stay silent | Loosening tolerance made calm ocean read as storm-force wind (tested) |

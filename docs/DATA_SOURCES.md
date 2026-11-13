@@ -1,6 +1,7 @@
 # Data Sources
 
-> The challenge Resources tab could not be fetched when this was written. **Action:** open
+> The challenge Resources tab could not be fetched (TLS error). The EIC gallery itself was reachable and is the
+> source of every track below. **Still to do:** open
 > https://www.spaceappschallenge.org/2026/challenges/the-earth-information-jukebox/?tab=resources
 > and paste its links into the "From the Resources tab" table below.
 
@@ -32,18 +33,25 @@ EIC covers nine areas: sea level change, air quality, biodiversity, wildfires, g
 - [ ] Human-written description and alt text
 - [ ] File size within repo budget (see below)
 
-## Target catalogue (fill in)
-| # | Theme | Title | SVS / source | Type | Colormap done | Description done |
-|---|---|---|---|---|---|---|
-| 1 | Sea level | | | video | ☐ | ☐ |
-| 2 | Air quality | | | video | ☐ | ☐ |
-| 3 | Wildfires | | | video | ☐ | ☐ |
-| 4 | Greenhouse gases | | | video | ☐ | ☐ |
-| 5 | Water resources | | | video | ☐ | ☐ |
-| 6 | Agriculture | | | video | ☐ | ☐ |
-| 7 | Biodiversity | | | image | ☐ | ☐ |
-| 8 | Energy | | | image | ☐ | ☐ |
-| 9 | Disasters | | | video | ☐ | ☐ |
+## Built catalogue (2026-11-13)
+
+Discovered by crawling the EIC gallery (SVS 40467) and its dashboards (`uv run python -m app.cli discover`): ~55 linked visualizations; 10 have a flat 2:1 world map plus a separate colorbar, the format calibration needs. Curated in `backend/data/catalog.yaml`.
+
+| Track | Theme | SVS | Source movie | Scale | Matched |
+|---|---|---|---|---|---|
+| Near-Surface Temperature | Weather | [5147](https://svs.gsfc.nasa.gov/5147) | GEOS-FP, hourly, last ~15 days | −40…40 °C linear | 96% |
+| Near-Surface Wind Speed | Weather | [5148](https://svs.gsfc.nasa.gov/5148) | GEOS-FP | 0…40 m/s (grey tail excluded) | 73% |
+| Precipitation | Water | [5149](https://svs.gsfc.nasa.gov/5149) | GEOS-FP | 0…20 mm; uncoloured = dry | 96% |
+| Fine Particulate Matter (PM2.5) | Air quality | [5151](https://svs.gsfc.nasa.gov/5151) | GEOS-CF | 0.4…409.6 µg/m³ log | 96% |
+| Near-Surface Ozone | Air quality | [5152](https://svs.gsfc.nasa.gov/5152) | GEOS-CF | 5…60 ppbv; grey areas silent | 55% |
+| Carbon Monoxide | Wildfires | [5153](https://svs.gsfc.nasa.gov/5153) | GEOS-CF | 40…500 ppbv piecewise log | 96% |
+| Nitrogen Oxides | Air quality | [5154](https://svs.gsfc.nasa.gov/5154) | GEOS-CF | 10⁻³…21 ppbv log | 84% |
+| Sea Surface Temperature | Oceans | [5101](https://svs.gsfc.nasa.gov/5101) | MUR SST, ~2.5 years | −5…35 °C | 68% (land silent) |
+| Vegetation Greenness (NDVI) | Agriculture | [5544](https://svs.gsfc.nasa.gov/5544) | NRT NDVI | relative 0…100 | 34% (ocean silent) |
+
+Skipped: SST anomaly (5176, 346 MB movie), produced videos (no colorbar), globe/Robinson projections (not 2:1), sea ice and active fires (no colorbar; candidates for an "artistic mapping" mode).
+
+Known limits: GEOS frame times are burned into the pixels, so labels are approximate days; SVS pages update daily, so a rebuild changes the music; colours appearing twice on a bar can be confused (despeckle and per-cell medians keep this rare).
 
 ## Storage and licensing
 - NASA media is generally public domain, but some SVS items include third-party material. Check each page's credit line; keep it in `tracks.json`.

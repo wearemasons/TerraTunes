@@ -7,7 +7,7 @@ TeraTones turns EIC visual frames (sea level, air quality, wildfires, greenhouse
 
 ## Status
 
-Planning phase. Start with [docs/PLAN.md](docs/PLAN.md).
+Working end to end: nine tracks built from live NASA SVS visualizations (temperature, wind, rain, PM2.5, ozone, CO, NOx, sea surface temperature, vegetation), a FastAPI service that serves calibrated scores, and an accessible web jukebox that plays them. Plan and backlog: [docs/PLAN.md](docs/PLAN.md), [docs/TASKS.md](docs/TASKS.md).
 
 ## Stack
 
@@ -15,7 +15,7 @@ Planning phase. Start with [docs/PLAN.md](docs/PLAN.md).
 |---|---|
 | Frontend | React 19 + **TanStack Router** (+ TanStack Query), Vite, Tailwind 4, shadcn/ui (`packages/ui`), bun |
 | Audio (browser) | Web Audio API (Tone.js optional) |
-| Backend | **FastAPI** (Python 3.12, uv), Pydantic v2, NumPy, OpenCV, Pillow, ffmpeg |
+| Backend | **FastAPI** (Python 3.12, uv), Pydantic v2, NumPy, Pillow, PyAV (bundled ffmpeg), httpx |
 | Offline render | NumPy synth + soundfile → WAV/MP3 |
 | Data | NASA SVS (EIC visualizations), NASA GIBS (tiles) |
 
@@ -26,7 +26,7 @@ TeraTones/
 ├─ frontend/               # frontend monorepo (bun workspaces)
 │  ├─ apps/web/            # TanStack Router app
 │  └─ packages/ui/         # shared shadcn/ui
-├─ backend/                # FastAPI service (to be scaffolded)
+├─ backend/                # FastAPI service, SVS ingest, calibration, mapping rules
 ├─ docs/                   # plan, architecture, design, a11y, data, API, submission
 ├─ .claude/agents/         # project sub-agents
 ├─ AGENTS.md / CLAUDE.md   # rules for AI coding agents
@@ -47,15 +47,19 @@ TeraTones/
 | [docs/FRONTEND_PLAN.md](docs/FRONTEND_PLAN.md) | Frontend build phases, shadcn-only and tweakcn rules |
 | [docs/SUBMISSION.md](docs/SUBMISSION.md) | Deliverables, demo script, creative write-up |
 
-## Quick start (target)
+## Quick start
 
 ```bash
-# frontend
-cd frontend && bun install && bun run dev:web     # http://localhost:3000
+# backend (processed tracks are committed, so no download is needed)
+cd backend && uv sync && uv run fastapi dev app/main.py   # http://localhost:8000/docs
 
-# backend
-cd backend && uv sync && uv run fastapi dev app/main.py  # http://localhost:8000/docs
+# frontend, pointed at the backend
+cd frontend && bun install
+echo VITE_API_URL=http://localhost:8000 > apps/web/.env.local
+bun run dev:web                                            # http://localhost:3000
 ```
+
+Without the backend the web app falls back to synthetic demo tracks. To refresh tracks from NASA (they update daily): `cd backend && uv run python -m app.cli build`.
 
 ## Credits
 

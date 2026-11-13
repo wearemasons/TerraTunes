@@ -5,27 +5,26 @@ Legend: P0 must ship · P1 should · P2 stretch. Mark `[x]` when merged.
 Frontend work is broken into phases in [FRONTEND_PLAN.md](FRONTEND_PLAN.md); Track C below summarizes it.
 
 ## Track A — Data and curation
-- [ ] P0 Read Resources tab; fill [DATA_SOURCES.md](DATA_SOURCES.md)
-- [ ] P0 Pick 6–9 EIC visualizations, one per theme where possible
-- [ ] P0 `scripts/fetch_assets.py`: download by SVS ID, store credit + URL
-- [ ] P0 Extract frames with ffmpeg (≤ 40 per track, ≤ 1280 px)
-- [ ] P0 Transcribe colorbar anchors → `colormaps/<id>.json`
-- [ ] P0 Write descriptions and transcripts (human-reviewed)
-- [ ] P1 Thumbnails (WebP) and `tracks.json`
+- [ ] P0 Read Resources tab; fill [DATA_SOURCES.md](DATA_SOURCES.md) (page still unreachable)
+- [x] P0 Pick EIC visualizations: 9 tracks across 6 themes (see DATA_SOURCES.md)
+- [x] P0 SVS client: crawl gallery, fetch pages, resumable downloads (`app/svs/client.py`, `app.cli discover`)
+- [x] P0 Sample frames from movies with PyAV (20 per track)
+- [x] P0 Colorbar ticks transcribed into `backend/data/catalog.yaml`; strips extracted automatically
+- [x] P0 Descriptions and transcripts generated from data; ozone note written by hand
+- [x] P1 Thumbnails (WebP)
+- [ ] P1 Human review of every description and transcript before the demo
+- [ ] P2 Artistic-mapping mode for visualizations without a colorbar (sea ice, active fires)
 
 ## Track B — Backend (FastAPI)
-- [ ] P0 Scaffold: `uv init`, FastAPI, ruff, mypy, pytest, `/healthz`, CORS
-- [ ] P0 Pydantic schemas = [API_CONTRACT.md](API_CONTRACT.md)
-- [ ] P0 `GET /tracks`, `/tracks/{id}`, `/frames/{n}`
-- [ ] P0 `vision/colormap.py`: Lab nearest-anchor → value grid (+ tests)
-- [ ] P0 `vision/features.py`: mean, max, extreme share, variance, hot-spot, Δ between frames
-- [ ] P0 `mapping/`: scales, pitch quantizer (monotonic test), rhythm bands, tension
-- [ ] P0 `GET /score` + disk cache + ETag
-- [ ] P1 `render/synth.py` NumPy synth + `/render` + `scripts/prerender.py`
-- [ ] P1 `/describe` templates
-- [ ] P1 `scripts/export_static.py`
+- [x] P0 Scaffold: uv, FastAPI, ruff, mypy (strict), pytest, `/healthz`, CORS, request ids
+- [x] P0 Pydantic schemas = [API_CONTRACT.md](API_CONTRACT.md) (+ log/piecewise legends, weather and ocean themes)
+- [x] P0 `GET /tracks`, `/tracks/{id}`, `/frames/{n}`, `/frames/{n}/grid`, `/thumbnail`
+- [x] P0 Colorbar calibration in CIELAB with masks, chroma check and despeckle (+ tests)
+- [x] P0 Mapping rules ported to `app/mapping/rules.py` (monotonic, deterministic, tested)
+- [x] P0 `GET /score` with ETag
+- [ ] P1 `render/synth.py` offline WAV/MP3 + `/render` (playlist deliverable)
+- [ ] P1 Scheduled daily rebuild (SVS pages update daily)
 - [ ] P2 `/analyze` upload with luminance fallback
-- [ ] P2 Optional LLM description generation (offline script)
 
 ## Track C — Frontend (TanStack)
 - [x] P0 Add deps: `@tanstack/react-query`, raw Web Audio (no Tone.js needed). `openapi-typescript` waits for the backend
