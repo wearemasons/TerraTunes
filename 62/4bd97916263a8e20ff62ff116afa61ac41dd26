@@ -1,0 +1,28 @@
+.claude/agents/frontend-tanstack.md
+  s_66a65e58ee11fe::t_8e65af60a21fdd 21-25
+AGENTS.md
+  s_66a65e58ee11fe::t_8e65af60a21fdd 33
+README.md
+  s_66a65e58ee11fe::t_8e65af60a21fdd 47
+docs/FRONTEND_PLAN.md
+  s_66a65e58ee11fe::t_72a2388d24ae98 1-11,13-50,52-170
+  s_66a65e58ee11fe::t_dba5d990820c20 12,51,171-214
+docs/TASKS.md
+  s_66a65e58ee11fe::t_8e65af60a21fdd 5-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "624bd97916263a8e20ff62ff116afa61ac41dd26",
+  "prompts": {},
+  "sessions": {
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
