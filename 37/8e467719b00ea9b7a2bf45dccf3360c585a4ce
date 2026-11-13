@@ -1,0 +1,44 @@
+backend/app/schemas/models.py
+  s_66a65e58ee11fe::t_62d29e3828e0b7 17-18,28-33,40-45
+backend/app/svs/client.py
+  s_66a65e58ee11fe::t_e4d85dc7d72eb5 1-162
+backend/app/cli.py
+  s_66a65e58ee11fe::t_62d29e3828e0b7 1-111
+backend/app/ingest/pipeline.py
+  s_66a65e58ee11fe::t_d15b1c109f1b95 18,115-118,121
+  s_66a65e58ee11fe::t_0aba87e3beb95a 1-17,19-114,119-120,122-149
+backend/data/catalog.yaml
+  s_66a65e58ee11fe::t_4b87edb6b38259 1-157
+backend/app/vision/calibrate.py
+  s_66a65e58ee11fe::t_0134a4ca38da38 1-71
+backend/app/ingest/video.py
+  s_66a65e58ee11fe::t_d15b1c109f1b95 38
+  s_66a65e58ee11fe::t_07d93c8572e5a7 1-37,39-41
+backend/app/vision/colorbar.py
+  s_66a65e58ee11fe::t_4b87edb6b38259 5
+  s_66a65e58ee11fe::t_3e90085e573b4c 1-4,6-112
+backend/README.md
+  s_66a65e58ee11fe::t_66fa5092fa2e52 1-67
+backend/app/mapping/rules.py
+  s_66a65e58ee11fe::t_62d29e3828e0b7 24,60-61,89-95
+backend/tests/test_vision.py
+  s_66a65e58ee11fe::t_c0765dfb8a99a7 1-72
+backend/app/ingest/catalog.py
+  s_66a65e58ee11fe::t_0a070f9dd4b8ca 1-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "378e467719b00ea9b7a2bf45dccf3360c585a4ce",
+  "prompts": {},
+  "sessions": {
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
