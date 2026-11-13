@@ -1,0 +1,34 @@
+frontend/apps/web/src/lib/legend.ts
+  s_66a65e58ee11fe::t_4130afd01a3c60 1-38
+frontend/apps/web/src/features/player/tension-timeline.tsx
+  s_66a65e58ee11fe::t_b0a49770cc6a46 7,19
+docs/API_CONTRACT.md
+  s_66a65e58ee11fe::t_66fa5092fa2e52 31-47,77-79
+frontend/apps/web/src/audio/timbres.ts
+  s_66a65e58ee11fe::t_4130afd01a3c60 27-28
+frontend/apps/web/src/lib/api/types.ts
+  s_66a65e58ee11fe::t_4130afd01a3c60 14-15,30-31,58-64,71-73
+frontend/apps/web/src/features/player/explore-readout.tsx
+  s_66a65e58ee11fe::t_b0a49770cc6a46 6,15
+frontend/apps/web/src/features/player/legend.tsx
+  s_66a65e58ee11fe::t_b0a49770cc6a46 6,9-10,15-18,21-39,47-48
+frontend/apps/web/src/lib/mock/mapping.ts
+  s_66a65e58ee11fe::t_b0a49770cc6a46 8,55
+  s_66a65e58ee11fe::t_4130afd01a3c60 35-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6010e69fd24e17372220090c67589730ddeb88f3",
+  "prompts": {},
+  "sessions": {
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
