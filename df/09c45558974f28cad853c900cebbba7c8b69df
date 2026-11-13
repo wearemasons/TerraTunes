@@ -1,0 +1,55 @@
+backend/data/tracks/surface-ozone/meta.json
+  s_66a65e58ee11fe::t_547661545a0909 7,184
+  s_66a65e58ee11fe::t_7cbe5cc5b6d775 8-183
+  s_66a65e58ee11fe::t_e7e6040f16a7dd 192
+  s_66a65e58ee11fe::t_6f5cd7704a7684 1-6,185-191,193
+backend/data/tracks/nitrogen-oxides/meta.json
+  s_66a65e58ee11fe::t_e7e6040f16a7dd 212
+  s_66a65e58ee11fe::t_7cbe5cc5b6d775 8-203
+  s_66a65e58ee11fe::t_547436c10362ca 1-7,204-211,213
+backend/data/tracks/precipitation/meta.json
+  s_66a65e58ee11fe::t_40709e4e4d10ef 192
+  s_66a65e58ee11fe::t_7cbe5cc5b6d775 8-29
+  s_66a65e58ee11fe::t_ccc30386eaddde 1-7,30-191,193
+backend/data/tracks/vegetation/meta.json
+  s_66a65e58ee11fe::t_11581ed1269268 1-9,30-182,184-191,193
+  s_66a65e58ee11fe::t_7cbe5cc5b6d775 10-29,183
+  s_66a65e58ee11fe::t_40709e4e4d10ef 192
+backend/data/tracks/sea-surface-temperature/meta.json
+  s_66a65e58ee11fe::t_547661545a0909 1-182,184-191,193
+  s_66a65e58ee11fe::t_40709e4e4d10ef 192
+  s_66a65e58ee11fe::t_7cbe5cc5b6d775 183
+backend/data/tracks/surface-temperature/meta.json
+  s_66a65e58ee11fe::t_7cbe5cc5b6d775 8,10-29,189
+  s_66a65e58ee11fe::t_40709e4e4d10ef 197
+  s_66a65e58ee11fe::t_1b08e8f67177ec 1-7,9,30-188,190-196,198
+backend/data/tracks/carbon-monoxide/meta.json
+  s_66a65e58ee11fe::t_7cbe5cc5b6d775 8-198
+  s_66a65e58ee11fe::t_e7e6040f16a7dd 207
+  s_66a65e58ee11fe::t_2ab601e62ba7e4 1-7,199-206,208
+backend/data/tracks/fine-particulates/meta.json
+  s_66a65e58ee11fe::t_e7e6040f16a7dd 192
+  s_66a65e58ee11fe::t_7cbe5cc5b6d775 8-184
+  s_66a65e58ee11fe::t_b772a8e552ec0e 1-7,185-191,193
+backend/data/tracks/wind-speed/meta.json
+  s_66a65e58ee11fe::t_7cbe5cc5b6d775 8-183
+  s_66a65e58ee11fe::t_547661545a0909 184
+  s_66a65e58ee11fe::t_40709e4e4d10ef 192
+  s_66a65e58ee11fe::t_432033d591ab8c 1-7,185-191,193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "df09c45558974f28cad853c900cebbba7c8b69df",
+  "prompts": {},
+  "sessions": {
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
