@@ -64,6 +64,11 @@ THEME_KEYS: dict[ThemeId, ThemeKey] = {
 NOTE_NAMES = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"]
 
 
+def lower_first(text: str) -> str:
+    """Lower-case only the first letter, so acronyms like PM2.5 survive mid-sentence."""
+    return text[:1].lower() + text[1:]
+
+
 def midi_name(midi: int) -> str:
     return f"{NOTE_NAMES[midi % 12]}{midi // 12 - 1}"
 
@@ -121,7 +126,7 @@ def describe_region(x: float, y: float) -> str:
 def audio_key_text(legend: Legend) -> str:
     return " ".join(
         [
-            f"Pitch shows {legend.label.lower()} in {legend.unit}: the lowest notes mean {fmt(legend.min)} "
+            f"Pitch shows {lower_first(legend.label)} in {legend.unit}: the lowest notes mean {fmt(legend.min)} "
             f"and the highest mean {fmt(legend.max)}.",
             "The sweep moves west to east across the map, one note per slice.",
             "Louder and brighter sound means more of the map has high values.",

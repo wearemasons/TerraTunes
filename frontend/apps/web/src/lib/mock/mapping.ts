@@ -4,7 +4,7 @@
 
 import type { FrameScore, Legend, Score, ThemeId, TranscriptEntry, ValueGrid } from "@/lib/api/types";
 import { GRID_MAX, NO_DATA } from "@/lib/api/types";
-import { describeRegion, formatSigned, formatValue, midiToName } from "@/lib/format";
+import { describeRegion, formatSigned, formatValue, lowerFirst, midiToName } from "@/lib/format";
 import { legendValue } from "@/lib/legend";
 
 export const MAPPING_VERSION = "demo-1";
@@ -60,7 +60,7 @@ export function frameDurationSeconds(bpm: number): number {
 
 export function audioKeyText(legend: Legend): string {
   return [
-    `Pitch shows ${legend.label.toLowerCase()} in ${legend.unit}: the lowest notes mean ${formatValue(legend.min)} and the highest mean ${formatValue(legend.max)}.`,
+    `Pitch shows ${lowerFirst(legend.label)} in ${legend.unit}: the lowest notes mean ${formatValue(legend.min)} and the highest mean ${formatValue(legend.max)}.`,
     "The sweep moves west to east across the map, one note per slice.",
     "Louder and brighter sound means more of the map has high values.",
     "Faster rhythm means a more varied, detailed picture.",

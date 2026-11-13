@@ -18,8 +18,10 @@ def count_frames(path: Path) -> int:
         return sum(1 for _ in container.decode(stream))
 
 
-def sample_frames(path: Path, count: int, skip_edges: float = 0.02) -> list[tuple[int, Image.Image]]:
-    """Return `count` (index, image) pairs spread evenly across the movie."""
+def sample_frames(
+    path: Path, count: int, skip_edges: float = 0.02
+) -> tuple[int, list[tuple[int, Image.Image]]]:
+    """Return the movie's frame count and `count` (index, image) pairs spread evenly across it."""
     total = count_frames(path)
     first = int(total * skip_edges)
     last = max(first, total - 1 - int(total * skip_edges))
@@ -38,4 +40,4 @@ def sample_frames(path: Path, count: int, skip_edges: float = 0.02) -> list[tupl
                 out.append((index, frame.to_image()))  # type: ignore[no-untyped-call]
                 if len(out) == len(targets):
                     break
-    return out
+    return total, out

@@ -3,7 +3,7 @@ import { Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, XAxis, YAxis } 
 
 import { player } from "@/audio/player";
 import type { Legend, Score } from "@/lib/api/types";
-import { formatSigned, formatValue } from "@/lib/format";
+import { formatSigned, formatValue, lowerFirst } from "@/lib/format";
 import { legendValue } from "@/lib/legend";
 
 const config = {
@@ -19,7 +19,7 @@ export function timelineSummary(score: Score, legend: Legend): string {
   const real = (v: number) => legendValue(v, legend);
   const peak = frames.reduce((a, b) => (b.tension > a.tension ? b : a), first);
   const delta = real(last.stats.mean) - real(first.stats.mean);
-  return `Average ${legend.label.toLowerCase()} goes from ${formatValue(real(first.stats.mean))} to ${formatValue(real(last.stats.mean))} ${legend.unit} (${formatSigned(delta)}). The fastest change is at ${peak.label}.`;
+  return `${legend.log ? "Typical" : "Average"} ${lowerFirst(legend.label)} goes from ${formatValue(real(first.stats.mean))} to ${formatValue(real(last.stats.mean))} ${legend.unit} (${formatSigned(delta)}). The fastest change is at ${peak.label}.`;
 }
 
 export function TensionTimeline({ score, legend, frame }: { score: Score; legend: Legend; frame: number }) {

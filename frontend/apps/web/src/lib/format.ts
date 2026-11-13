@@ -58,3 +58,8 @@ export function formatDurationSpoken(seconds: number): string {
 export function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;
 }
+
+/** Lower-case only the first letter, so acronyms like PM2.5 survive mid-sentence. */
+export function lowerFirst(text: string): string {
+  return text.slice(0, 1).toLowerCase() + text.slice(1);
+}

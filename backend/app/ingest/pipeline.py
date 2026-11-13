@@ -61,9 +61,10 @@ def _labels(
         labels = [f"about {d:%b %Y}" for d in dates]
         return labels, f"{dates[0]:%b %Y} to {dates[-1]:%b %Y} (approximate)"
     if entry.time.mode == "hourly":
-        end = updated + timedelta(hours=12)  # update_date is a calendar day; the run ends during it
+        end = updated + timedelta(hours=15)  # update_date is a calendar day; runs end mid-afternoon
         times = [end - timedelta(hours=total - 1 - i) for i in indices]
-        labels = [f"about {t.day} {t:%b}, {t:%H}:00" for t in times]
+        # Day precision only: the exact hour is burned into the pixels, not published in the API.
+        labels = [f"about {t.day} {t:%b}" for t in times]
         return (
             labels,
             f"About {times[0].day} {times[0]:%b} to {times[-1].day} {times[-1]:%b %Y}, hourly (approximate)",
@@ -90,8 +91,7 @@ def build_track(entry: CatalogEntry, client: SvsClient, settings: Settings | Non
     )
     _ = scale.min  # validates the scale early
 
-    sampled = sample_frames(movie, entry.frames, entry.skip_edges)
-    total = max(i for i, _ in sampled) + 1
+    total, sampled = sample_frames(movie, entry.frames, entry.skip_edges)
     labels, date_range = _labels(entry, page, [i for i, _ in sampled], total)
 
     work = settings.tracks_dir / f".{entry.id}.tmp"
