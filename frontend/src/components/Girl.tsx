@@ -92,7 +92,9 @@ export function Girl({
             style={{
               aspectRatio: `${spec.w} / ${spec.h}`,
               opacity: here ? 1 : 0,
-              transform: `rotate(${(sway * 1.1 + bob * 0.25).toFixed(3)}deg) translateY(${bob.toFixed(2)}px)`,
+              // rotation only: translating a figure this large by even a few
+              // pixels reads as bouncing on her baseline, not as keeping time
+              transform: `rotate(${(sway * 1.1 + bob * 0.25).toFixed(3)}deg)`,
               transformOrigin: '50% 100%',
               filter: 'drop-shadow(0 14px 16px rgba(20,12,6,.5))',
               transition: 'opacity .5s ease',
