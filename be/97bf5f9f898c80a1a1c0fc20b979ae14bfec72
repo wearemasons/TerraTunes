@@ -1,0 +1,60 @@
+.gitignore
+  s_7dafd8fa133132::t_9037e53ec57057 29
+backend/tests/test_api.py
+  s_7dafd8fa133132::t_ff4ce9dd7f287e 99-108
+frontend/apps/web/src/features/player/use-player-shortcuts.ts
+  s_7dafd8fa133132::t_85c25070e51b4c 5,78
+  s_7dafd8fa133132::t_e7d7943bed2fc2 76
+frontend/apps/web/src/features/shortcuts/shortcuts.ts
+  s_7dafd8fa133132::t_85c25070e51b4c 16
+frontend/apps/web/src/audio/timbres.ts
+  s_7dafd8fa133132::t_e7d7943bed2fc2 43-45,47
+backend/app/cli.py
+  s_7dafd8fa133132::t_3557aa55cd1971 164-166
+  s_7dafd8fa133132::t_9037e53ec57057 167,178-183
+frontend/apps/web/src/audio/engine.ts
+  s_7dafd8fa133132::t_fd401ff8563787 173-210
+frontend/apps/web/src/audio/player.ts
+  s_7dafd8fa133132::t_ad5cbab33522cb 389-393
+  s_7dafd8fa133132::t_1d93c95f174428 7-19,88-94,121-123,140,277-279,334-337,394-399,401-418,420-435,437-438,440-450,452-453,455-459,461-466,468-469,472-481,483-488
+  s_7dafd8fa133132::t_48787f0f6a23e8 400,419,436,439,451,454,460,467
+  s_7dafd8fa133132::t_85c25070e51b4c 4,73,81
+  s_7dafd8fa133132::t_e7d7943bed2fc2 482
+backend/app/sonify/samples.py
+  s_7dafd8fa133132::t_133e722d63fff2 1-271
+  s_7dafd8fa133132::t_3557aa55cd1971 294-296,326-329
+  s_7dafd8fa133132::t_9037e53ec57057 272-293,297-313,315-325,330
+  s_7dafd8fa133132::t_25ac46b51c78be 314
+backend/app/sonify/vsco2_files.json
+  s_7dafd8fa133132::t_133e722d63fff2 1-209
+frontend/apps/web/src/audio/orchestra.ts
+  s_7dafd8fa133132::t_57586e6f1a0a04 1-280
+frontend/apps/web/src/routes/track.$id.tsx
+  s_7dafd8fa133132::t_00c4410addc0c1 22,34,39,61,79
+frontend/apps/web/src/features/player/transport.tsx
+  s_7dafd8fa133132::t_ad5cbab33522cb 10,201,209-230
+frontend/apps/web/src/lib/api/types.ts
+  s_7dafd8fa133132::t_e7d7943bed2fc2 34,41,43
+  s_7dafd8fa133132::t_85c25070e51b4c 37-39
+backend/app/schemas/models.py
+  s_7dafd8fa133132::t_00c4410addc0c1 20
+backend/app/main.py
+  s_7dafd8fa133132::t_9037e53ec57057 5,51
+  s_7dafd8fa133132::t_3557aa55cd1971 52-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "be97bf5f9f898c80a1a1c0fc20b979ae14bfec72",
+  "prompts": {},
+  "sessions": {
+    "s_7dafd8fa133132": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dfcb0efb-fc87-4a7b-a851-3a9bc33aaf57",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
