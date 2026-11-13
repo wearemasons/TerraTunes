@@ -21,6 +21,7 @@ from app.schemas.models import (
     ThemeId,
     TranscriptEntry,
 )
+from app.vision.colorbar import ValueScale
 
 MAPPING_VERSION = "1"
 STEPS_PER_FRAME = 16
@@ -56,6 +57,8 @@ THEME_KEYS: dict[ThemeId, ThemeKey] = {
     "biodiversity": ThemeKey("major_pentatonic", 76),
     "energy": ThemeKey("mixolydian", 92),
     "disasters": ThemeKey("phrygian_dominant", 88),
+    "weather": ThemeKey("mixolydian", 76),
+    "ocean": ThemeKey("dorian", 64),
 }
 
 NOTE_NAMES = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"]
@@ -83,6 +86,13 @@ def frame_duration_s(bpm: int) -> float:
 
 
 def to_real(value01: float, legend: Legend) -> float:
+    """Normalized colorbar position → real value, honouring non-linear tick stops."""
+    if len(legend.ticks) >= 2:
+        return ValueScale(
+            positions=tuple(t.position for t in legend.ticks),
+            values=tuple(t.value for t in legend.ticks),
+            log=legend.log,
+        ).to_real(value01)
     return legend.min + value01 * (legend.max - legend.min)
 
 

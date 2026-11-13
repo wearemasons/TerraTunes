@@ -1,0 +1,157 @@
+# Curated TeraTones tracks. Source: NASA SVS, Earth Information Center gallery (SVS 40467).
+# Value ticks are transcribed from each visualization's labelled colorbar. Positions are 0..1 along
+# the gradient strip. `colorbar_box` pins the strip (x0, y0, x1, y1 px) when auto-detection is unsure.
+# `masks` hide logos and date stamps (normalized x0, y0, x1, y1) so they aren't read as data.
+# Build with:  uv run python -m app.cli build
+
+gmao_masks: &gmao_masks
+  - [0.0, 0.0, 0.17, 0.08]    # NASA / GMAO badge
+  - [0.0, 0.9, 0.25, 1.0]     # date stamp
+
+tracks:
+  - id: surface-temperature
+    svs_id: 5147
+    theme: weather
+    title: Near-Surface Temperature
+    summary: The latest NASA GEOS forecast of air temperature just above the ground, from polar cold to desert heat.
+    movie: MC01_stage3_GMAO_near_surface_temperature_2048x1024_en.mp4
+    colorbar: NearSurfaceTemperature_colorbar_plain.png
+    colorbar_box: [74, 86, 462, 99]
+    legend:
+      label: Near-surface temperature
+      unit: °C
+      ticks: [{position: 0, value: -40}, {position: 0.5, value: 0, label: freezing}, {position: 1, value: 40}]
+    masks: *gmao_masks
+    time: {mode: steps, step_label: Forecast step}
+
+  - id: wind-speed
+    svs_id: 5148
+    theme: weather
+    title: Near-Surface Wind Speed
+    summary: Winds swirling around the planet, from calm air to storm force.
+    movie: MC02_stage3_GMAO_near_surface_wind_2048x1024_en.mp4
+    colorbar: NearSurfaceWindSpeed_colorbar_plain.png
+    colorbar_box: [74, 86, 462, 99]
+    legend:
+      label: Wind speed
+      unit: m/s
+      ticks: [{position: 0, value: 0}, {position: 1, value: 40}]
+    masks: *gmao_masks
+    time: {mode: steps, step_label: Forecast step}
+
+  - id: precipitation
+    svs_id: 5149
+    theme: water
+    title: Precipitation
+    summary: Rain and snow bands sweeping across oceans and continents.
+    movie: MC03_stage3_GMAO_precipitation_2048x1024_en.mp4
+    colorbar: Precipitation_colorbar_plain.png
+    colorbar_box: [74, 86, 462, 99]
+    legend:
+      label: Precipitation
+      unit: mm
+      ticks: [{position: 0, value: 0}, {position: 1, value: 20}]
+    masks: *gmao_masks
+    max_delta_e: 12
+    time: {mode: steps, step_label: Forecast step}
+
+  - id: fine-particulates
+    svs_id: 5151
+    theme: air_quality
+    title: Fine Particulate Matter (PM2.5)
+    summary: Smoke, dust and pollution particles small enough to reach deep into our lungs.
+    movie: MC01_stage4_GMAO_pm25_2048x1024_en.mp4
+    colorbar: PM2.5_colorbar_plain.png
+    colorbar_box: [74, 48, 462, 62]
+    legend:
+      label: Fine particulate matter (PM2.5)
+      unit: µg/m³
+      log: true
+      ticks: [{position: 0, value: 0.4}, {position: 1, value: 409.6}]
+    masks: *gmao_masks
+    time: {mode: steps, step_label: Forecast step}
+
+  - id: surface-ozone
+    svs_id: 5152
+    theme: air_quality
+    title: Near-Surface Ozone
+    summary: Ground-level ozone, a lung irritant that builds up in sunny, polluted air.
+    movie: MC02_stage4_GMAO_O3_2048x1024_en.mp4
+    colorbar: O3_colorbar_plain.png
+    colorbar_box: [74, 48, 462, 62]
+    legend:
+      label: Near-surface ozone
+      unit: ppbv
+      ticks: [{position: 0, value: 5}, {position: 1, value: 60}]
+    masks: *gmao_masks
+    time: {mode: steps, step_label: Forecast step}
+
+  - id: carbon-monoxide
+    svs_id: 5153
+    theme: wildfires
+    title: Carbon Monoxide
+    summary: Carbon monoxide from fires and fuel burning, drifting across oceans in long plumes.
+    movie: MC03_stage4_GMAO_CO_2048x1024_en.mp4
+    colorbar: CO_colorbar_plain.png
+    colorbar_box: [74, 48, 462, 62]
+    legend:
+      label: Carbon monoxide
+      unit: ppbv
+      log: true
+      ticks:
+        - {position: 0, value: 40}
+        - {position: 0.31, value: 100}
+        - {position: 0.55, value: 130}
+        - {position: 0.77, value: 200}
+        - {position: 1, value: 500}
+    masks: *gmao_masks
+    time: {mode: steps, step_label: Forecast step}
+
+  - id: nitrogen-oxides
+    svs_id: 5154
+    theme: air_quality
+    title: Nitrogen Oxides
+    summary: Traffic and industry pollution glowing over cities and shipping lanes.
+    movie: MC04_stage4_GMAO_NO2_2048x1024_en.mp4
+    colorbar: NOx_colorbar_plain.png
+    colorbar_box: [74, 48, 462, 62]
+    legend:
+      label: Nitrogen oxides
+      unit: ppbv
+      log: true
+      ticks:
+        - {position: 0, value: 0.001}
+        - {position: 0.277, value: 0.01}
+        - {position: 0.528, value: 0.1}
+        - {position: 0.774, value: 1}
+        - {position: 0.944, value: 10}
+        - {position: 1, value: 21}
+    masks: *gmao_masks
+    time: {mode: steps, step_label: Forecast step}
+
+  - id: sea-surface-temperature
+    svs_id: 5101
+    theme: ocean
+    title: Sea Surface Temperature
+    summary: Two and a half years of ocean warmth, season after season.
+    movie: sst_30_sec_no-dates_4096x2048_2x1_30p.mp4
+    colorbar: sst_mur_colorbar_print.jpg
+    colorbar_box: [128, 284, 896, 304]
+    legend:
+      label: Sea surface temperature
+      unit: °C
+      ticks: [{position: 0, value: -5}, {position: 1, value: 35}]
+    time: {mode: span, span_days: 912}
+
+  - id: vegetation
+    svs_id: 5544
+    theme: agriculture
+    title: Vegetation Greenness (NDVI)
+    summary: Forests, farms and grasslands greening and browning, measured from space.
+    movie: nrt_ndvi_equi_2048p30.mp4
+    colorbar: NDVI_colorbar.png
+    legend:
+      label: Vegetation greenness (relative NDVI)
+      unit: "% of scale"
+      ticks: [{position: 0, value: 0, label: Low}, {position: 1, value: 100, label: High}]
+    time: {mode: steps, step_label: Snapshot}

@@ -14,6 +14,8 @@ ThemeId = Literal[
     "biodiversity",
     "energy",
     "disasters",
+    "weather",
+    "ocean",
 ]
 PresetId = Literal["musical", "clear"]
 
@@ -23,12 +25,24 @@ class LegendAnchor(BaseModel):
     rgb: tuple[int, int, int]
 
 
+class LegendTick(BaseModel):
+    position: float = Field(ge=0, le=1)
+    value: float
+    label: str | None = None
+
+
 class Legend(BaseModel):
     label: str
     unit: str
     min: float
     max: float
     anchors: list[LegendAnchor]
+    ticks: list[LegendTick] = Field(
+        default_factory=list,
+        description="Colorbar stops (position → value). When present, values between stops follow them, "
+        "linearly or logarithmically (see `log`); otherwise min..max is linear.",
+    )
+    log: bool = False
 
 
 class TrackSummary(BaseModel):
