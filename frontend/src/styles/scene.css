@@ -645,21 +645,95 @@
 }
 
 /* ---------------------------------------------------------------------------
-   The opening cut scene.
+   The opening film, and the last few ambience layers the world needs.
 --------------------------------------------------------------------------- */
-@keyframes intro-push {
-  from { transform: scale(1.02) translate3d(0, 0, 0); }
-  to { transform: scale(1.12) translate3d(-1%, -1.5%, 0); }
+
+/* a caption arriving: up out of the letterbox, then it simply stays */
+@keyframes boot-line {
+  0% { opacity: 0; transform: translateY(14px); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
-@keyframes intro-figure {
-  0% { opacity: 0; filter: blur(6px); }
-  100% { opacity: 1; filter: blur(0); }
+/* sun shafts: light widening and narrowing as the weather moves through it */
+@keyframes ray-breathe {
+  0% { opacity: 0.4; transform: skewX(-13deg) scaleX(0.92); }
+  100% { opacity: 1; transform: skewX(-8deg) scaleX(1.08); }
 }
 
-@keyframes line-in {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+/* a flock crossing the sky, wingbeats inside the flight */
+@keyframes bird-flight {
+  0% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(55vw, var(--bob, 6px), 0); }
+  100% { transform: translate3d(112vw, calc(var(--bob, 6px) * -1.4), 0); }
+}
+.bird {
+  animation-name: bird-flight;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+@keyframes wing-flap {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.32); }
+}
+.wing {
+  transform-box: fill-box;
+  transform-origin: 50% 60%;
+  animation: wing-flap 0.42s ease-in-out infinite;
+}
+
+/* low mist: three bands sliding past each other at different depths */
+@keyframes mist-drift {
+  0% { transform: translate3d(-12%, 0, 0); }
+  100% { transform: translate3d(12%, 0, 0); }
+}
+
+/* heat shimmer over dry ground */
+@keyframes shimmer {
+  0% { transform: translate3d(-2%, 0, 0) scaleY(1); opacity: 0.3; }
+  100% { transform: translate3d(2%, 0, 0) scaleY(1.25); opacity: 0.55; }
+}
+
+/* golden notes lifting out of the speaker while a record plays */
+/* the one invitation: a ring breathing outward from the play control */
+@keyframes jewel-hint {
+  0% { transform: scale(0.62); opacity: 0; }
+  22% { opacity: 0.75; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+@keyframes note-float {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(var(--tilt, 0deg)) scale(0.6); }
+  14% { opacity: 0.95; }
+  70% { opacity: 0.75; }
+  100% { opacity: 0; transform: translate3d(var(--drift-x, 22px), -46vh, 0) rotate(var(--tilt, 0deg)) scale(1.1); }
+}
+.note-float {
+  animation-name: note-float;
+  animation-timing-function: cubic-bezier(0.22, 0.7, 0.35, 1);
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+/* the page arriving out of the cut scene */
+/* the tonearm hunting for the groove, and a bar that never quite finishes */
+@keyframes arm-search {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(5deg); }
+}
+@keyframes door-travel {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(330%); }
+}
+
+@keyframes stage-arrive {
+  0% { opacity: 0; transform: scale(1.08) translateY(12px); filter: blur(10px) saturate(1.2); }
+  60% { opacity: 1; filter: blur(0) saturate(1.02); }
+  100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+
+.stage-arrive {
+  animation: stage-arrive 1.1s cubic-bezier(.22,.9,.24,1) both;
 }
 
 /* the record in the dome: same object, lit by the cabinet */

@@ -18,6 +18,9 @@ ThemeId = Literal[
     "ocean",
 ]
 PresetId = Literal["musical", "clear"]
+#: The three voices of the ensemble model (mapping_version 14): one instrument family per
+#: measured channel. What each one carries is decided in app/mapping/rules.py.
+InstrumentId = Literal["bass", "harp", "flute"]
 
 
 class LegendAnchor(BaseModel):
@@ -89,6 +92,25 @@ class FrameStats(BaseModel):
     extreme_share: float
 
 
+class VoicePart(BaseModel):
+    """One instrument's line for one frame: MIDI per scan step, -1 = this voice is silent."""
+
+    instrument: InstrumentId
+    notes: list[int]
+
+
+class InstrumentInfo(BaseModel):
+    """What a voice of the ensemble carries and when it joins. Written by rules.py."""
+
+    instrument: InstrumentId
+    family: str = Field(description="Acoustic description, e.g. 'harp (brighter plucked texture)'.")
+    carries: str = Field(description="The measured channel this voice plays, in plain language.")
+    entry: str = Field(description="When this voice joins the track.")
+    note_range: str = Field(description="Note-name range of this voice, e.g. 'D1-D3'.")
+    range_low: int = Field(description="Lowest MIDI this voice can play.")
+    range_high: int = Field(description="Highest MIDI this voice can play.")
+
+
 class Alert(BaseModel):
     label: str
     value: float
@@ -141,6 +163,12 @@ class FrameScore(BaseModel):
     brightness: float
     rhythm_density: int
     column_notes: list[int]
+    voices: list[VoicePart] = Field(
+        description=(
+            "The ensemble for this frame: bass = slice mean, harp = slice peak, flute = change "
+            "since the previous frame. One MIDI per scan step, -1 = silence."
+        )
+    )
     hotspot: Hotspot | None
     stats: FrameStats
     description: str
@@ -166,6 +194,7 @@ class Score(BaseModel):
     key: ScoreKey
     grid: GridSize
     steps_per_frame: int
+    instruments: list[InstrumentInfo] = Field(description="What each voice carries, for the audio key.")
     frames: list[FrameScore]
     sound: SoundInfo | None = None
 

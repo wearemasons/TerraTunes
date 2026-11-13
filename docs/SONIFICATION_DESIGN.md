@@ -1,10 +1,65 @@
 # Sonification Design
 
+## mapping_version 14 — three instruments in a hall (current)
+
+The audible target is NASA's ocean-colour / phytoplankton sonification (reference
+`https://www.youtube.com/watch?v=zU0mmm55QQA`, analysed with a targeted audio pass):
+discrete notes on a scale, one set per scan step at a steady pulse, three instruments each
+carrying one measured channel, chords that emerge from the three lines rather than from a pad,
+almost no panning, level dynamics, no environmental noise, and a clearly audible hall tail.
+
+| Channel measured per scan slice | Voice | Instrument family | Register |
+| --- | --- | --- | --- |
+| mean calibrated value of the slice | `bass` | low plucked string (upright bass / cello pizzicato) | D1-D3 |
+| highest calibrated value of the slice | `harp` | harp (three detuned strings, inharmonic, long ring) | D3-D5 |
+| signed change of the slice vs the previous frame | `flute` | flute (soft attack, steady sustain, late vibrato, breath) | D4-D6 |
+
+* **Honesty.** All three pitches come from the calibrated colour-to-value measurement: nearest
+  colourbar colour in CIELAB -> normalized value -> `quantize(value01, ladder)`. Quantising to the
+  theme scale changes only how a pitch is *spelled*, never its order, and `tests/test_mapping.py`
+  pins monotonicity per voice ladder.
+* **Grid.** `STEPS_PER_FRAME = 8`, one note set per step, `step_s = 4.0 s / 8 = 0.5 s`, i.e. one
+  quarter note at 120 BPM. Tempo is a constant (`PULSE_BPM`), never data-driven. The reference pulse
+  is ~0.8 s; 0.5 s keeps one thought per frame (4 s) whole while staying far away from the old
+  16-step sweep. West-to-east position is carried by *time inside the frame*.
+* **Entry is additive.** `bass` joins when the map has data; `harp` when the frame's highest value
+  stands >= 10 % of the colourbar above its average (`HARP_CONTRAST`); `flute` when the mean
+  absolute change of the frame exceeds 0.25 % of the colourbar (`FLUTE_ENTRY`). A voice that has
+  joined stays for the rest of the track.
+* **What was deleted.** The phenomenon noise bed (rain / wind / fire / surf / biophony /
+  temperature / haze / traffic), the 3-oscillator drone, the noise-and-tick rhythm hits, the
+  inharmonic hotspot bell, the two-tone alert earcon, the hard west->east melody pan, and the
+  data-driven tempo (`bpm` from the map's standard deviation). Nothing in the engine can produce
+  broadband texture by accident now: the only noise left is a string scrape, a harp hammer and flute
+  breath, each < -20 dB and each part of an instrument's own attack.
+* **Dynamics.** Note level follows the measured slice intensity over 0.85..1.15 only (2.7 dB);
+  the master chain is fade-in -> Schroeder hall -> soft-knee limiter (knee 0.72, tanh ceiling 0.96)
+  -> peak normalise 0.89 (-1 dBFS). Measured EBU LRA on real tracks: 0.3-3.1 LU.
+* **Imaging.** Fixed per-instrument offsets, |pan| <= 0.10 (bass centre, harp slightly right, flute
+  slightly left); measured L/R correlation 0.98-0.99, L/R energy difference 0.45-0.8 dB. The hall is
+  70 % shared between the ears and 30 % per-channel decorrelated, so it feels wide but the image
+  never moves.
+* **Reverb.** `synth.py:Synth.reverb`: Schroeder topology - four damped feedback combs
+  (29.7/37.1/41.1/43.7 ms) in parallel into three all-pass diffusers (5.0/1.7/3.1 ms), RT60 2.2 s,
+  26 ms pre-delay, wet 0.30 of the dry RMS, measured to an impulse response per channel and applied
+  by FFT convolution. Tuning jitter comes from the render seed, so the hall is identical for the
+  same (track, mode).
+* **Determinism.** `MAPPING_VERSION = "14"`; the seed is `sha256(f"{track_id}:{mode}")[:4]`, a pure
+  function of the inputs, and every grain and channel draws from its own sub-stream, so neither
+  scheduling order nor voice count can change the result. Same input -> byte-identical render
+  (`tests/test_sonify.py::test_render_is_deterministic_and_bounded`).
+* **Fallback.** `frontend/src/lib/audio/phenomena.ts` is now a documented fallback that still
+  implements the pre-v14 physical model; the sound you hear in the app is the backend render
+  (`/tracks/{id}/render`). Re-voicing it must use `FrameScore.voices` and may not choose pitches.
+
+
 > **v2 (2026-11-13): soundscape engine in the backend.** Pure pitch scanning (section 2 below) told
 > listeners *how much* but not *what*. v2 layers natural sounds (auditory icons) over the data:
 > see "Soundscape engine (v2)" at the end. Section 2 still describes the optional data melody.
 
 Goal: sound that is **traceable to the data** and **musical**. Every audible parameter has one documented meaning that is also written in the track's audio key.
+
+> _Sections 1-10 below describe mapping_version 13 and earlier (the physical soundscape model). They are kept as history; the model in force is the one above._
 
 ## 1. Pipeline
 

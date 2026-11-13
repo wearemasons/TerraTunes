@@ -68,6 +68,12 @@ export function Cabinet({
     [],
   )
 
+  const reduceMotion = useUI((s) => s.reduceMotion)
+  const arrived = useUI((s) => s.arrived)
+  /** the record genuinely on the platter, not merely the one selected */
+  const loadedId = useUI((s) => s.loadedId)
+  const loadedInDome = datasets.find((d) => d.id === loadedId) ?? null
+
   return (
     <div className="relative mx-auto w-full" style={{ aspectRatio: '742 / 869' }}>
       {/* the shadow the cabinet casts on the grass */}
@@ -200,9 +206,12 @@ export function Cabinet({
           </div>
 
           {/*
-            The record on the turntable, where the globe sits: pick a disc and it
-            replaces the Earth in the dome and turns while it plays. When the
-            cabinet is off, NASA's Blue Marble is back in the cradle.
+            What hangs in the dome. It is the Earth until a record is actually on
+            the turntable — being switched on is not the same as being loaded —
+            and then that record replaces the Earth and turns while it plays.
+            Power off and the Blue Marble is back. This is also what lets the
+            opening film hand over cleanly: its last frame has the Earth lit in
+            the dome, and so does this page.
           */}
           <div
             className="absolute -translate-x-1/2 -translate-y-1/2 transition-[filter] duration-500"
@@ -216,14 +225,14 @@ export function Cabinet({
                 : 'drop-shadow(0 0 2px rgba(90,120,140,.4)) brightness(.72) saturate(.8)',
             }}
           >
-            {powered && selected ? (
+            {powered && loadedInDome ? (
               <div className="in-dome h-full w-full">
                 <VinylDisc
-                  id={selected.id}
+                  id={loadedInDome.id}
                   size={96}
                   spinning={playing}
-                  labelUrl={api.frameUrl(selected.id)}
-                  title={selected.short}
+                  labelUrl={api.frameUrl(loadedInDome.id)}
+                  title={loadedInDome.short}
                   style={{ ['--size' as string]: '100%' }}
                   className="h-full w-full"
                 />
@@ -337,6 +346,15 @@ export function Cabinet({
           className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#fff0c4] disabled:cursor-not-allowed"
           style={{ left: pct(JEWEL.cx), top: pct(JEWEL.cy), width: pct(JEWEL.d), aspectRatio: '1' }}
         >
+          {/* the one invitation the page makes: a ring breathing round the
+              play control until the visitor has done anything at all */}
+          {powered && !playing && !arrived && !reduceMotion && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute -inset-[55%] rounded-full border-2 border-[#ffd79a]"
+              style={{ animation: 'jewel-hint 2.6s ease-out infinite' }}
+            />
+          )}
           <span
             className="absolute inset-0 rounded-full transition-transform duration-200 active:scale-90"
             style={{
@@ -358,6 +376,10 @@ export function Cabinet({
             </span>
           )}
         </button>
+
+        {/* the motif from the opening film: golden notes lifting out of the
+            grille while the record plays, one per eighth of the loop */}
+        {playing && !reduceMotion && <Notes level={level} />}
 
         {/* ---------------- the two brass controls -------------
             Two round brass fittings, sitting in the picture's own brackets
@@ -512,5 +534,42 @@ function Label({ children }: { children: React.ReactNode }) {
     <span className="pointer-events-none absolute -bottom-[13px] left-1/2 -translate-x-1/2 whitespace-nowrap text-[6px] font-bold uppercase tracking-[0.12em] text-[#ffe9b8b3] drop-shadow-[0_1px_2px_rgba(0,0,0,.9)]">
       {children}
     </span>
+  )
+}
+
+/**
+ * Notes leaving the speaker.
+ *
+ * These are not decoration on a loop: the glyphs rise out of the grille on the
+ * cabinet's own breath, so the amplitude bar and the notes come from the same
+ * analyser. They are aria-hidden because the sound itself is the content.
+ */
+function Notes({ level }: { level: number }) {
+  const GLYPHS = ['♪', '♫', '♩', '♬', '♭', '♪', '♫', '♩']
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-visible">
+      {GLYPHS.map((g, i) => {
+        const seed = (i * 173) % 97
+        const dur = 4.6 + ((seed % 34) / 10)
+        return (
+          <span
+            key={i}
+            className="note-float absolute font-display text-[clamp(11px,1.7vw,22px)] font-bold"
+            style={{
+              left: `${SPEAKER.cx * 100 + ((seed % 21) - 10) * 0.6}%`,
+              top: `${SPEAKER.cy * 100 - 2}%`,
+              color: i % 3 === 0 ? '#ffe6ac' : '#ffbf6e',
+              textShadow: `0 0 ${6 + level * 16}px rgba(255,180,80,${0.5 + level * 0.45})`,
+              animationDuration: `${dur}s`,
+              animationDelay: `${-((i * dur) / GLYPHS.length)}s`,
+              ['--tilt' as string]: `${((seed % 9) - 4) * 6}deg`,
+              ['--drift-x' as string]: `${((seed % 30) - 12) * 2.6}px`,
+            }}
+          >
+            {g}
+          </span>
+        )
+      })}
+    </div>
   )
 }

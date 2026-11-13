@@ -6,9 +6,17 @@ import { create } from 'zustand'
  * `powered` is the physical switch: off means the artwork is unlit and the
  * carousel is dark. `loaded` is what sits in the cradle (a disc has travelled
  * there). `playing` is the needle being down.
+ *
+ * `arrived` is whether the visitor has done anything yet. Until they do, the
+ * page stays in the world the opening film left them in — the aurora lake —
+ * so the last frame of the film and the first frame of the app are the same
+ * place. The record's own weather only arrives with the visitor's own action,
+ * which keeps the world change motivated rather than arbitrary.
  */
 interface UIState {
-  started: boolean
+  arrived: boolean
+  /** the opening film is on screen: nothing behind it is reachable */
+  filmUp: boolean
   powered: boolean
   selectedId: string
   loadedId: string
@@ -21,7 +29,8 @@ interface UIState {
   /** live analyser level, published so the world can react to the sound */
   level: number
 
-  setStarted: (v: boolean) => void
+  setFilmUp: (v: boolean) => void
+  setArrived: () => void
   setPowered: (v: boolean) => void
   select: (id: string) => void
   setLoaded: (id: string) => void
@@ -35,7 +44,8 @@ interface UIState {
 }
 
 export const useUI = create<UIState>((set) => ({
-  started: false,
+  arrived: false,
+  filmUp: false,
   powered: false,
   selectedId: 'surface-temperature',
   loadedId: '',
@@ -47,7 +57,8 @@ export const useUI = create<UIState>((set) => ({
   announcement: '',
   level: 0,
 
-  setStarted: (v) => set({ started: v }),
+  setFilmUp: (v) => set({ filmUp: v }),
+  setArrived: () => set({ arrived: true }),
   setPowered: (v) => set({ powered: v, ...(v ? {} : { isPlaying: false }) }),
   select: (id) => set({ selectedId: id }),
   setLoaded: (id) => set({ loadedId: id }),

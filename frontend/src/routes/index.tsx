@@ -10,10 +10,13 @@ import { useUI } from '../lib/store'
 import { flyDisc } from '../lib/discFlight'
 import { Cabinet } from '../components/Cabinet'
 import { DiscSelector } from '../components/DiscSelector'
-import { Intro } from '../components/Intro'
+import { BootFilm } from '../components/BootFilm'
 import { NowPlaying } from '../components/NowPlaying'
 import { Girl } from '../components/Girl'
-import { sceneFor } from '../lib/world'
+import type { GirlPose } from '../components/Girl'
+import { ARRIVAL_SCENE, sceneFor, weatherFor } from '../lib/world'
+import { BOOT_FILM } from '../lib/boot'
+import { playMatchCut } from '../lib/matchCut'
 import { LoadingDoor } from '../components/LoadingDoor'
 
 const DECK_OPEN_MS = 820
@@ -33,6 +36,13 @@ const MODEL_WORD: Record<string, string> = {
   space: 'Deep space',
 }
 
+/** one showing of the film per tab: nobody wants it again on a reload */
+const FILM_SEEN = 'terratunes.film.seen'
+
+/** film = the cut scene rolling, match = frozen on the frame the page is
+ *  composed like, live = the cabinet is the page again */
+type Boot = 'film' | 'match' | 'live'
+
 export function JukeboxPage() {
   const datasetsQuery = useQuery({ queryKey: ['datasets'], queryFn: api.datasets })
   const {
@@ -40,10 +50,12 @@ export function JukeboxPage() {
     setPowered,
     selectedId,
     select,
-    started,
-    setStarted,
+    arrived,
+    setArrived,
+    setFilmUp,
     isPlaying,
     setPlaying,
+    setLoaded,
     volume,
     announce,
     setLevel,
@@ -67,8 +79,62 @@ export function JukeboxPage() {
   const deckRoot = useRef<HTMLDivElement>(null)
   const deckFlare = useRef<HTMLDivElement>(null)
   const deckAnims = useRef<Animation[]>([])
+  const [boot, setBoot] = useState<Boot>(() => (sessionStorage.getItem(FILM_SEEN) ? 'live' : 'film'))
+  /** the page only plays its own arrival animation if there was no film to sit in front of it */
+  const seenFilmAtMount = useRef(boot === 'live')
   const cradleRef = useRef<HTMLDivElement>(null)
   const discRefs = useRef<Record<string, HTMLElement | null>>({})
+  const stageRef = useRef<HTMLDivElement>(null)
+  const girlRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * The film freezes on a frame where the cabinet is right of centre and the
+   * girl is large in the foreground. Put the live page in that same place,
+   * while the film is still opaque over the top of it, and the dissolve stops
+   * being two jukeboxes ghosting through each other.
+   */
+  useLayoutEffect(() => {
+    if (boot !== 'match') return
+    return playMatchCut({
+      stage: stageRef.current,
+      girl: girlRef.current,
+      framing: {
+        frame: BOOT_FILM.frame,
+        cabinet: BOOT_FILM.cabinetBox,
+        girl: BOOT_FILM.girlBox,
+      },
+      holdMs: BOOT_FILM.fadeMs,
+      settleMs: 1150,
+    })
+  }, [boot])
+
+  /**
+   * Her pose is a small machine, not a mapping of the store. She sits and
+   * listens — the shape the film left her in — and only stands to point for a
+   * beat when a different record comes out of the crate, or to greet when the
+   * cabinet is woken from off. Anything held longer has her getting up and
+   * sitting down again while the visitor is trying to listen.
+   */
+  const [pose, setPose] = useState<GirlPose>('listen')
+  const poseTimer = useRef(0)
+  const showPose = useCallback((p: GirlPose, ms: number) => {
+    if (useUI.getState().reduceMotion) return
+    setPose(p)
+    window.clearTimeout(poseTimer.current)
+    poseTimer.current = window.setTimeout(() => setPose('listen'), ms)
+  }, [])
+  useEffect(() => () => window.clearTimeout(poseTimer.current), [])
+
+  // while the film is up, the page behind it is unreachable, not merely covered
+  useEffect(() => {
+    setFilmUp(boot !== 'live')
+  }, [boot, setFilmUp])
+
+  // the film ends with the switch already thrown, so the page underneath is
+  // lit and the cross-fade is a match rather than a before-and-after
+  useEffect(() => {
+    if (boot !== 'live') setPowered(true)
+  }, [boot, setPowered])
 
   const openDeck = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     if (deckAnims.current.length) return // already opening, open or closing
@@ -224,8 +290,9 @@ export function JukeboxPage() {
     mechanism.needle()
     await phenomena.play(0)
     setPlaying(true)
+    setLoaded(dataset.id)
     announce(`${dataset.short} is playing. ${spec.explain}`)
-  }, [spec, dataset, setPlaying, announce])
+  }, [spec, dataset, setPlaying, setLoaded, announce])
 
   const togglePlay = useCallback(async () => {
     if (!powered) return
@@ -243,7 +310,8 @@ export function JukeboxPage() {
     if (!powered) {
       mechanism.switchOn()
       setPowered(true)
-      setStarted(true)
+      setArrived()
+      showPose('greet', 2600)
       announce('Cabinet on. Loading a record…')
       // light up, then load a disc and drop the needle on its own
       window.setTimeout(() => void chooseRef.current(useUI.getState().selectedId, true, true), 720)
@@ -252,16 +320,18 @@ export function JukeboxPage() {
       phenomena.stop()
       setPlaying(false)
       setPowered(false)
+      setLoaded('')
       announce('Cabinet off.')
     }
-  }, [powered, setPowered, setStarted, setPlaying, announce])
+  }, [powered, setPowered, setArrived, setPlaying, setLoaded, announce, showPose])
 
   /** Pull a disc out of the crate; it flies into the cradle, then plays. */
   const chooseDisc = useCallback(
     async (id: string, autoPlay = true, forceFly = false) => {
+      setArrived()
+      if (id !== selectedId) showPose('point', 2100)
       if (!powered) {
         setPowered(true)
-        setStarted(true)
         mechanism.switchOn()
       }
       const prev = selectedId
@@ -301,23 +371,23 @@ export function JukeboxPage() {
         }
       }
     },
-    [powered, selectedId, isPlaying, play, select, setPowered, setStarted, setPlaying, announce, datasets, queryClient],
+    [powered, selectedId, isPlaying, play, select, setPowered, setArrived, setPlaying, announce, datasets, queryClient, showPose],
   )
 
   const chooseRef = useRef(chooseDisc)
   chooseRef.current = chooseDisc
 
-  // the cut scene plays once per visit; returning to this route skips it
-  const [introOn, setIntroOn] = useState(() => !useUI.getState().started)
+  /** the picture has reached the frame the live cabinet is drawn to match */
+  const reachMatch = useCallback(() => setBoot('match'), [])
 
-  /** the cut scene is leaving: start the stage arriving underneath it */
-  const leaveIntro = useCallback(() => {
-    setStarted(true)
-    announce('The Earth Information Jukebox. Throw the brass switch to load a record.')
-  }, [setStarted, announce])
-
-  /** the cut scene has faded out: drop its layer */
-  const finishIntro = useCallback(() => setIntroOn(false), [])
+  /** the film is gone: remember the showing, and say what they can do now */
+  const finishFilm = useCallback(() => {
+    sessionStorage.setItem(FILM_SEEN, '1')
+    setBoot('live')
+    announce(
+      'The Earth Information Jukebox. The Earth is lit in the dome and the cabinet is warm. Press the jewel on the speaker to put a record on the turntable and drop the needle.',
+    )
+  }, [announce])
 
   if (datasetsQuery.isLoading) return <LoadingDoor />
 
@@ -337,13 +407,12 @@ export function JukeboxPage() {
     )
   }
 
-  const scene = sceneFor(dataset.model, dataset.id)
+  // until the visitor does something, the world stays where the film left them
+  const scene = arrived ? sceneFor(dataset.model, dataset.id) : ARRIVAL_SCENE
+
   return (
-    <>
-    {/* outside the animated wrapper: a transformed ancestor would re-anchor
-        this fixed layer and its opacity would hide the cross-fade */}
-    {introOn && <Intro onLeave={leaveIntro} onDone={finishIntro} />}
-    <div className="relative">
+    <div className={`relative ${seenFilmAtMount.current ? 'stage-arrive' : ''}`}>
+      {boot !== 'live' && <BootFilm onMatch={reachMatch} onDone={finishFilm} />}
 
       {/*
         One stage, full screen. The cabinet is the subject and stands on the
@@ -352,11 +421,16 @@ export function JukeboxPage() {
       */}
       <section
         aria-label="The jukebox"
+        inert={boot === 'film'}
         className="stage-full relative flex w-full items-end justify-center overflow-hidden pb-6 pt-1 sm:pb-5"
       >
         <h1 className="sr-only">The Earth Information Jukebox</h1>
 
-        <div className="relative z-10" style={{ width: 'min(94vw, 800px, calc((100svh - 150px) * 0.854))' }}>
+        <div
+          ref={stageRef}
+          className="relative z-10"
+          style={{ width: 'min(94vw, 800px, calc((100svh - 150px) * 0.854))' }}
+        >
           <Cabinet
             datasets={datasets}
             selectedId={selectedId}
@@ -434,8 +508,9 @@ export function JukeboxPage() {
           </div>
 
           <Girl
-            pose={!started ? 'greet' : isPlaying ? 'listen' : 'point'}
-            weather={scene.rain ? 'rain' : scene.kind === 'storm' ? 'wind' : 'calm'}
+            wrapRef={girlRef}
+            pose={pose}
+            weather={weatherFor(scene)}
             level={storeLevel}
             playing={isPlaying}
           />
@@ -544,6 +619,5 @@ export function JukeboxPage() {
       )}
 
     </div>
-    </>
   )
 }

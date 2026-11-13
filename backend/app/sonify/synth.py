@@ -1,284 +1,278 @@
-"""Procedural natural sounds & upstream Web Audio instruments in NumPy (no samples, deterministic).
+"""Procedural acoustic instruments and a Schroeder hall in NumPy — no samples, fully deterministic.
 
-Rebuilds the exact upstream pre-frontend-swap instruments (`engine.ts` + `timbres.ts` + `player.ts`:
-lowpass-filtered `sine`/`triangle`/`sawtooth`/`square` `pluck`, 3-partial inharmonic `bell`,
-`"noise"`/`"tick"` rhythm `hit`, and 3-oscillator `[root, fifth, tension]` `drone`) alongside the
-upstream `synth.py` natural phenomena.
+The reference is NASA's ocean-colour / phytoplankton sonification: three polyphonic lines, one per
+measured channel, entering one at a time, with chords emerging from the lines sounding together.
+Nothing else: no drones, no pads, no percussion, no environmental noise, no earcons.
+
+  * `plucked_bass` low string (upright bass / cello pizzicato): band-limited partial bank with a
+    pick-position comb that mutes the harmonics that have a node under the finger, two body
+    formants (≈250 Hz and ≈400 Hz) plus a bridge resonance near 1 kHz, a short band-passed string
+    scrape at the attack, and per-partial decay so the top end rolls off as the note fades.
+  * `harp` three slightly detuned strings per note, harmonically stretched (string stiffness), a
+    bright hammer transient and a long ring, so consecutive plucks overlap into a chord.
+  * `flute` fundamental plus weak 2nd and 3rd partials, a soft attack, a *steady* sustain (no
+    swell), vibrato that only arrives about 0.25 s into the note, a slight pitch droop as the note
+    starts, and breath noise only at the attack and the release.
+  * `hall_reverb` (below): four damped feedback comb filters in parallel into three all-pass
+    diffusers — Schroeder's topology, measured to an impulse response by driving it with an
+    impulse, then convolved with the mix. ~2.2 s RT60, 26 ms pre-delay, HF damping inside the comb
+    loop so the tail darkens as it fades, and per-channel delay jitter drawn from the seed so the
+    two ears receive different reflections while the image itself never moves.
+
+Every grain is synthesised at unity peak, starts with a >=5 ms exponential fade (no clicks) and
+ends decayed to about -80 dB (never truncated). Randomness exists only inside these instruments;
+each grain draws from its own RNG stream keyed on (seed, instrument, pitch), so the result cannot
+depend on the order the notes are scheduled in.
 """
 
-from typing import Literal
+import hashlib
 
 import numpy as np
 from numpy.typing import NDArray
 
 SR = 22050
 F = NDArray[np.float32]
-WaveType = Literal["sine", "triangle", "sawtooth", "square"]
+
+#: Notes and reverb tails fade to this fraction of their peak (-80 dB).
+_FLOOR = 1e-4
+NYQUIST = SR * 0.45
+
+# --- hall parameters (Schroeder topology) ---
+T60_S = 2.2  # reverberation time, -60 dB
+PREDDELAY_S = 0.026
+COMB_MS = (29.7, 37.1, 41.1, 43.7)  # parallel comb delays, tuned to spread their echo trains
+COMB_LEVEL = (1.0, 0.86, 0.80, 0.74)
+ALLPASS_MS = (5.0, 1.7, 3.1)  # series diffusion
+ALLPASS_G = 0.55
+IR_S = 2.6  # impulse response length actually measured
 
 
 class Synth:
     def __init__(self, n: int, seed: int) -> None:
         self.n = n
+        self.seed = seed
         self.rng = np.random.default_rng(seed)
         self.t = np.arange(n, dtype=np.float32) / SR
 
-    # --- building blocks ---
-    def band_noise(self, lo: float, hi: float, tilt: float = 0.0) -> F:
-        """White noise band-limited to lo..hi Hz with soft edges; tilt<0 darkens (pink-ish)."""
-        spec = np.fft.rfft(self.rng.standard_normal(self.n).astype(np.float32))
-        freqs = np.fft.rfftfreq(self.n, 1 / SR)
-        edge_lo = 1 / (1 + (lo / np.maximum(freqs, 1)) ** 4)
-        edge_hi = 1 / (1 + (freqs / hi) ** 4)
-        shape = edge_lo * edge_hi * np.maximum(freqs, 20) ** (tilt / 2)
-        out = np.fft.irfft(spec * shape, n=self.n).astype(np.float32)
-        return out / (np.abs(out).max() + 1e-9)
+    # ---------------------------------------------------------------- helpers
+    def _stream(self, tag: str, freq: float) -> np.random.Generator:
+        """Per-note RNG stream: deterministic in (seed, tag, pitch), independent of note order."""
+        key = f"{self.seed}:{tag}:{freq:.3f}".encode()
+        return np.random.default_rng(int.from_bytes(hashlib.sha256(key).digest()[:8], "little"))
 
-    def slow_random(self, period_s: float, lo: float, hi: float) -> F:
-        """Smooth random curve (gusts, swells) between lo and hi."""
-        points = max(2, int(self.n / SR / period_s) + 2)
-        knots = self.rng.uniform(lo, hi, points)
-        x = np.linspace(0, self.n, points)
-        return np.interp(np.arange(self.n), x, knots).astype(np.float32)
+    def band_noise(self, rng: np.random.Generator, lo: float, hi: float, n: int) -> F:
+        """Band-limited noise with soft edges, taken from the given stream."""
+        spec = np.fft.rfft(rng.standard_normal(n).astype(np.float32))
+        freqs = np.fft.rfftfreq(n, 1 / SR)
+        shape = 1 / (1 + (lo / np.maximum(freqs, 1)) ** 4) / (1 + (freqs / hi) ** 4)
+        out = np.fft.irfft(spec * shape, n=n).astype(np.float32)
+        return (out / (np.abs(out).max() + 1e-9)).astype(np.float32)
 
-    def events(self, rate: F, max_rate: float) -> NDArray[np.int64]:
-        """Poisson event times whose density follows `rate` (events/s), via thinning."""
-        expected = int(max_rate * self.n / SR * 1.2) + 1
-        times = np.sort(self.rng.uniform(0, self.n, expected)).astype(np.int64)
-        keep = self.rng.uniform(0, max_rate, len(times)) < rate[np.clip(times, 0, self.n - 1)]
-        return times[keep]
+    @staticmethod
+    def formants(x: F, peaks: list[tuple[float, float, float]]) -> F:
+        """Apply resonant body peaks (frequency Hz, gain, quality factor)."""
+        n = len(x)
+        spec = np.fft.rfft(x.astype(np.float32))
+        f = np.fft.rfftfreq(n, 1 / SR)
+        shape = np.ones_like(f, dtype=np.float32)
+        for fc, gain, q in peaks:
+            shape *= 1 + (gain - 1) * np.exp(-(((f - fc) / (fc / max(q, 0.3))) ** 2))
+        return np.fft.irfft(spec * shape, n=n).astype(np.float32)
 
-    def add_grain(self, out: F, at: int, grain: F) -> None:
-        end = min(self.n, at + len(grain))
-        if end > at:
-            out[at:end] += grain[: end - at]
-
-    # --- upstream phenomena ---
-    def rain(self, c: F) -> F:
-        bed = self.band_noise(500, 7000, tilt=-0.4) * (0.008 + 0.36 * c**0.8)
-        rumble = self.band_noise(40, 250, tilt=-1.0) * 0.35 * np.clip((c - 0.5) / 0.5, 0, 1)
-        out = (bed + rumble).astype(np.float32)
-        for at in self.events(70 * c, 72):
-            f = self.rng.uniform(1800, 4500)
-            k = np.arange(int(0.025 * SR), dtype=np.float32) / SR
-            drop = np.sin(2 * np.pi * f * k * (1 - 0.35 * k / k[-1])) * np.exp(-k / 0.006)
-            self.add_grain(out, int(at), (drop * self.rng.uniform(0.04, 0.14)).astype(np.float32))
-        thunder_rate = np.where(c > 0.85, 0.12, 0.0).astype(np.float32)
-        for at in self.events(thunder_rate, 0.12):
-            k = np.arange(int(2.5 * SR), dtype=np.float32) / SR
-            boom = self.rng.standard_normal(len(k)).astype(np.float32)
-            boom = np.convolve(boom, np.ones(60) / 60, mode="same") * np.exp(-k / 0.7) * 2.2
-            self.add_grain(out, int(at), boom.astype(np.float32))
-        return out
-
-    def wind(self, c: F) -> F:
-        bands = [self.band_noise(lo, lo * 2.2, tilt=-0.5) for lo in (120, 260, 560, 1200)]
-        pos = np.clip(c, 0, 1) * 3
-        mix = np.zeros(self.n, dtype=np.float32)
-        for i, b in enumerate(bands):
-            mix += b * np.clip(1 - np.abs(pos - i), 0, 1)
-        gust = self.slow_random(0.8, 0.55, 1.45)
-        out = mix * (0.02 + 0.46 * c) * gust
-        howl_gain = np.clip((c - 0.55) / 0.45, 0, 1) * 0.12
-        freq = 380 + 700 * c + 40 * self.slow_random(0.4, -1, 1)
-        howl = np.sin(2 * np.pi * np.cumsum(freq) / SR).astype(np.float32)
-        return (out + howl * howl_gain * gust).astype(np.float32)
-
-    def fire(self, c: F) -> F:
-        roar = self.band_noise(35, 300, tilt=-1.2) * (0.01 + 0.45 * c) * self.slow_random(0.5, 0.7, 1.3)
-        out = roar.astype(np.float32)
-        hiss = self.band_noise(2500, 9000) * 0.05 * c
-        out += hiss
-        for at in self.events(115 * c**1.3, 115):
-            length = int(self.rng.uniform(0.002, 0.009) * SR)
-            k = np.arange(length, dtype=np.float32)
-            grain = self.rng.standard_normal(length).astype(np.float32) * np.exp(-k / (length / 3))
-            self.add_grain(out, int(at), grain * self.rng.uniform(0.05, 0.3))
-        return out.astype(np.float32)
-
-    def surf(self, presence: F, warmth: F) -> F:
-        bright = self.band_noise(900, 6000, tilt=-0.3)
-        dark = self.band_noise(120, 1400, tilt=-0.8)
-        tone = dark * warmth + bright * (1 - warmth)
-        phase = self.rng.uniform(0, 2 * np.pi)
-        wave = (0.5 + 0.5 * np.sin(2 * np.pi * self.t / 7.5 + phase)) ** 2
-        wave = 0.25 + 0.75 * wave * self.slow_random(7.5, 0.6, 1.2)
-        return (tone * wave * 0.4 * presence).astype(np.float32)
-
-    def biophony(self, c: F) -> F:
-        insects = self.band_noise(4200, 7500) * (0.5 + 0.5 * np.sin(2 * np.pi * 28 * self.t)) * 0.05 * c
-        out = insects.astype(np.float32)
-        for at in self.events(7 * c**1.2, 7.2):
-            syllables = int(self.rng.integers(1, 5))
-            f0 = self.rng.uniform(2200, 5200)
-            for s in range(syllables):
-                dur = self.rng.uniform(0.05, 0.13)
-                k = np.arange(int(dur * SR), dtype=np.float32) / SR
-                sweep = f0 * (1 + self.rng.uniform(-0.35, 0.35) * k / dur)
-                vib = 1 + 0.03 * np.sin(2 * np.pi * self.rng.uniform(20, 60) * k)
-                chirp = np.sin(2 * np.pi * np.cumsum(sweep * vib) / SR) * np.sin(np.pi * k / dur)
-                self.add_grain(out, int(at + s * (dur + 0.04) * SR), (chirp * 0.09).astype(np.float32))
-        return out
-
-    def temperature(self, heat: F, cold: F) -> F:
-        pulse = (np.sin(2 * np.pi * 48 * self.t) > 0.2).astype(np.float32)
-        pulse = np.convolve(pulse, np.ones(30) / 30, mode="same").astype(np.float32)
-        swell = self.slow_random(3.0, 0.5, 1.0)
-        cicada = np.sin(2 * np.pi * 4600 * self.t) * pulse * swell * 0.13 * heat
-        icy = self.band_noise(2200, 5000) * self.slow_random(0.9, 0.4, 1.2) * 0.16 * cold
-        out = (cicada + icy).astype(np.float32)
-        for at in self.events(0.6 * cold, 0.6):
-            k = np.arange(int(0.18 * SR), dtype=np.float32) / SR
-            f = self.rng.uniform(70, 140)
-            creak = np.sign(np.sin(2 * np.pi * f * k)) * np.exp(-k / 0.06) * 0.12
-            self.add_grain(out, int(at), creak.astype(np.float32))
-        return out
-
-    def haze(self, c: F) -> F:
-        f = 55.0
-        saw = sum(np.sin(2 * np.pi * f * h * self.t) / h for h in range(1, 9))
-        saw2 = sum(np.sin(2 * np.pi * f * 1.012 * h * self.t) / h for h in range(1, 9))
-        drone = (saw + saw2) / 4
-        rough = 1 - 0.75 * c * (0.5 + 0.5 * np.sin(2 * np.pi * 33 * self.t))
-        return (drone * rough * (0.015 + 0.25 * c)).astype(np.float32)
-
-    def traffic(self, c: F) -> F:
-        rumble = self.band_noise(40, 220, tilt=-0.8) * self.slow_random(1.5, 0.6, 1.3)
-        hum = np.sin(2 * np.pi * 100 * self.t) * 0.3
-        swish = self.band_noise(400, 1800) * self.slow_random(0.6, 0.0, 1.0) ** 3 * 0.6
-        return ((rumble + hum + swish) * (0.01 + 0.33 * c)).astype(np.float32)
-
-    # --- upstream Web Audio instruments (rebuilt from frontend/apps/web/src/audio/engine.ts) ---
-    def _osc_lowpass(self, freq: float, k: F, wave: WaveType, cutoff: float) -> F:
-        """Band-limited oscillator with 2nd-order lowpass rolloff at `cutoff` Hz."""
-        w = 2 * np.pi * freq * k
-        if wave == "sine":
-            sig = np.sin(w)
-        elif wave == "triangle":
-            sig = np.zeros_like(k)
-            for h_idx, h in enumerate((1, 3, 5, 7, 9)):
-                fh = freq * h
-                if fh >= SR * 0.45:
-                    break
-                lp = 1.0 / np.sqrt(1.0 + (fh / max(80.0, cutoff)) ** 4)
-                sign = -1.0 if h_idx % 2 == 1 else 1.0
-                sig += sign * (8.0 / (np.pi**2 * h * h)) * np.sin(h * w) * lp
-        elif wave == "square":
-            sig = np.zeros_like(k)
-            for h in (1, 3, 5, 7, 9, 11):
-                fh = freq * h
-                if fh >= SR * 0.45:
-                    break
-                lp = 1.0 / np.sqrt(1.0 + (fh / max(80.0, cutoff)) ** 4)
-                sig += (4.0 / (np.pi * h)) * np.sin(h * w) * lp
-            sig *= 0.7
-        else:  # sawtooth
-            sig = np.zeros_like(k)
-            for h in range(1, 13):
-                fh = freq * h
-                if fh >= SR * 0.45:
-                    break
-                lp = 1.0 / np.sqrt(1.0 + (fh / max(80.0, cutoff)) ** 4)
-                sig += (2.0 / (np.pi * h)) * ((-1) ** (h + 1)) * np.sin(h * w) * lp
-            sig *= 0.65
-        return sig.astype(np.float32)
-
-    def pluck(
-        self,
-        freq: float,
-        dur: float = 0.35,
-        gain: float = 0.1,
-        wave: WaveType = "sine",
-        cutoff: float = 2000.0,
+    @staticmethod
+    def envelope(
+        k: F,
+        attack: float,
+        total: float,
+        decay: float | None = None,
+        release: float | None = None,
+        sustain: bool = False,
     ) -> F:
-        """Upstream AudioEngine.pluck: 12 ms attack ramp + exponential decay to 0.0001 + lowpass."""
-        n = max(16, int(dur * SR))
-        k = (np.arange(n, dtype=np.float32) / SR).astype(np.float32)
-        att = 0.012
-        peak = max(0.0002, float(gain))
-        env = np.where(
-            k < att,
-            0.0001 * (peak / 0.0001) ** np.minimum(1.0, k / max(1e-5, att)),
-            peak * (0.0001 / peak) ** np.maximum(0.0, (k - att) / max(0.01, dur - att)),
-        ).astype(np.float32)
-        if wave == "sine":
-            tone = np.sin(2 * np.pi * freq * k) + 0.3 * np.sin(4 * np.pi * freq * k)
-        else:
-            tone = self._osc_lowpass(freq, k, wave, cutoff)
-        return (tone * env).astype(np.float32)
+        """Exponential attack, then either a pluck decay or a steady sustain, then a release.
 
-    def bell(self, freq: float, strength: float = 0.5) -> F:
-        """Upstream AudioEngine.bell: 3 inharmonic partials [1, 2.76, 5.4] for hotspots."""
-        dur = 2.2
-        n = int(dur * SR)
-        k = np.arange(n, dtype=np.float32) / SR
-        out = np.zeros(n, dtype=np.float32)
-        partials = ((1.0, 1.0, 2.2), (2.76, 0.4, 1.4), (5.4, 0.18, 0.8))
-        att = 0.005
-        for ratio, level, decay in partials:
-            f = freq * ratio
-            if f >= SR * 0.46:
-                continue
-            m = min(n, int(decay * SR))
-            km = k[:m]
-            pk = max(0.0002, 0.16 * level * (0.5 + float(strength)))
-            env = np.where(
-                km < att,
-                0.0001 * (pk / 0.0001) ** np.minimum(1.0, km / att),
-                pk * (0.0001 / pk) ** np.maximum(0.0, (km - att) / max(0.01, decay - att)),
+        Every ramp is exponential and every attack and release is at least 5 ms, so no note can
+        move the gain by more than 6 dB per 100 ms (the audio-safety rule in AGENTS.md) and no
+        grain can start or stop on a discontinuity.
+        """
+        att = max(5e-3, attack)
+        env = np.where(k < att, _FLOOR * (1.0 / _FLOOR) ** np.minimum(1.0, k / att), 1.0).astype(
+            np.float32
+        )
+        if decay is not None and not sustain:
+            env = (env * (1.0 / _FLOOR) ** (-np.maximum(0.0, k - att) / max(1e-3, decay))).astype(
+                np.float32
+            )
+        if release is not None:
+            rel = max(5e-3, release)
+            start = max(att, total - rel)
+            env = (
+                env * np.where(k <= start, 1.0, _FLOOR ** np.minimum(1.0, (k - start) / rel)).astype(
+                    np.float32
+                )
             ).astype(np.float32)
-            out[:m] += np.sin(2 * np.pi * f * km).astype(np.float32) * env
-        return out
+        return env
 
-    def hit(self, kind: Literal["noise", "tick"], gain: float = 0.07) -> F:
-        """Upstream AudioEngine.hit: highpass 6 kHz noise hat or 1800→600 Hz sine tick."""
-        dur = 0.09 if kind == "noise" else 0.05
-        n = max(16, int(dur * SR))
-        k = np.arange(n, dtype=np.float32) / SR
-        att = 0.003
-        pk = max(0.0002, float(gain))
-        env = np.where(
-            k < att,
-            0.0001 * (pk / 0.0001) ** np.minimum(1.0, k / att),
-            pk * (0.0001 / pk) ** np.maximum(0.0, (k - att) / max(0.005, dur - att)),
-        ).astype(np.float32)
-        if kind == "noise":
-            raw = self.rng.standard_normal(n + 2).astype(np.float32)
-            hp = np.diff(raw, n=2)  # 2nd-order highpass (>6 kHz emphasis)
-            hp /= np.abs(hp).max() + 1e-9
-            return (hp * env).astype(np.float32)
-        # "tick": 1800 Hz -> 600 Hz exponential sweep over 40 ms
-        t_sw = np.minimum(0.04, k)
-        freq = 1800.0 * (600.0 / 1800.0) ** (t_sw / 0.04)
-        phase = 2 * np.pi * np.cumsum(freq) / SR
-        return (np.sin(phase) * env).astype(np.float32)
-
-    def drone_slice(
-        self,
-        root_midi: int,
-        dur: float,
-        wave: WaveType,
-        level: float,
-        brightness: float,
-        tension: float,
+    @staticmethod
+    def _partials(
+        k: F,
+        freq: float,
+        levels: list[float],
+        taus: list[float],
+        phases: NDArray[np.float64],
+        stretch: float = 0.0,
     ) -> F:
-        """Upstream AudioEngine.startDrone/updateDrone: [root, root+7 (+4c), root+1 (tension)]."""
-        n = max(32, int(dur * SR))
-        k = (np.arange(n, dtype=np.float32) / SR).astype(np.float32)
-        cutoff = 250.0 + float(brightness) * 1400.0
-        f0 = float(440.0 * 2 ** ((root_midi - 69) / 12.0))
-        f5 = float(440.0 * 2 ** ((root_midi + 7 + 0.04 - 69) / 12.0))
-        ft = float(440.0 * 2 ** ((root_midi + 1 - 69) / 12.0))
-        osc0 = self._osc_lowpass(f0, k, wave, cutoff) * 0.6
-        osc5 = self._osc_lowpass(f5, k, wave, cutoff) * 0.35
-        osct = self._osc_lowpass(ft, k, wave, cutoff) * min(0.5, float(tension) * 0.6)
-        env = np.sin(np.pi * k / dur) ** 0.45
-        return ((osc0 + osc5 + osct) * env * float(level)).astype(np.float32)
-
-    def alert(self) -> F:
-        """Two-tone rising earcon: 'a threshold was crossed here'."""
-        a = self.pluck(880, 0.16, 0.22)
-        b = self.pluck(1320, 0.22, 0.22)
-        out = np.zeros(len(a) // 2 + len(b), dtype=np.float32)
-        out[: len(a)] += a
-        out[len(a) // 2 :] += b
+        """Sum of harmonic (optionally stiffened) partials, each with its own e-folding time."""
+        out = np.zeros(len(k), dtype=np.float32)
+        for idx, (level, tau) in enumerate(zip(levels, taus, strict=True), start=1):
+            f = freq * idx * (1.0 + stretch * idx * idx)
+            if f >= NYQUIST:
+                break
+            out += (
+                level * np.sin(2 * np.pi * f * k + phases[idx - 1]) * np.exp(-k / max(1e-3, tau))
+            ).astype(np.float32)
         return out
+
+    # ---------------------------------------------------------------- the voices
+    def plucked_bass(self, freq: float, dur: float = 0.6) -> F:
+        """Low plucked string: pick comb, body formants, bridge resonance, string scrape."""
+        n = max(64, int(dur * SR))
+        k = (np.arange(n, dtype=np.float32) / SR).astype(np.float32)
+        rng = self._stream("bass", freq)
+        nh = 22
+        comb = np.abs(np.sin(np.pi * np.arange(1, nh + 1) * 0.13)) + 0.06
+        levels = [float(c / h**1.05) for h, c in zip(range(1, nh + 1), comb, strict=True)]
+        taus = [(dur / 4.0) / (1.0 + 0.55 * (h - 1)) for h in range(1, nh + 1)]  # darker as it fades
+        phases = rng.uniform(0, 2 * np.pi, nh)
+        body = self.formants(
+            self._partials(k, freq, levels, taus, phases),
+            [(250.0, 2.1, 2.0), (400.0, 1.5, 2.5), (1000.0, 1.7, 3.0)],
+        )
+        scrape = self.band_noise(rng, 1200.0, 5200.0, n) * np.exp(-k / 0.010) * 0.09
+        out = (body + scrape).astype(np.float32) * self.envelope(k, 0.008, dur)
+        return (out / (np.abs(out).max() + 1e-9)).astype(np.float32)
+
+    def harp(self, freq: float, dur: float = 1.6) -> F:
+        """Harp: three detuned strings, inharmonic stretch, bright hammer, long overlapping ring."""
+        n = max(64, int(dur * SR))
+        k = (np.arange(n, dtype=np.float32) / SR).astype(np.float32)
+        rng = self._stream("harp", freq)
+        nh = 18
+        levels = [1.0 / h**0.95 for h in range(1, nh + 1)]
+        taus = [(dur / 4.5) / (1.0 + 0.42 * (h - 1)) for h in range(1, nh + 1)]
+        mix = np.zeros(n, dtype=np.float32)
+        for cents in (-3.5, 0.0, 4.0):
+            f = freq * 2.0 ** (cents / 1200.0)
+            phases = rng.uniform(0, 2 * np.pi, nh)
+            mix += self._partials(k, f, levels, taus, phases, stretch=4e-6)
+        mix /= 3.0
+        hammer = self.band_noise(rng, 2200.0, 7000.0, n) * np.exp(-k / 0.007) * 0.06
+        out = (mix + hammer).astype(np.float32) * self.envelope(k, 0.006, dur)
+        return (out / (np.abs(out).max() + 1e-9)).astype(np.float32)
+
+    def flute(self, freq: float, dur: float = 0.6) -> F:
+        """Flute: soft attack, steady sustain, late vibrato, slight droop, breath at the ends."""
+        n = max(64, int(dur * SR))
+        k = (np.arange(n, dtype=np.float32) / SR).astype(np.float32)
+        rng = self._stream("flute", freq)
+        vib_on = np.clip((k - 0.25) / 0.3, 0.0, 1.0)  # the player's vibrato arrives late
+        vib = 1.0 + 0.0045 * vib_on * np.sin(2 * np.pi * 5.0 * k + rng.uniform(0, 2 * np.pi))
+        droop = 1.0 - 0.010 * np.exp(-k / 0.045)  # the note sags a little as it is struck
+        phase = 2 * np.pi * np.cumsum(freq * vib * droop) / SR
+        tone = np.sin(phase) + 0.2 * np.sin(2 * phase) + 0.06 * np.sin(3 * phase)
+        trem = 1.0 + 0.04 * vib_on * np.sin(2 * np.pi * 3.6 * k)
+        env = self.envelope(k, attack=0.05, total=dur, sustain=True, release=0.14)
+        air = (0.8 * np.exp(-np.maximum(0.0, k - 0.01) / 0.06) + 0.4 * (k > dur - 0.14)).astype(
+            np.float32
+        )
+        breath = self.band_noise(rng, 1600.0, 4800.0, n) * air * 0.07
+        out = (tone * trem * env + breath * env).astype(np.float32)
+        return (out / (np.abs(out).max() + 1e-9)).astype(np.float32)
+
+    # ----------------------------------------------------------------- the hall
+    @staticmethod
+    def _fft_convolve(x: F, h: F, keep: int | None = None) -> F:
+        """Linear convolution in the FFT domain, truncated to `keep` samples (default: full)."""
+        size = 1 << (len(x) + len(h) - 1).bit_length()
+        y = np.fft.irfft(np.fft.rfft(x.astype(np.float32), size) * np.fft.rfft(h, size), size)
+        return y[: keep if keep is not None else len(x) + len(h) - 1].astype(np.float32)
+
+    @classmethod
+    def _comb(cls, x: F, m: int, g: float, damp: float, n: int) -> F:
+        """Damped feedback comb y[n] = x[n-m] + g*lp(y[n-m]), written out as its impulse response.
+
+        Each round trip multiplies the echo by `g` (which sets RT60) *and* by one more pole, so
+        high frequencies die out first and the tail darkens — a hall rather than a bathroom.
+        """
+        ir = np.zeros(n, dtype=np.float32)
+        trips = int(np.ceil(n / m))
+        for trip in range(1, trips):
+            pos = trip * m
+            tau = max(1e-4, damp * trip / SR)  # the kernel of `trip` cascaded one-pole stages
+            length = min(n - pos, max(8, int(6 * tau * SR)))
+            t = np.arange(length, dtype=np.float32) / SR
+            kernel = np.exp(-t / tau) / np.sqrt(length)
+            ir[pos : pos + length] += (g**trip) * kernel
+        return cls._fft_convolve(x, ir, keep=n)
+
+    @classmethod
+    def _allpass(cls, x: F, m: int, g: float, n: int) -> F:
+        """All-pass diffuser y[n] = -g*x[n] + x[n-m] + g*y[n-m], as its impulse train.
+
+        H(z) = (-g + z^-m) / (1 - g z^-1), so h[0] = -g and h[k*m] = (1 - g^2)*g^(k-1) for k >= 1.
+        It changes the timing of the reflections without changing the spectrum: this is what turns
+        four separate echo trains into one dense tail.
+        """
+        ir = np.zeros(n, dtype=np.float32)
+        ir[0] = -g
+        ks = np.arange(1, int(np.ceil(n / m)))
+        pos = ks * m
+        pos = pos[pos < n]
+        ir[pos] = (1.0 - g * g) * g ** (ks[: len(pos)] - 1)
+        return cls._fft_convolve(x, ir, keep=n)
+
+    def impulse_response(self, channel: int = 0) -> F:
+        """Measure the hall to an impulse response by driving it with a pre-delayed impulse.
+
+        `channel=-1` is the room itself; channel 0/1 is that room mixed 70:30 with a variation
+        whose comb and all-pass delays are jittered. Both ears therefore hear the *same* hall — the
+        image never swims or moves — while the reflections differ enough to feel wide.
+        """
+        base = self._room("common")
+        if channel < 0:
+            return base
+        ir = 0.7 * base + 0.3 * self._room(f"ch{channel}")
+        return (ir / (np.sqrt((ir.astype(np.float64) ** 2).sum()) + 1e-12)).astype(np.float32)
+
+    def _room(self, tag: str) -> F:
+        """The Schroeder chain (four damped combs into three all-pass diffusers), as an impulse."""
+        rng = self._stream(f"reverb:{tag}", 0.0)
+        n = int(IR_S * SR)
+        x = np.zeros(n, dtype=np.float32)
+        x[min(int(PREDDELAY_S * SR), n - 1)] = 1.0
+        wet = np.zeros(n, dtype=np.float32)
+        for ms, level in zip(COMB_MS, COMB_LEVEL, strict=True):
+            m = max(8, int(ms / 1000 * SR * (1.0 + rng.uniform(-0.008, 0.008))))
+            g = float(10 ** (-3.0 * m / (SR * T60_S)))
+            wet += level * self._comb(x, m, g, damp=0.55, n=n)
+        for ms in ALLPASS_MS:
+            m = max(8, int(ms / 1000 * SR * (1.0 + rng.uniform(-0.01, 0.01))))
+            wet = self._allpass(wet, m, ALLPASS_G, n)
+        return (wet / (np.abs(wet).max() + 1e-9)).astype(np.float32)
+
+    def reverb(self, stereo: NDArray[np.float32], wet: float = 0.30) -> NDArray[np.float32]:
+        """Hall reverb across the whole mix, returning dry + wet including the ringing tail.
+
+        The two channels use differently tuned rooms (seeded), which decorrelates the reflections
+        and makes the space feel wide, while the *sources* stay exactly where they were placed: no
+        image movement, no panning.
+        """
+        n = stereo.shape[1]
+        irs = [self.impulse_response(ch) for ch in range(2)]
+        m = n + len(irs[0]) - 1
+        out = np.zeros((2, m), dtype=np.float32)
+        for ch, ir in enumerate(irs):
+            # a unit-energy impulse response: `wet` is then the wet-to-dry RMS ratio, so the hall
+            # sits at a predictable level under the notes instead of dominating them.
+            out[ch, :n] += stereo[ch]
+            out[ch] += self._fft_convolve(stereo[ch], ir, keep=m) * wet
+        return out.astype(np.float32)
