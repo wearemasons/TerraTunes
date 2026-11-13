@@ -1,0 +1,99 @@
+AGENTS.md
+  s_7dafd8fa133132::t_11867c685985b2 6,12,14-16,20,24-26,29,36-37,41
+LICENSE
+  s_7dafd8fa133132::t_24627049873951 1-35
+README.md
+  s_7dafd8fa133132::t_1aeebfb01e3202 26-32,37,40-42,63,70-71,75-80
+backend/app/cli.py
+  s_7dafd8fa133132::t_d8f7c342d2cb32 133-136,171
+backend/app/mapping/rules.py
+  s_7dafd8fa133132::t_7b8187365f72b4 5-21,24,26,32,37-38,45,49-50,55-60,79,81-91,96-140,158-166,174-175,211-230,232-234,237-254,259-278,280,294-371,391,424,427-432,435-443,453,461,474,480,487-489,496-499,501,504-512,518,523,531-532
+backend/app/schemas/models.py
+  s_7dafd8fa133132::t_bfda6c1f2ca515 21-23,95-113,166-171,197
+backend/app/sonify/render.py
+  s_7dafd8fa133132::t_7b3b60f448e3b6 1-22,35-38,42-60,64-65,67-70,73-75,77-79,83-88,92-94,105-109,120-125,127,131,134-148,150-157,160-169,175-200,235-239,243-263,268-269,271
+backend/app/sonify/spec.py
+  s_7dafd8fa133132::t_b65b7d78f81fa6 1,3-11,21-28,30-54,66-67
+backend/app/sonify/synth.py
+  s_7dafd8fa133132::t_1ad5d0c8e6cc2d 1,3-25,28,35-47,53,57-61,63-69,71-80,82-113,115-132,135-152,154-170,172-189,191-197,199-201,203-215,217-219,221-231,233-234,236-244,246-260,262-263,265-278
+backend/tests/test_api.py
+  s_7dafd8fa133132::t_b5ec2854510c7b 83-86,90
+backend/tests/test_sonify.py
+  s_7dafd8fa133132::t_ca4cc9acb2c521 1-2,5-6,9,35-89,96-105,108-118,121-139,141-183,186-187,189-233,235-246
+dev.mjs
+  s_7dafd8fa133132::t_38742e3966c50f 4,9-11,22-25,27-28,35,38-40,55,69-71,73,91,99-100,104-108,191-204,210
+docs/ACCESSIBILITY.md
+  s_7dafd8fa133132::t_5ca2a48bb12045 3-46,60-62
+docs/API_CONTRACT.md
+  s_7dafd8fa133132::t_8f6effca4daaff 3-29
+docs/DATA_SOURCES.md
+  s_7dafd8fa133132::t_4c3e17af58b7d9 69-93
+docs/SONIFICATION_DESIGN.md
+  s_7dafd8fa133132::t_dd839088c4ad8c 3-55,62-63
+docs/SUBMISSION.md
+  s_7dafd8fa133132::t_8de71487564fea 4-6,12-24,31,38-41,43-44,47-49,53,63
+docs/TASKS.md
+  s_7dafd8fa133132::t_fbdf910b9b17c4 69-70
+frontend/index.html
+  s_7dafd8fa133132::t_63f4f5b293da1f 8,12-22
+frontend/src/components/BootFilm.tsx
+  s_7dafd8fa133132::t_f5de8360b6b323 1-5,7,10,12-26,28-64,66-87,89-90,92-110,112-116,118-121,123-188,190-214,216-220,222-229,232-292,294-331,333,335-337,339-343,345,348,350-364,366-375,377-405,408
+frontend/src/components/Cabinet.tsx
+  s_7dafd8fa133132::t_5314bf45d64e14 71-76,209-214,228,231,234-235,349-357,380-383,539-575
+frontend/src/components/DiscSelector.tsx
+  s_7dafd8fa133132::t_0cb3cabc74e368 3,6,10,12-16,37-38,50-52,54-70,78-79,85,87,95-97,99-108,110-113,115,117,120-121,124,131,134-138,145,149-150,153,156-175,182-185,193,196,198,211,215,219-220
+frontend/src/components/FrameScanner.tsx
+  s_7dafd8fa133132::t_38b9cc484a34de 8-10,12-14,17
+frontend/src/components/Girl.tsx
+  s_7dafd8fa133132::t_10862f6425dbf5 1-2,5,7-15,17,19-21,27-28,31,34,37-38,40,42-44,46,48-55,64-71,73,79-134
+frontend/src/components/LoadingDoor.tsx
+  s_7dafd8fa133132::t_5d6cd141ffb42a 1-29,32-74
+frontend/src/components/NowPlaying.tsx
+  s_7dafd8fa133132::t_0390ab875b0153 9-15,185-191,193-218,586,588
+frontend/src/components/World.tsx
+  s_7dafd8fa133132::t_8edf1917dc79c4 3-4,9-16,19,21,23,29-44,48-67,79-81,83-94,108-109,111-112,120,145,192-306,491,505,520-521,526,533-538
+frontend/src/lib/api.ts
+  s_7dafd8fa133132::t_dbdb6f48470244 1,301-324,326-333,453,516-518
+frontend/src/lib/audio/phenomena.ts
+  s_7dafd8fa133132::t_ed421a6ce22f8e 2-4,7-9,12-14,16,19-24,27-34,37,41-43,61-65,68-79,83-99,102-103,107,109-111,113,116,118-140,142-145,150-154,158-163
+frontend/src/lib/boot.ts
+  s_7dafd8fa133132::t_c53789da51a57d 1-84
+frontend/src/lib/matchCut.ts
+  s_7dafd8fa133132::t_1ba87040b6dc5f 1-174
+frontend/src/lib/store.ts
+  s_7dafd8fa133132::t_821070bd44a603 9-14,17-19,32-33,47-48,60-61
+frontend/src/lib/types.ts
+  s_7dafd8fa133132::t_7b2cd420b74b69 38,133-135,142-152,160
+frontend/src/lib/world.ts
+  s_7dafd8fa133132::t_f66fe5fcdec9b2 4-13,16-32,36,38-40,42-43,51,55,60-80,83-84,86-102,106,110-141,143-240,243,252-253,257,265-266,270,279-280,284,290,293-294,298,305,308,310-321,324-326,330-341,344-354,356-358
+frontend/src/routes/__root.tsx
+  s_7dafd8fa133132::t_d68b8a461ed68e 8,28-29,35-37,71
+frontend/src/routes/about.tsx
+  s_7dafd8fa133132::t_f153886c173898 14-15
+frontend/src/routes/index.tsx
+  s_7dafd8fa133132::t_7a4f14275cb2ec 13,16-19,39-45,53-55,58,82-84,87-137,293,295,313-314,323,326,331-332,374,380-381,383-390,410-412,414-415,424,429-433,511-513
+frontend/src/routes/scan-frame.tsx
+  s_7dafd8fa133132::t_649c1fc1bd5718 31-32,118-119
+frontend/src/styles/scene.css
+  s_7dafd8fa133132::t_0a515f2d62ba1c 648,650-654,657-660,663-736
+frontend/tools/build_boot_film.sh
+  s_7dafd8fa133132::t_abdb525b297785 1-73
+frontend/tools/build_girl_assets.sh
+  s_7dafd8fa133132::t_fcdfc8375c9749 1-98
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9068a098e06dd6d92cb1c8e0b6949b4b6a2bf71c",
+  "prompts": {},
+  "sessions": {
+    "s_7dafd8fa133132": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dfcb0efb-fc87-4a7b-a851-3a9bc33aaf57",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
