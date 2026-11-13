@@ -1,0 +1,25 @@
+README.md
+  s_66a65e58ee11fe::t_0a5e54b8697dfd 53
+frontend/README.md
+  s_66a65e58ee11fe::t_0a5e54b8697dfd 26
+frontend/apps/web/vite.config.ts
+  s_66a65e58ee11fe::t_0a5e54b8697dfd 9
+AGENTS.md
+  s_66a65e58ee11fe::t_0a5e54b8697dfd 14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fc66d2eca60fce97630227810c1f81654d930fab",
+  "prompts": {},
+  "sessions": {
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
