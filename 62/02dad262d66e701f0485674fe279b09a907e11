@@ -1,0 +1,35 @@
+backend/data/tracks/wind-speed/meta.json
+  s_66a65e58ee11fe::t_32b91bf10eae21 10-29,192
+backend/data/tracks/carbon-monoxide/meta.json
+  s_66a65e58ee11fe::t_32b91bf10eae21 10-29,207
+backend/data/tracks/nitrogen-oxides/meta.json
+  s_66a65e58ee11fe::t_32b91bf10eae21 10-29,212
+backend/data/tracks/precipitation/meta.json
+  s_66a65e58ee11fe::t_32b91bf10eae21 10-29,192
+backend/data/tracks/vegetation/meta.json
+  s_66a65e58ee11fe::t_32b91bf10eae21 192
+backend/data/tracks/sea-surface-temperature/meta.json
+  s_66a65e58ee11fe::t_32b91bf10eae21 11,13,15,22,24,26,28,192
+backend/data/tracks/surface-temperature/meta.json
+  s_66a65e58ee11fe::t_32b91bf10eae21 10-29,197
+backend/data/tracks/fine-particulates/meta.json
+  s_66a65e58ee11fe::t_32b91bf10eae21 10-29,192
+backend/data/tracks/surface-ozone/meta.json
+  s_66a65e58ee11fe::t_32b91bf10eae21 10-29,192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6202dad262d66e701f0485674fe279b09a907e11",
+  "prompts": {},
+  "sessions": {
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
