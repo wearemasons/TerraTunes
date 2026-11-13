@@ -18,3 +18,8 @@ Always
 - Keyboard operable, visible focus, no autoplay, `prefers-reduced-motion` respected.
 - Strict TypeScript; run `bun run check-types` before reporting done.
 - Ask the a11y-reviewer agent to review significant UI changes.
+
+UI rules (strict)
+- Read docs/FRONTEND_PLAN.md before starting; follow its phases.
+- Use only shadcn/ui components, added via `bunx shadcn@latest add`. Never write look-alike components.
+- Style only with semantic theme tokens (`bg-primary`, `text-muted-foreground`, `--chart-*`). No hex/rgb/oklch literals, no Tailwind palette colors, no arbitrary color values. The theme must stay swappable through tweakcn by editing only `packages/ui/src/styles/globals.css`.

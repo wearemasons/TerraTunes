@@ -2,6 +2,8 @@
 
 Legend: P0 must ship · P1 should · P2 stretch. Mark `[x]` when merged.
 
+Frontend work is broken into phases in [FRONTEND_PLAN.md](FRONTEND_PLAN.md); Track C below summarizes it.
+
 ## Track A — Data and curation
 - [ ] P0 Read Resources tab; fill [DATA_SOURCES.md](DATA_SOURCES.md)
 - [ ] P0 Pick 6–9 EIC visualizations, one per theme where possible

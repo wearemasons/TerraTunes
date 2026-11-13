@@ -30,6 +30,7 @@ uv run ruff check . && uv run mypy app
 6. **Credits and licensing.** Every media asset needs a credit and source URL in `backend/data/tracks.json`. No raw videos in git.
 7. **Safety of audio.** Master limiter, no sudden gain jumps (> 6 dB / 100 ms), exponential ramps.
 8. **No secrets in the repo.** `.env` files are git-ignored; frontend env goes through varlock (`apps/web/src/env.ts`).
+9. **UI = shadcn only, themeable via tweakcn.** Add components with `bunx shadcn@latest add`; style only with semantic theme tokens from `frontend/packages/ui/src/styles/globals.css`. No hex/rgb/oklch literals, no Tailwind palette colors (`bg-blue-500`), no custom look-alike components. See [docs/FRONTEND_PLAN.md](docs/FRONTEND_PLAN.md).
 
 ## Conventions
 - TypeScript strict; no `any` without a comment. Functional components, hooks, feature folders (`features/<name>/`).

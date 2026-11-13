@@ -44,6 +44,7 @@ TeraTones/
 | [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) | NASA sources, licensing, curated dataset list |
 | [docs/API_CONTRACT.md](docs/API_CONTRACT.md) | REST contract between web and backend |
 | [docs/TASKS.md](docs/TASKS.md) | Backlog by track |
+| [docs/FRONTEND_PLAN.md](docs/FRONTEND_PLAN.md) | Frontend build phases, shadcn-only and tweakcn rules |
 | [docs/SUBMISSION.md](docs/SUBMISSION.md) | Deliverables, demo script, creative write-up |
 
 ## Quick start (target)
