@@ -28,7 +28,23 @@ Base URL (dev): `http://localhost:8000`. JSON, UTF-8. OpenAPI at `/docs` and `/o
 ```
 
 ### `GET /tracks/{id}`
-Adds: `description` (long text), `audio_key` (text), `legend` `{label, unit, min, max, anchors[]}`, `presets[]`, `transcript[]` `{t, text}`, `calibrated: bool`.
+Adds: `description` (long text), `audio_key` (text), `legend`, `presets[]`, `frame_labels[]`, `transcript[]` `{frame, text}`.
+
+`legend`:
+```json
+{
+  "label": "Fine particulate matter (PM2.5)",
+  "unit": "µg/m³",
+  "min": 0.4,
+  "max": 409.6,
+  "anchors": [{ "position": 0, "rgb": [255, 245, 183] }],
+  "ticks": [{ "position": 0, "value": 0.4, "label": null }, { "position": 1, "value": 409.6 }],
+  "log": true
+}
+```
+`anchors` are colours sampled from the source colorbar (data colours). `ticks` map colorbar positions to real values; between ticks values are linear, or logarithmic when `log` is true. Without ticks, `min..max` is linear. Clients convert a normalized value `v` (0..1) to a real value with the same rule (`app/mapping/rules.py:to_real`, `frontend/apps/web/src/lib/legend.ts:legendValue`).
+
+Themes: the nine EIC areas plus `weather` and `ocean`.
 
 ### `GET /tracks/{id}/frames/{n}` → image (WebP/PNG), cacheable.
 
@@ -58,7 +74,9 @@ Adds: `description` (long text), `audio_key` (text), `legend` `{label, unit, min
 Notes: `column_notes` are MIDI numbers per scan step (length = `cols` after any decimation); `-1` means silent. `value_grid` is 8-bit normalized value for explore mode, per frame is available via the next endpoint.
 
 ### `GET /tracks/{id}/frames/{n}/grid` → `{ cols, rows, cells_b64, real_min, real_max, unit }`
-Used by explore mode.
+Used by explore mode. `cells_b64` is uint8, row-major north→south, 96×48: `0..250` = normalized colorbar position, `255` = no data. Convert to real values with the track legend (see above), not linearly with `real_min/real_max`.
+
+### `GET /tracks/{id}/thumbnail` → WebP image for the jukebox card.
 
 ### `POST /analyze` (stretch)
 Multipart `file` (PNG/JPEG/WebP ≤ 10 MB), optional `preset`, optional `theme`. Returns a single-frame `score` (as above, one frame) with `calibrated: false`.

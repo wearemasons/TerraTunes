@@ -5,6 +5,7 @@
 import type { FrameScore, Legend, Score, ThemeId, TranscriptEntry, ValueGrid } from "@/lib/api/types";
 import { GRID_MAX, NO_DATA } from "@/lib/api/types";
 import { describeRegion, formatSigned, formatValue, midiToName } from "@/lib/format";
+import { legendValue } from "@/lib/legend";
 
 export const MAPPING_VERSION = "demo-1";
 export const STEPS_PER_FRAME = 16;
@@ -31,6 +32,8 @@ export const THEME_KEY: Record<ThemeId, { scale: keyof typeof SCALES; bpm: numbe
   biodiversity: { scale: "major_pentatonic", bpm: 76 },
   energy: { scale: "mixolydian", bpm: 92 },
   disasters: { scale: "phrygian_dominant", bpm: 88 },
+  weather: { scale: "mixolydian", bpm: 76 },
+  ocean: { scale: "dorian", bpm: 64 },
 };
 
 export function scaleLadder(scale: string): number[] {
@@ -49,9 +52,7 @@ export function quantize(value01: number, ladder: number[]): number {
   return ladder[i] ?? ROOT_MIDI;
 }
 
-export function toReal(value01: number, legend: Legend): number {
-  return legend.min + value01 * (legend.max - legend.min);
-}
+export const toReal = legendValue;
 
 export function frameDurationSeconds(bpm: number): number {
   return STEPS_PER_FRAME * (60 / bpm / 2);

@@ -11,6 +11,8 @@ export const THEME_IDS = [
   "biodiversity",
   "energy",
   "disasters",
+  "weather",
+  "ocean",
 ] as const;
 
 export type ThemeId = (typeof THEME_IDS)[number];
@@ -25,6 +27,8 @@ export const THEME_LABELS: Record<ThemeId, string> = {
   biodiversity: "Biodiversity",
   energy: "Energy",
   disasters: "Disasters",
+  weather: "Weather",
+  ocean: "Oceans",
 };
 
 export const PRESET_IDS = ["musical", "clear"] as const;
@@ -51,12 +55,22 @@ export interface LegendAnchor {
   rgb: [number, number, number];
 }
 
+/** A labelled colorbar stop: position along the bar → real value. */
+export interface LegendTick {
+  position: number;
+  value: number;
+  label?: string | null;
+}
+
 export interface Legend {
   label: string;
   unit: string;
   min: number;
   max: number;
   anchors: LegendAnchor[];
+  /** When present, values follow these stops (linear, or logarithmic when `log`); else min..max linear. */
+  ticks?: LegendTick[];
+  log?: boolean;
 }
 
 export interface TrackSummary {

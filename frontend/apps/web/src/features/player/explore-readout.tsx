@@ -3,6 +3,7 @@ import { Crosshair } from "lucide-react";
 
 import type { Legend, ValueGrid } from "@/lib/api/types";
 import { formatLatLon, formatValue } from "@/lib/format";
+import { legendValue } from "@/lib/legend";
 
 import { type Cell, cellValue } from "./frame-stage";
 
@@ -11,7 +12,7 @@ export function readoutText(grid: ValueGrid | undefined, cell: Cell | null, lege
   const where = formatLatLon((cell.col + 0.5) / grid.cols, (cell.row + 0.5) / grid.rows);
   const value = cellValue(grid, cell);
   if (value === null) return `${where}: no data here.`;
-  const real = grid.real_min + value * (grid.real_max - grid.real_min);
+  const real = legendValue(value, legend);
   return `${where}: ${legend.label.toLowerCase()} ${formatValue(real)} ${legend.unit}.`;
 }
 

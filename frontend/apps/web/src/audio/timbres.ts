@@ -24,6 +24,8 @@ const THEME_TIMBRES: Record<ThemeId, Timbre> = {
   biodiversity: { melody: "sine", drone: "triangle", droneLevel: 0.6, rhythm: "noise", bell: true, tension: true, reverb: 0.45, filterBase: 2400 },
   energy: { melody: "square", drone: "sawtooth", droneLevel: 0.6, rhythm: "tick", bell: true, tension: true, reverb: 0.2, filterBase: 1300 },
   disasters: { melody: "sawtooth", drone: "sawtooth", droneLevel: 0.9, rhythm: "tick", bell: true, tension: true, reverb: 0.3, filterBase: 1200 },
+  weather: { melody: "triangle", drone: "triangle", droneLevel: 0.8, rhythm: "noise", bell: true, tension: true, reverb: 0.35, filterBase: 1600 },
+  ocean: { melody: "sine", drone: "sine", droneLevel: 1, rhythm: "none", bell: true, tension: true, reverb: 0.5, filterBase: 1500 },
 };
 
 /** "Clear tone": pitch only, no music. For listeners who find harmony distracting. */
