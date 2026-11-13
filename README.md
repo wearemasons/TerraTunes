@@ -50,7 +50,7 @@ TeraTones/
 
 ```bash
 # frontend
-cd frontend && bun install && bun run dev:web     # http://localhost:3001
+cd frontend && bun install && bun run dev:web     # http://localhost:3000
 
 # backend
 cd backend && uv sync && uv run fastapi dev app/main.py  # http://localhost:8000/docs

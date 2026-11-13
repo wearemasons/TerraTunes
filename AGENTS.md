@@ -11,7 +11,7 @@ Project: Earth Information Jukebox (NASA Space Apps 2026). Read [README.md](READ
 ```bash
 # frontend (from frontend/)
 bun install
-bun run dev:web          # http://localhost:3001
+bun run dev:web          # http://localhost:3000
 bun run check-types
 
 # backend (from backend/)
