@@ -1,0 +1,42 @@
+frontend/apps/web/src/features/player/frame-stage.tsx
+  s_66a65e58ee11fe::t_c7ebb9f9f6c67e 1-200
+frontend/apps/web/src/features/player/use-playhead.ts
+  s_66a65e58ee11fe::t_d6488df3c1eb55 1-26
+frontend/apps/web/src/features/player/use-track-player.ts
+  s_66a65e58ee11fe::t_0a35227b053b4e 1-69
+frontend/apps/web/src/features/player/waveform.tsx
+  s_66a65e58ee11fe::t_b00b3f15a1e03a 1-29,31-76
+  s_66a65e58ee11fe::t_0aad073c25e398 30
+frontend/apps/web/src/features/player/legend.tsx
+  s_66a65e58ee11fe::t_4792e93eb4b283 1-32
+frontend/apps/web/src/features/player/use-player-shortcuts.ts
+  s_66a65e58ee11fe::t_77c55ccc1b8c92 1-96
+frontend/apps/web/src/features/player/transport.tsx
+  s_66a65e58ee11fe::t_5e2c635613c393 1-205
+frontend/apps/web/src/features/player/tension-timeline.tsx
+  s_66a65e58ee11fe::t_6560361ce5af9f 1-60
+frontend/apps/web/src/routes/track.$id.tsx
+  s_66a65e58ee11fe::t_be91a18f2e8c4a 1-171
+frontend/apps/web/src/features/player/info-tabs.tsx
+  s_66a65e58ee11fe::t_3b95212ed101d5 1-101
+frontend/apps/web/src/features/player/pitch-contour.tsx
+  s_66a65e58ee11fe::t_3341ce3f3204b7 1-69
+frontend/apps/web/src/features/player/explore-readout.tsx
+  s_66a65e58ee11fe::t_291c40958877b6 1-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0e16c86a107f97f350c479c2133b10adc1a3aac8",
+  "prompts": {},
+  "sessions": {
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
