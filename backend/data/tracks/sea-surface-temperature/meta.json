@@ -8,24 +8,24 @@
  "date_range": "May 2024 to Oct 2026 (approximate)",
  "frame_labels": [
   "about May 2024",
-  "about Jul 2024",
+  "about Jun 2024",
   "about Aug 2024",
-  "about Oct 2024",
+  "about Sep 2024",
   "about Nov 2024",
-  "about Jan 2025",
+  "about Dec 2024",
   "about Feb 2025",
   "about Apr 2025",
   "about May 2025",
   "about Jul 2025",
   "about Aug 2025",
   "about Oct 2025",
-  "about Dec 2025",
+  "about Nov 2025",
   "about Jan 2026",
-  "about Mar 2026",
+  "about Feb 2026",
   "about Apr 2026",
-  "about Jun 2026",
+  "about May 2026",
   "about Jul 2026",
-  "about Sep 2026",
+  "about Aug 2026",
   "about Oct 2026"
  ],
  "legend": {
@@ -189,5 +189,5 @@
   304
  ],
  "source_movie": "sst_30_sec_no-dates_4096x2048_2x1_30p.mp4",
- "built_at": "2026-11-13T16:03:35+02:00"
+ "built_at": "2026-11-13T16:14:00+02:00"
 }

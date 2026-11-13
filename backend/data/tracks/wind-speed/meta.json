@@ -7,26 +7,26 @@
  "description": "Near-surface wind speed is calculated by sampling 3-D atmospheric fields from NASA’s GEOS-FP system 10 meters above Earth’s surface. GEOS-FP combines millions of weather observations with a predictive model to create a global best estimate of weather conditions that are used to begin a forecast.",
  "date_range": "About 29 Oct to 13 Nov 2026, hourly (approximate)",
  "frame_labels": [
-  "about 29 Oct, 17:00",
-  "about 30 Oct, 12:00",
-  "about 31 Oct, 07:00",
-  "about 1 Nov, 01:00",
-  "about 1 Nov, 20:00",
-  "about 2 Nov, 15:00",
-  "about 3 Nov, 10:00",
-  "about 4 Nov, 05:00",
-  "about 4 Nov, 23:00",
-  "about 5 Nov, 18:00",
-  "about 6 Nov, 13:00",
-  "about 7 Nov, 08:00",
-  "about 8 Nov, 02:00",
-  "about 8 Nov, 21:00",
-  "about 9 Nov, 16:00",
-  "about 10 Nov, 11:00",
-  "about 11 Nov, 06:00",
-  "about 12 Nov, 00:00",
-  "about 12 Nov, 19:00",
-  "about 13 Nov, 14:00"
+  "about 29 Oct",
+  "about 30 Oct",
+  "about 31 Oct",
+  "about 31 Oct",
+  "about 1 Nov",
+  "about 2 Nov",
+  "about 3 Nov",
+  "about 4 Nov",
+  "about 4 Nov",
+  "about 5 Nov",
+  "about 6 Nov",
+  "about 7 Nov",
+  "about 7 Nov",
+  "about 8 Nov",
+  "about 9 Nov",
+  "about 10 Nov",
+  "about 11 Nov",
+  "about 11 Nov",
+  "about 12 Nov",
+  "about 13 Nov"
  ],
  "legend": {
   "label": "Wind speed",
@@ -189,5 +189,5 @@
   99
  ],
  "source_movie": "MC02_stage3_GMAO_near_surface_wind_2048x1024_en.mp4",
- "built_at": "2026-11-13T16:02:19+02:00"
+ "built_at": "2026-11-13T16:10:45+02:00"
 }
