@@ -56,6 +56,7 @@ export const useUI = create<UIState>((set) => ({
   setHighContrast: (v) => set({ highContrast: v }),
   setReduceMotion: (v) => set({ reduceMotion: v }),
   setMechanismMuted: (v) => set({ mechanismMuted: v }),
-  setLevel: (v) => set({ level: v }),
+  // skip no-op writes: every subscriber re-renders on any set()
+  setLevel: (v) => set((s) => (s.level === v ? s : { level: v })),
   announce: (msg) => set({ announcement: msg }),
 }))

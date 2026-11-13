@@ -77,14 +77,14 @@ export function RootLayout() {
             <span className="hidden flex-col leading-none sm:flex">
               <span
                 className={`whitespace-nowrap font-display text-[16px] font-semibold tracking-[0.05em] ${
-                  dark ? 'text-[#fff3d4] drop-shadow-[0_1px_6px_rgba(0,0,0,.75)]' : 'text-ink'
+                  dark ? 'text-[#fff3d4] drop-shadow-[0_1px_6px_rgba(0,0,0,.75)]' : 'text-ink brand-halo'
                 }`}
               >
                 Terra Tunes
               </span>
               <span
-                className={`mt-0.5 whitespace-nowrap text-[8.5px] font-bold uppercase tracking-[0.22em] ${
-                  dark ? 'text-[#ffe9b8cc]' : 'text-[#7c6144d9]'
+                className={`mt-0.5 whitespace-nowrap text-[9.5px] font-extrabold uppercase tracking-[0.2em] ${
+                  dark ? 'text-[#ffe9b8] drop-shadow-[0_1px_4px_rgba(0,0,0,.8)]' : 'text-[#4a3018] brand-halo'
                 }`}
               >
                 earth information jukebox

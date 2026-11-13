@@ -27,14 +27,16 @@ export const GRILLE = { cx: 0.5047, cy: 0.7796, d: 0.4704 }
 export const SPEAKER = { cx: 0.5047, cy: 0.7796, d: 0.4704 }
 /**
  * The glass in the two tall tubes. Each tube is drawn as *two* columns of glass
- * either side of a brass rod, so the lit glass is measured per column
- * (left tube .1429 / .1818, right tube .8100 / .8490; T .475, H ~.41).
+ * either side of a brass rod, so the lit glass is measured per column. Measured
+ * as saturated-amber pixel runs on rows .52–.86 of the sprite (px of 742):
+ * left tube 69–103 | rod | 115–148, right tube 594–627 | rod | 638–673;
+ * glass runs y 414–768 of 869 (T .475, H .409).
  */
 export const TUBES = [
-  { left: 0.1429, top: 0.475, width: 0.0385, height: 0.409 },
-  { left: 0.1818, top: 0.475, width: 0.0385, height: 0.409 },
-  { left: 0.81, top: 0.475, width: 0.0385, height: 0.409 },
-  { left: 0.849, top: 0.475, width: 0.0385, height: 0.409 },
+  { left: 69 / 742, top: 0.475, width: 35 / 742, height: 0.409 },
+  { left: 115 / 742, top: 0.475, width: 34 / 742, height: 0.409 },
+  { left: 594 / 742, top: 0.475, width: 34 / 742, height: 0.409 },
+  { left: 638 / 742, top: 0.475, width: 36 / 742, height: 0.409 },
 ]
 /** the little lift in the middle of the dome shelf, between roller and stack */
 export const CRADLE = { cx: 0.5007, cy: 0.2975, d: 0.1199 }

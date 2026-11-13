@@ -58,7 +58,7 @@ export function Girl({
       }`}
       style={{
         aspectRatio: `${pose_.w} / ${pose_.h}`,
-        transform: `rotate(${sway * 1.1 + bob * 0.25}deg) translateY(${bob}px)`,
+        transform: `rotate(${sway * 1.1 + bob * 0.25}deg)`,
         transformOrigin: '50% 100%',
         filter: 'drop-shadow(0 14px 16px rgba(20,12,6,.5))',
       }}

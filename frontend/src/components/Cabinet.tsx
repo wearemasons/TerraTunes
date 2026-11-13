@@ -106,7 +106,7 @@ export function Cabinet({
           <div
             key={i}
             aria-hidden
-            className="absolute overflow-hidden rounded-full"
+            className="absolute overflow-hidden rounded-[3px]"
             style={{
               left: pct(t.left),
               top: pct(t.top),
@@ -128,7 +128,9 @@ export function Cabinet({
               style={{
                 height: `${8 + Math.min(1, level * 3.2) * 90}%`,
                 background:
-                  'linear-gradient(to top, rgba(255,252,236,.96), rgba(255,214,128,.9) 38%, rgba(255,148,54,.55))',
+                  // warm amber, not white: under `screen` a near-white base
+                  // blows out into a bright cap at the bottom of each column
+                  'linear-gradient(to top, transparent, rgba(255,206,120,.7) 10%, rgba(255,180,90,.55) 45%, transparent)',
                 opacity: powered ? 0.95 : 0.1,
                 filter: 'blur(1.5px)',
               }}
