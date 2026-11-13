@@ -1,0 +1,23 @@
+docs/TASKS.md
+  s_66a65e58ee11fe::t_dc7bda62552c66 31-44,47,49
+docs/FRONTEND_PLAN.md
+  s_66a65e58ee11fe::t_dc7bda62552c66 5-17
+frontend/README.md
+  s_66a65e58ee11fe::t_168cd612787091 1,3-4,6,10,13,16-17,20,22,24,26-30,32,35-47,50,52-54,56,58-60,62,64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4887a3dafd5cabf726532e498eebc55a52c5192f",
+  "prompts": {},
+  "sessions": {
+    "s_66a65e58ee11fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b5a3949a-3da7-4677-8506-6db33d6cbaed",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
