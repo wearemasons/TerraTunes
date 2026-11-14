@@ -61,7 +61,7 @@ Frontend work is broken into phases in [FRONTEND_PLAN.md](FRONTEND_PLAN.md); Tra
 - [ ] P0 Initial commit and branch protection convention (PR per track)
 - [ ] P1 `Makefile` or `justfile`: `dev`, `test`, `lint`, `export`
 - [ ] P1 GitHub Actions: lint + tests + type check
-- [ ] P2 Deploy (static export to Cloudflare Pages/GitHub Pages; API on Fly/Render)
+- [ ] P2 Deploy: options compared in [DEPLOYMENT.md](DEPLOYMENT.md); recommended is one container (Caddy + API + built web) on Fly/Render. A fully static export is still unbuilt.
 
 ## Dependency order
 Data (A) → colormap (B) → score (B) → player (C) → a11y pass (D) → submission (E).

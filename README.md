@@ -56,6 +56,9 @@ TerraTunes/
 | [docs/TASKS.md](docs/TASKS.md) | Backlog by track |
 | [docs/FRONTEND_PLAN.md](docs/FRONTEND_PLAN.md) | Frontend build phases, shadcn-only and tweakcn rules |
 | [docs/SUBMISSION.md](docs/SUBMISSION.md) | Deliverables, demo script, creative write-up |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Deployment options compared, recommended setup, config and operations |
+| [docs/DEMO_FILM.md](docs/DEMO_FILM.md) | The 30-second demo film: story, shot list, and how to rebuild it on the GPU |
+| [docs/ENGINE_COMPARISON.md](docs/ENGINE_COMPARISON.md) | The two sonification engine branches and how to switch |
 
 ## Quick start
 
