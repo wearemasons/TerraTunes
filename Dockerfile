@@ -22,6 +22,7 @@ RUN pip install --no-cache-dir uv \
     && uv sync --frozen --no-dev --no-install-project
 COPY backend/app ./app
 COPY backend/data/tracks ./data/tracks
+COPY backend/data/samples/web ./data/samples/web
 COPY --from=web /web/dist /srv/web
 
 EXPOSE 8000

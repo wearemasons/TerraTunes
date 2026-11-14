@@ -21,7 +21,10 @@ dist/
 backend/data/raw/
 backend/data/cache/
 backend/data/exports/
-backend/data/samples/
+# Sample audio is regenerable, but the Orchestra needs the exported web set on a
+# stateless host, so the small browser export is committed and the rest stays out.
+backend/data/samples/*
+!backend/data/samples/web/
 
 # OS / editor
 .DS_Store

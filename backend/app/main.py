@@ -7,6 +7,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import os
 from pathlib import Path
+from typing import ClassVar
 
 from app import __version__
 from app.api.routes import router
@@ -59,13 +60,25 @@ app.include_router(uploads_router)
 app.include_router(router, prefix="/api")
 app.include_router(uploads_router, prefix="/api")
 # Recorded orchestral notes for the browser's Orchestra sound (`python -m app.cli samples`).
-app.mount(
-    "/samples", StaticFiles(directory=settings.data_dir / "samples" / "web", check_dir=False), name="samples"
-)
+# Mounted only when they exist: a missing directory must be a clean 404 that the browser
+# treats as "fall back to the synthesised tone", not a 500 in the middle of page load.
+_samples = settings.data_dir / "samples" / "web"
+if (_samples / "manifest.json").is_file():
+    app.mount("/samples", StaticFiles(directory=_samples), name="samples")
 
 
 class SPAStaticFiles(StaticFiles):
     """Static site with an index.html fallback, so client routes resolve."""
+
+    #: Long-lived for hashed assets and the media the opening film and tour need;
+    #: Render's origin is a single small instance, so repeat visits should not refetch.
+    cache: ClassVar[dict[str, str]] = {
+        "assets/": "public, max-age=31536000, immutable",
+        "art/": "public, max-age=604800",
+        "video/": "public, max-age=604800",
+        "voice/": "public, max-age=604800",
+        "girl-": "public, max-age=604800",
+    }
 
     async def get_response(self, path: str, scope):
         try:
@@ -76,11 +89,15 @@ class SPAStaticFiles(StaticFiles):
             return await super().get_response("index.html", scope)
         if getattr(response, "status_code", 200) == 404 and "." not in path.rsplit("/", 1)[-1]:
             return await super().get_response("index.html", scope)
+        for prefix, value in self.cache.items():
+            if path.startswith(prefix):
+                response.headers["cache-control"] = value
+                break
         return response
 
 
 # Production single origin: `TERRATUNES_WEB_DIR=frontend/dist` makes the API serve
-# the built site too, so Railway runs one service with no CORS and no second host.
+# the built site too, so Render runs one service with no CORS and no second host.
 _web = os.environ.get("TERRATUNES_WEB_DIR", "")
 if _web and Path(_web).is_dir():
     app.mount("/", SPAStaticFiles(directory=Path(_web), html=True), name="web")
