@@ -1,5 +1,6 @@
 # TerraTunes on Render as one web service: the sonification API serves the built
 # site too, so there is no second host, no proxy and no CORS configuration.
+# A paid plan is required for Docker services: starter is the cheapest that works.
 services:
   - type: web
     name: terratunes
@@ -7,7 +8,7 @@ services:
     repoRootPath: /
     dockerfilePath: ./Dockerfile
     healthCheckPath: /healthz
-    plan: free
+    plan: starter
     autoDeploy: true
     envVars:
       - key: TERRATUNES_DATA_DIR
