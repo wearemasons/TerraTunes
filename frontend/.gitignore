@@ -1,4 +1,5 @@
 node_modules/
-dist/
+# dist/  # committed on the render-deploy branch only
+
 .DS_Store
 *.local
