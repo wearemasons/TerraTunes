@@ -1,0 +1,45 @@
+frontend/tools/promo/gpu/analyze.mjs
+  s_8d75cd391b9ef7::t_4d7441b0784273 1-21
+frontend/tools/promo/gpu/capture.mjs
+  s_8d75cd391b9ef7::t_97e91f557f53e0 1-87
+frontend/tools/promo/gpu/film.html
+  s_8d75cd391b9ef7::t_6ed5a2c48b88b0 1-4
+frontend/tools/promo/gpu/film.js
+  s_8d75cd391b9ef7::t_b655c6e05c66c7 1-712
+frontend/tools/promo/gpu/render.mjs
+  s_8d75cd391b9ef7::t_ec59114a9cbc61 1-68
+frontend/tools/promo/gpu/verify.mjs
+  s_8d75cd391b9ef7::t_3882703fa2df5f 1-25
+README.md
+  s_8d75cd391b9ef7::t_dab55e2b87f4a9 59-61
+assets/demo-subtitles-v2.en.vtt
+  s_8d75cd391b9ef7::t_b400711835f590 1-25
+assets/demo-subtitles-v3.en.vtt
+  s_8d75cd391b9ef7::t_db65cb3849b9d7 1-28
+assets/demo-voiceover-v2.md
+  s_8d75cd391b9ef7::t_0d1b5365de78b6 1-44
+assets/demo-voiceover-v3.md
+  s_8d75cd391b9ef7::t_14fac0621c2d07 1-49
+docs/DEMO_FILM.md
+  s_8d75cd391b9ef7::t_0fe907e10eb0f7 3-7,11-31,35-37,41-47,50-60,63-76
+docs/DEPLOYMENT.md
+  s_8d75cd391b9ef7::t_8c1c15930ba091 1-158
+docs/TASKS.md
+  s_8d75cd391b9ef7::t_7f7b04e9b2321a 64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "221748c510928ac27f7b9612128e0f6280f21a74",
+  "prompts": {},
+  "sessions": {
+    "s_8d75cd391b9ef7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9bbd4ef1-2c37-436a-b787-4ea73ab771bd",
+        "model": "unknown"
+      },
+      "human_author": "Sherif <127263385+sizif-22@users.noreply.github.com>"
+    }
+  }
+}
