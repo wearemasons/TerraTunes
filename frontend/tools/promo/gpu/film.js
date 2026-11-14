@@ -615,6 +615,20 @@ async function drawFrame(t) {
   guide(t);
   stepChip(t);
   captions(t);
+  siNotice();
+}
+
+// Space Apps 2026 rule: SI-generated imagery and video carry a visible watermark.
+function siNotice() {
+  const txt = "Contains SI-generated illustration, animation and voice (Manus)";
+  ctx.save();
+  ctx.font = font(800, 17); ctx.letterSpacing = "0.5px";
+  const w = ctx.measureText(txt).width + 26, x = W - w - 14, y = 7;
+  rrect(x, y, w, 26, 13); ctx.fillStyle = "rgba(14,9,4,.72)"; ctx.fill();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(247,185,85,.75)"; ctx.stroke();
+  ctx.fillStyle = "#fff1d6"; ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  ctx.fillText(txt, x + 13, y + 14);
+  ctx.restore();
 }
 
 // ---------- audio: voice + the real sonification, ducked under the voice ----------
