@@ -701,11 +701,28 @@ export function JukeboxPage() {
     );
   }, [announce]);
 
-  if (datasetsQuery.isLoading) return <LoadingDoor />;
+  /*
+   * The opening film must survive a slow engine. Render answers the first request
+   * in about a second, so returning early here would spend the whole film waiting
+   * on data and then show the cabinet with no film at all.
+   */
+  const filmLayer =
+    boot !== "live" ? (
+      <BootFilm onMatch={reachMatch} onDone={finishFilm} />
+    ) : null;
+
+  if (datasetsQuery.isLoading)
+    return (
+      <>
+        {filmLayer}
+        <LoadingDoor />
+      </>
+    );
 
   if (datasetsQuery.isError || !dataset) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-6">
+        {filmLayer}
         <div className="tt-paper max-w-md p-6 text-center">
           <h2 className="font-display text-lg font-semibold text-ink">
             The jukebox is unplugged
@@ -726,7 +743,7 @@ export function JukeboxPage() {
 
   return (
     <div className="relative">
-      {boot !== "live" && <BootFilm onMatch={reachMatch} onDone={finishFilm} />}
+      {filmLayer}
       {/* the character talks the visitor through the cabinet once the film has gone */}
       {boot === "live" && <Guide />}
 
