@@ -141,11 +141,10 @@ if __name__ == "__main__":
     caps = [
         ("1", "Every day, NASA paints the whole planet."),
         ("2", "Terra Tunes plays those paintings as music."),
-        ("3", "Nine records. Nine worlds."),
-        ("4", "Drop the needle — a little algorithmic magic, and the Earth starts to sing."),
-        ("5", "Terra Tunes. The Earth, on the turntable."),
-        ("6", "The sound you are hearing is that same data, played as it was measured."),
-        ("7", "Or bring a frame of your own."),
+        ("3", "Nine records, nine worlds. Drop the needle, and the Earth starts to sing."),
+        ("4", "Every note, every measurement, waiting in the Data Deck."),
+        ("5", "Scan a frame of your own, and it sings too."),
+        ("6", "Terra Tunes. The Earth, on the turntable."),
     ]
     for name, text in caps:
         print("caption", *caption(name, text))
@@ -153,7 +152,9 @@ if __name__ == "__main__":
         ("crate", "THE CRATE · 9 RECORDS"),
         ("deck", "DATA DECK"),
         ("scan", "SCAN ANY FRAME"),
-        ("site", "THE LIVE SITE"),
+        ("tour", "GUIDED TOUR"),
+        ("presets", "SOUND PRESETS"),
+        ("record", "A SECOND RECORD"),
     ]:
         label(name, text)
     endcard()

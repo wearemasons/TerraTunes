@@ -45,39 +45,133 @@ export interface PromoStep {
   grace?: number;
 }
 
-/** the jukebox stage: power, crate, a record, the needle, the deck, then scan */
+const byEither = (re: RegExp) =>
+  [...document.querySelectorAll<HTMLElement>("button,[role='button']")].find(
+    (e) =>
+      re.test(e.getAttribute("aria-label") ?? "") ||
+      re.test((e.textContent ?? "").trim()),
+  );
+
+/** a record in the crate, found by the name printed on its sleeve */
+const recordNamed = (name: string) =>
+  [...document.querySelectorAll<HTMLElement>("button")].find(
+    (e) =>
+      (e.getAttribute("aria-label") ?? "").startsWith("Record ") &&
+      (e.getAttribute("aria-label") ?? "").includes(name),
+  );
+
+/** the jukebox stage: power, crate, needle, deck, presets, a second record, scan */
 export const PROMO_JUKEBOX: PromoStep[] = [
   { at: 0.5, label: "power", action: () => click(one('[data-guide="power"]')) },
-  { at: 2.3, label: "crate", action: () => click(one('[data-guide="crate"]')) },
+  { at: 2.0, label: "crate", action: () => click(one('[data-guide="crate"]')) },
   {
-    at: 4.0,
+    at: 3.4,
     label: "record: sea",
     action: () => click(byLabel("Record 8")),
     grace: 3,
   },
-  { at: 6.4, label: "close crate", action: () => key("Escape") },
+  { at: 4.9, label: "close crate", action: () => key("Escape") },
   {
-    at: 7.2,
+    at: 5.7,
     label: "needle",
     action: () => click(one('[data-guide="needle"]')),
     grace: 3,
   },
   {
-    at: 16.0,
+    at: 7.0,
+    label: "tour on",
+    action: () => click(byEither(/guided/i)),
+    grace: 2,
+  },
+  {
+    at: 8.6,
+    label: "tour off",
+    action: () => click(byEither(/guided/i)),
+    grace: 2,
+  },
+  {
+    at: 9.4,
     label: "deck",
     action: () => click(one('[data-guide="deck"]')),
     grace: 3,
   },
-  { at: 26.4, label: "close deck", action: () => key("Escape"), grace: 2 },
   {
-    at: 27.6,
+    at: 11.2,
+    label: "tab: regions",
+    action: () => click(byEither(/regions/i)),
+    grace: 2,
+  },
+  {
+    at: 12.6,
+    label: "tab: transcript",
+    action: () => click(byEither(/transcript/i)),
+    grace: 2,
+  },
+  {
+    at: 14.0,
+    label: "preset: clear tone",
+    action: () => click(byEither(/^clear tone$/i)),
+    grace: 2,
+  },
+  {
+    at: 15.6,
+    label: "preset: orchestra",
+    action: () => click(byEither(/^orchestra$/i)),
+    grace: 2,
+  },
+  {
+    at: 17.0,
+    label: "show grid",
+    action: () => click(byEither(/show grid/i)),
+    grace: 2,
+  },
+  {
+    at: 18.6,
+    label: "hide grid",
+    action: () => click(byEither(/show grid|hide grid/i)),
+    grace: 2,
+  },
+  {
+    at: 19.8,
+    label: "pause",
+    action: () => click(byEither(/^pause$/i)),
+    grace: 2,
+  },
+  {
+    at: 21.2,
+    label: "resume",
+    action: () => click(byEither(/^play$/i)),
+    grace: 2,
+  },
+  { at: 22.6, label: "close deck", action: () => key("Escape"), grace: 2 },
+  {
+    at: 23.8,
+    label: "crate again",
+    action: () => click(one('[data-guide="crate"]')),
+    grace: 2,
+  },
+  {
+    at: 25.0,
+    label: "record: wind",
+    action: () => click(recordNamed("Wind")),
+    grace: 3,
+  },
+  { at: 26.4, label: "close crate", action: () => key("Escape") },
+  {
+    at: 27.2,
+    label: "needle again",
+    action: () => click(one('[data-guide="needle"]')),
+    grace: 3,
+  },
+  {
+    at: 29.6,
     label: "scan page",
     action: () => click(one('[data-guide="scan"]')),
     grace: 3,
   },
 ];
 
-/** the scan page: read a bundled NASA frame, then play what it hears */
+/** the scan page: read a bundled NASA frame, play it, then show the method */
 export const PROMO_SCAN: PromoStep[] = [
   {
     at: 0.6,
@@ -85,11 +179,12 @@ export const PROMO_SCAN: PromoStep[] = [
     action: () => click(byLabel("Read ")),
     grace: 6,
   },
+  { at: 3.6, label: "play", action: () => click(byText(/^Play$/i)), grace: 6 },
   {
-    at: 3.0,
-    label: "play",
-    action: () => click(byText(/^Play$/i)),
-    grace: 6,
+    at: 6.4,
+    label: "method page",
+    action: () => click(byEither(/method/i)),
+    grace: 4,
   },
 ];
 
