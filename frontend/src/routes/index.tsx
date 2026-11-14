@@ -22,6 +22,8 @@ import { DiscSelector } from "../components/DiscSelector";
 import { BootFilm } from "../components/BootFilm";
 import { NowPlaying } from "../components/NowPlaying";
 import { Girl } from "../components/Girl";
+import { Guide } from "../components/Guide";
+import { PROMO_JUKEBOX, promoMode, runPromo } from "../lib/promoDirector";
 import type { GirlPose } from "../components/Girl";
 import { ARRIVAL_SCENE, sceneFor, weatherFor } from "../lib/world";
 import { BOOT_FILM } from "../lib/boot";
@@ -67,6 +69,8 @@ export function JukeboxPage() {
     setVolume,
     announce,
     setLevel,
+    setGuidePrompt,
+    setDeckOpen,
     level: storeLevel,
   } = useUI();
 
@@ -91,11 +95,24 @@ export function JukeboxPage() {
   const deckFlare = useRef<HTMLDivElement>(null);
   const deckAnims = useRef<Animation[]>([]);
   // Each route visit, including reloads, gets a new showing. Skip stays available.
-  const [boot, setBoot] = useState<Boot>("film");
+  const [boot, setBoot] = useState<Boot>(() => (promoMode() ? "live" : "film"));
   const cradleRef = useRef<HTMLDivElement>(null);
   const discRefs = useRef<Record<string, HTMLElement | null>>({});
   const stageRef = useRef<HTMLDivElement>(null);
   const girlRef = useRef<HTMLDivElement>(null);
+  const powerTimer = useRef(0);
+  const pickSequence = useRef(0);
+  const playSequence = useRef(0);
+  const playPending = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      pickSequence.current += 1;
+      window.clearTimeout(powerTimer.current);
+    };
+  }, []);
 
   /**
    * The film freezes on a frame where the cabinet is right of centre and the
@@ -142,7 +159,12 @@ export function JukeboxPage() {
   // while the film is up, the page behind it is unreachable, not merely covered
   useEffect(() => {
     setFilmUp(boot !== "live");
-  }, [boot, setFilmUp]);
+    if (boot !== "live") {
+      player.pause();
+      setPlaying(false);
+    }
+    return () => setFilmUp(false);
+  }, [boot, setFilmUp, setPlaying]);
 
   // the film ends with the switch already thrown, so the page underneath is
   // lit and the cross-fade is a match rather than a before-and-after
@@ -244,6 +266,20 @@ export function JukeboxPage() {
   }, [deck]);
 
   const deckOpen = deck !== "closed";
+
+  useEffect(() => {
+    setDeckOpen(deck === "open");
+  }, [deck, setDeckOpen]);
+
+  // the tour points at the navigation, so a fullscreen panel must not hide it
+  useEffect(() => {
+    const onStep = (event: Event) => {
+      if ((event as CustomEvent).detail === "scan" && deck !== "closed")
+        closeDeck();
+    };
+    window.addEventListener("tt-guide-step", onStep);
+    return () => window.removeEventListener("tt-guide-step", onStep);
+  }, [closeDeck, deck]);
 
   useEffect(() => {
     if (!deckOpen) return;
@@ -428,13 +464,31 @@ export function JukeboxPage() {
       snapshot.mode === "explore"
     )
       return;
-    loadMain(mainTrackQuery.data, mainScoreQuery.data);
-    mechanism.needle();
-    await player.play();
-    if (player.getSnapshot().status === "playing")
-      announce(
-        `${dataset?.short ?? selectedId} is playing with main's ${snapshot.preset} sound.`,
-      );
+    if (playPending.current) return;
+    const requested = selectedId;
+    const sequence = ++playSequence.current;
+    playPending.current = true;
+    try {
+      loadMain(mainTrackQuery.data, mainScoreQuery.data);
+      mechanism.needle();
+      await player.play();
+      const current = player.getSnapshot();
+      const valid =
+        mounted.current &&
+        sequence === playSequence.current &&
+        useUI.getState().powered &&
+        !useUI.getState().filmUp;
+      if (!valid) {
+        if (current.trackId === requested) player.pause();
+        return;
+      }
+      if (current.status === "playing" && current.trackId === requested)
+        announce(
+          `${dataset?.short ?? selectedId} is playing with main's ${snapshot.preset} sound.`,
+        );
+    } finally {
+      playPending.current = false;
+    }
   }, [
     mainTrackQuery.data,
     mainScoreQuery.data,
@@ -448,7 +502,8 @@ export function JukeboxPage() {
 
   const togglePlay = useCallback(async () => {
     if (snapshot.mode === "explore") return;
-    if (isPlaying) {
+    if (player.getSnapshot().status === "playing" || playPending.current) {
+      playSequence.current += 1;
       player.pause();
       announce("Needle lifted.");
       return;
@@ -477,11 +532,17 @@ export function JukeboxPage() {
       showPose("greet", 2600);
       announce("Cabinet on. Loading a record…");
       // light up, then load a disc and drop the needle on its own
-      window.setTimeout(
-        () => void chooseRef.current(useUI.getState().selectedId, true, true),
-        720,
-      );
+      window.clearTimeout(powerTimer.current);
+      powerTimer.current = window.setTimeout(() => {
+        const state = useUI.getState();
+        if (mounted.current && state.powered && !state.filmUp)
+          void chooseRef.current(state.selectedId, true, true);
+      }, 720);
     } else {
+      window.clearTimeout(powerTimer.current);
+      pickSequence.current += 1;
+      playSequence.current += 1;
+      setFlying(false);
       mechanism.switchOff();
       player.pause();
       player.seek(0);
@@ -503,6 +564,8 @@ export function JukeboxPage() {
   /** Pull a disc out of the crate; it flies into the cradle, then plays. */
   const chooseDisc = useCallback(
     async (id: string, autoPlay = true, forceFly = false) => {
+      const sequence = ++pickSequence.current;
+      playSequence.current += 1;
       setArrived();
       if (id !== selectedId) showPose("point", 2100);
       if (!powered) {
@@ -529,8 +592,15 @@ export function JukeboxPage() {
           duration: 780,
           lift: 120,
         });
-        setFlying(false);
+        if (mounted.current && sequence === pickSequence.current)
+          setFlying(false);
       }
+      if (
+        !mounted.current ||
+        sequence !== pickSequence.current ||
+        !useUI.getState().powered
+      )
+        return;
       mechanism.index(1);
       announce(
         `Disc loaded: ${datasets.find((d) => d.id === id)?.short ?? id}.`,
@@ -544,11 +614,24 @@ export function JukeboxPage() {
             queryClient.fetchQuery(scoreQuery(id, preset)),
           ]);
           // A later crate pick or power-off cancels this pending needle drop.
-          if (useUI.getState().selectedId !== id || !useUI.getState().powered)
+          if (
+            !mounted.current ||
+            sequence !== pickSequence.current ||
+            useUI.getState().selectedId !== id ||
+            !useUI.getState().powered
+          )
             return;
           loadMain(track, score);
           mechanism.needle();
           if (player.getSnapshot().mode !== "explore") await player.play();
+          if (
+            !mounted.current ||
+            sequence !== pickSequence.current ||
+            !useUI.getState().powered
+          ) {
+            if (player.getSnapshot().trackId === id) player.pause();
+            return;
+          }
           setLoaded(id);
           announce(`Loaded ${track.title}. ${track.audio_key}`);
         } catch {
@@ -579,6 +662,36 @@ export function JukeboxPage() {
 
   /** the picture has reached the frame the live cabinet is drawn to match */
   const reachMatch = useCallback(() => setBoot("match"), []);
+
+  /** Promo mode (`?promo=1`) clicks the real controls so a recording shows the
+   * genuine site: the real disc flight, iris, playhead and sound engine. */
+  useEffect(() => {
+    if (!promoMode()) return;
+    return runPromo(PROMO_JUKEBOX);
+  }, []);
+
+  /**
+   * The film explains the idea; the character explains the controls. She only
+   * speaks if the visitor just stands there, and never twice in one session.
+   */
+  useEffect(() => {
+    if (boot !== "live") return;
+    if (sessionStorage.getItem("tt-toured")) return;
+    if (promoMode()) return; // a recording drives itself
+    if (new URLSearchParams(window.location.search).has("notour")) return;
+    const timer = window.setTimeout(() => setGuidePrompt(true), 6000);
+    const cancel = () => window.clearTimeout(timer);
+    const opts = { once: true } as AddEventListenerOptions;
+    window.addEventListener("pointerdown", cancel, opts);
+    window.addEventListener("keydown", cancel, opts);
+    window.addEventListener("wheel", cancel, opts);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointerdown", cancel);
+      window.removeEventListener("keydown", cancel);
+      window.removeEventListener("wheel", cancel);
+    };
+  }, [boot, setGuidePrompt]);
 
   /** The film is gone; show the idle standing figure and invite interaction. */
   const finishFilm = useCallback(() => {
@@ -614,6 +727,8 @@ export function JukeboxPage() {
   return (
     <div className="relative">
       {boot !== "live" && <BootFilm onMatch={reachMatch} onDone={finishFilm} />}
+      {/* the character talks the visitor through the cabinet once the film has gone */}
+      {boot === "live" && <Guide />}
 
       {/*
         One stage, full screen. The cabinet is the subject and stands on the
@@ -699,6 +814,7 @@ export function JukeboxPage() {
                 type="button"
                 onClick={openDeck}
                 aria-expanded={deckOpen}
+                data-guide="deck"
                 className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-full border border-[#ffd79a]/80 bg-[#3a2716] px-4 py-2.5 font-display text-[10.5px] font-bold uppercase tracking-[0.16em] text-[#ffe9b8] shadow-[0_8px_18px_-6px_rgba(28,18,8,0.7)] transition hover:scale-[1.02] hover:bg-[#52371f]"
               >
                 <Compass size={14} className="text-[#ffd79a]" />
@@ -762,7 +878,7 @@ export function JukeboxPage() {
           >
             {/* the deck: dimmed, blurred world + cards, revealed by the iris */}
             <div
-              className={`deck-iris absolute inset-0 overflow-y-auto lg:flex lg:flex-col bg-[#120c07]/45 backdrop-blur-[4px] ${
+              className={`deck-iris absolute inset-0 overflow-y-auto lg:flex lg:h-full lg:flex-col lg:overflow-hidden bg-[#120c07]/45 backdrop-blur-[4px] ${
                 deck === "open" ? "deck-in" : ""
               }`}
               onClick={(e) => {
@@ -816,7 +932,7 @@ export function JukeboxPage() {
                 </div>
               </div>
 
-              <div className="lg:min-h-0 lg:flex-1">
+              <div className="lg:h-0 lg:min-h-0 lg:flex-1 lg:overflow-hidden">
                 <NowPlaying
                   dataset={dataset}
                   spec={spec}

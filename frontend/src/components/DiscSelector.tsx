@@ -194,6 +194,7 @@ export function DiscSelector({
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
           aria-haspopup="dialog"
+          data-guide="crate"
           aria-label={open ? 'Close the crate' : `Choose a record — now playing ${selected?.short ?? ''}`}
           className="group relative block rounded-full outline-offset-4 transition-transform duration-200 hover:scale-[1.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#ffe9b8] active:scale-95"
         >

@@ -1,0 +1,145 @@
+{
+  "version": "girl-v2",
+  "width": 324,
+  "height": 566,
+  "fps": 12,
+  "states": {
+    "standing": {
+      "video": "/video/girl-v2-standing.webm",
+      "still": "/art/girl-v2-standing.webp",
+      "duration": 1.25,
+      "frames": 15,
+      "sourceFrameStart": 81,
+      "sourceFrameEnd": 81,
+      "codec": "vp9",
+      "pixelFormat": "yuv420p",
+      "encodedSize": [
+        324,
+        566
+      ]
+    },
+    "sitting": {
+      "video": "/video/girl-v2-sitting.webm",
+      "still": "/art/girl-v2-sitting.webp",
+      "duration": 1.583333,
+      "frames": 19,
+      "sourceFrameStart": 129,
+      "sourceFrameEnd": 129,
+      "codec": "vp9",
+      "pixelFormat": "yuv420p",
+      "encodedSize": [
+        324,
+        566
+      ]
+    },
+    "sitdown": {
+      "video": "/video/girl-v2-sitdown.webm",
+      "still": "/art/girl-v2-sitdown.webp",
+      "duration": 4.083333,
+      "frames": 49,
+      "sourceFrameStart": 81,
+      "sourceFrameEnd": 129,
+      "codec": "vp9",
+      "pixelFormat": "yuv420p",
+      "encodedSize": [
+        324,
+        566
+      ]
+    },
+    "standup": {
+      "video": "/video/girl-v2-standup.webm",
+      "still": "/art/girl-v2-standup.webp",
+      "duration": 4.083333,
+      "frames": 49,
+      "sourceFrameStart": 129,
+      "sourceFrameEnd": 81,
+      "codec": "vp9",
+      "pixelFormat": "yuv420p",
+      "encodedSize": [
+        324,
+        566
+      ]
+    }
+  },
+  "uniformSizes": true,
+  "sourceWindows": {
+    "standing": {
+      "start": 6.166667,
+      "end": 6.75,
+      "anchorFrame": 81
+    },
+    "sitdown": {
+      "start": 6.75,
+      "end": 10.75,
+      "anchorFrames": [
+        81,
+        129
+      ]
+    },
+    "sitting": {
+      "start": 10.75,
+      "end": 11.5,
+      "anchorFrame": 129
+    },
+    "standup": {
+      "start": 10.75,
+      "end": 6.75,
+      "anchorFrames": [
+        129,
+        81
+      ]
+    }
+  },
+  "sourceLimits": {
+    "path": "/home/ubuntu/gen/girl_raw.mp4",
+    "plateDurationSeconds": 15.083333,
+    "key": "0x03c005:0.17:0.08",
+    "scaleWidth": 400,
+    "transitionSelection": "verified complete standing-to-seated action; no AI generation",
+    "commonCrop": {
+      "width": 324,
+      "height": 566,
+      "x0": 26,
+      "y0": 129,
+      "x1": 350,
+      "baseline": 695,
+      "margin": 8
+    }
+  },
+  "endpointPixelComparisonBeforeEncoding": {
+    "standingStart_vs_sitdownStart": {
+      "exact": true,
+      "maxChannelSum": 0,
+      "differentPixels": 0
+    },
+    "sitdownEnd_vs_sittingStart": {
+      "exact": true,
+      "maxChannelSum": 0,
+      "differentPixels": 0
+    },
+    "sittingStart_vs_standupStart": {
+      "exact": true,
+      "maxChannelSum": 0,
+      "differentPixels": 0
+    },
+    "standupEnd_vs_standingStart": {
+      "exact": true,
+      "maxChannelSum": 0,
+      "differentPixels": 0
+    }
+  },
+  "shortestLoopMatches": {
+    "state": "standing",
+    "frames": 15,
+    "duration": 1.25,
+    "firstLastPixelsExact": true
+  },
+  "verification": {
+    "allWebmSizesMatch": true,
+    "alphaDecodedWithLibvpx": true,
+    "alphaModeTagOnEveryWebm": true,
+    "libvpxDecodedRgbaDimensions": true,
+    "alphaPixelCaveat": "ffmpeg reports the auxiliary VP9 alpha plane as yuv420p after decode; alpha_mode=1 is present on every stream",
+    "oldAssetsUntouched": true
+  }
+}

@@ -162,7 +162,10 @@ export function MainDeck({ dataset, spec, loading, onToggle }: MainDeckProps) {
               <div>
                 <p className="deck-eyebrow">
                   the frame · {track.date_range} ·{" "}
-                  {frame?.label ?? `Frame ${frameIndex + 1}`}
+                  {/* the window is already marked approximate; the frame label
+                      repeats it, so the page says it once */}
+                  {frame?.label?.replace(/\s*\(approximate\)$/i, "") ??
+                    `Frame ${frameIndex + 1}`}
                 </p>
                 <h3>{track.title}</h3>
               </div>

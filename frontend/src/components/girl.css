@@ -1,0 +1,15 @@
+@keyframes girl-grounded-sway {
+  0%,
+  100% {
+    transform: rotate(calc(-1 * var(--girl-gust, 0.08deg)));
+  }
+  50% {
+    transform: rotate(calc(var(--girl-gust, 0.08deg) + var(--girl-beat, 0deg)));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .girl-plane {
+    animation: none !important;
+    transform: none !important;
+  }
+}

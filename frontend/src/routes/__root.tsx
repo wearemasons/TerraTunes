@@ -3,7 +3,14 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { onAnnounce } from "@main/lib/a11y/announce";
 import { useQuery } from "@tanstack/react-query";
-import { Accessibility, BookOpen, Disc3, VolumeX, Waves } from "lucide-react";
+import {
+  Accessibility,
+  BookOpen,
+  Disc3,
+  Sparkles,
+  VolumeX,
+  Waves,
+} from "lucide-react";
 import { useUI } from "../lib/store";
 import { mechanism } from "../lib/audio/mechanism";
 import { api } from "../lib/api";
@@ -29,6 +36,8 @@ export function RootLayout() {
     powered,
     arrived,
     filmUp,
+    guideActive,
+    setGuide,
   } = useUI();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -151,6 +160,7 @@ export function RootLayout() {
                 <Link
                   key={to}
                   to={to}
+                  data-guide={to === "/scan" ? "scan" : undefined}
                   aria-current={active ? "page" : undefined}
                   className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold transition ${
                     active
@@ -170,6 +180,23 @@ export function RootLayout() {
           </nav>
 
           <div className="ml-1 flex items-center gap-1">
+            <button
+              onClick={() => setGuide(!guideActive, 0)}
+              aria-pressed={guideActive}
+              aria-label="Guided tour"
+              title={
+                guideActive ? "Stop the guided tour" : "Take the guided tour"
+              }
+              className={`rounded-full p-1.5 transition ${
+                guideActive
+                  ? "bg-[#e8b96fcc] text-ink"
+                  : dark
+                    ? "border border-[#ffe9b840] bg-[#1b150e8c] text-[#ffe9b8cc] hover:text-[#fff6e0]"
+                    : "border-2 border-[#d8b077cc] bg-[#fff8e8b2] text-ink-soft hover:text-ink"
+              }`}
+            >
+              <Sparkles size={13} />
+            </button>
             <button
               onClick={() => setMechanismMuted(!mechanismMuted)}
               aria-pressed={mechanismMuted}

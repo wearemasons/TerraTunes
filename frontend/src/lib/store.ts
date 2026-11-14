@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { create } from "zustand";
 
 /**
  * Cabinet state.
@@ -14,50 +14,78 @@ import { create } from 'zustand'
  * which keeps the world change motivated rather than arbitrary.
  */
 interface UIState {
-  arrived: boolean
+  arrived: boolean;
   /** the opening film is on screen: nothing behind it is reachable */
-  filmUp: boolean
-  powered: boolean
-  selectedId: string
-  loadedId: string
-  isPlaying: boolean
-  volume: number
-  highContrast: boolean
-  reduceMotion: boolean
-  mechanismMuted: boolean
-  announcement: string
+  filmUp: boolean;
+  powered: boolean;
+  /** the character's guided tour is running */
+  guideActive: boolean;
+  /** she is asking whether to be shown around, not talking yet */
+  guidePrompt: boolean;
+  /** index into GUIDE_STEPS */
+  guideIndex: number;
+  /** her voice is wanted; captions show either way */
+  guideVoice: boolean;
+  /** the data deck is on screen, mirrored so the tour can wait for it */
+  deckOpen: boolean;
+  selectedId: string;
+  loadedId: string;
+  isPlaying: boolean;
+  volume: number;
+  highContrast: boolean;
+  reduceMotion: boolean;
+  mechanismMuted: boolean;
+  announcement: string;
   /** live analyser level, published so the world can react to the sound */
-  level: number
+  level: number;
 
-  setFilmUp: (v: boolean) => void
-  setArrived: (v?: boolean) => void
-  setPowered: (v: boolean) => void
-  select: (id: string) => void
-  setLoaded: (id: string) => void
-  setPlaying: (v: boolean) => void
-  setVolume: (v: number) => void
-  setHighContrast: (v: boolean) => void
-  setReduceMotion: (v: boolean) => void
-  setMechanismMuted: (v: boolean) => void
-  setLevel: (v: number) => void
-  announce: (msg: string) => void
+  setFilmUp: (v: boolean) => void;
+  setGuide: (active: boolean, index?: number) => void;
+  setGuidePrompt: (v: boolean) => void;
+  setGuideVoice: (v: boolean) => void;
+  setDeckOpen: (v: boolean) => void;
+  setArrived: (v?: boolean) => void;
+  setPowered: (v: boolean) => void;
+  select: (id: string) => void;
+  setLoaded: (id: string) => void;
+  setPlaying: (v: boolean) => void;
+  setVolume: (v: number) => void;
+  setHighContrast: (v: boolean) => void;
+  setReduceMotion: (v: boolean) => void;
+  setMechanismMuted: (v: boolean) => void;
+  setLevel: (v: number) => void;
+  announce: (msg: string) => void;
 }
 
 export const useUI = create<UIState>((set) => ({
   arrived: false,
   filmUp: false,
   powered: false,
-  selectedId: 'surface-temperature',
-  loadedId: '',
+  guideActive: false,
+  guidePrompt: false,
+  guideIndex: 0,
+  guideVoice: true,
+  deckOpen: false,
+  selectedId: "surface-temperature",
+  loadedId: "",
   isPlaying: false,
   volume: 0.72,
   highContrast: false,
   reduceMotion: false,
   mechanismMuted: false,
-  announcement: '',
+  announcement: "",
   level: 0,
 
   setFilmUp: (v) => set({ filmUp: v }),
+  setGuide: (active, index) =>
+    set((s) => ({
+      guideActive: active,
+      guidePrompt: false,
+      guideIndex: active ? (index ?? s.guideIndex) : 0,
+    })),
+  setGuideVoice: (v) => set({ guideVoice: v }),
+  setGuidePrompt: (v) => set({ guidePrompt: v }),
+  setDeckOpen: (v) => set((s) => (s.deckOpen === v ? s : { deckOpen: v })),
   setArrived: (v = true) => set({ arrived: v }),
   setPowered: (v) => set({ powered: v, ...(v ? {} : { isPlaying: false }) }),
   select: (id) => set({ selectedId: id }),
@@ -70,4 +98,4 @@ export const useUI = create<UIState>((set) => ({
   // skip no-op writes: every subscriber re-renders on any set()
   setLevel: (v) => set((s) => (s.level === v ? s : { level: v })),
   announce: (msg) => set({ announcement: msg }),
-}))
+}));

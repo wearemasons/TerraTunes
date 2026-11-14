@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent, PointerEvent } from "react";
 import { buildLut, gridToImageData } from "@main/lib/colormap";
 import type {
@@ -208,9 +208,50 @@ export function FrameStage({
   onReadValue: () => void;
   readoutId: string;
 }) {
+  const wrap = useRef<HTMLDivElement>(null);
+  const scanReadout = useRef<HTMLParagraphElement>(null);
+  const [fit, setFit] = useState<{ width: number; height: number } | null>(
+    null,
+  );
   const playhead = useDeckPlayhead();
   const cols = grid?.cols ?? 64;
   const rows = grid?.rows ?? 32;
+  useLayoutEffect(() => {
+    const host = wrap.current;
+    if (!host) return;
+    const desktop = window.matchMedia("(min-width: 1024px)");
+    const update = () => {
+      if (!desktop.matches) {
+        setFit(null);
+        return;
+      }
+      const textHeight = scanReadout.current
+        ? scanReadout.current.offsetHeight + 7
+        : 0;
+      const availableHeight = Math.max(1, host.clientHeight - textHeight);
+      const width = Math.max(
+        1,
+        Math.min(host.clientWidth, (availableHeight * cols) / rows),
+      );
+      const height = (width * rows) / cols;
+      setFit((old) =>
+        old &&
+        Math.abs(old.width - width) < 0.5 &&
+        Math.abs(old.height - height) < 0.5
+          ? old
+          : { width, height },
+      );
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(host);
+    if (scanReadout.current) observer.observe(scanReadout.current);
+    desktop.addEventListener("change", update);
+    update();
+    return () => {
+      observer.disconnect();
+      desktop.removeEventListener("change", update);
+    };
+  }, [cols, rows, mode]);
   const explore = mode === "explore";
   const steps = playhead?.stepsPerFrame ?? frame?.column_notes.length ?? 16;
   const step = playhead?.step ?? 0;
@@ -234,10 +275,15 @@ export function FrameStage({
         })()
       : "Move over the map, or focus it and use the arrow keys.";
   return (
-    <div className="deck-frame-wrap">
+    <div ref={wrap} className="deck-frame-wrap">
       <div
         className="deck-frame-media"
-        style={{ aspectRatio: `${cols}/${rows}` }}
+        style={{
+          aspectRatio: `${cols}/${rows}`,
+          ...(fit
+            ? { width: fit.width, height: fit.height, flex: "0 0 auto" }
+            : {}),
+        }}
       >
         <BaseCanvas
           grid={grid}
@@ -360,8 +406,11 @@ export function FrameStage({
       </div>
       {mode === "scan" && (
         <p
+          ref={scanReadout}
           data-scan-readout
           style={{
+            width: "100%",
+            flex: "0 0 auto",
             margin: "7px 0 0",
             display: "flex",
             gap: "6px 16px",

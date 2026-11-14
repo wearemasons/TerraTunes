@@ -4,6 +4,7 @@ import { api, imgFromFile } from "../lib/api";
 import type { Spec } from "../lib/audio/phenomena";
 import { player, usePlayer } from "@main/audio/use-player";
 import type { ThemeId } from "@main/lib/api/types";
+import { PROMO_SCAN, promoMode, runPromo } from "../lib/promoDirector";
 import { useUI } from "../lib/store";
 import { FrameScanner } from "../components/FrameScanner";
 import { Spectrum } from "../components/Spectrum";
@@ -47,6 +48,12 @@ export function ScanPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const announce = useUI((s) => s.announce);
   const setPlayingStore = useUI((s) => s.setPlaying);
+
+  /* promo mode: read a bundled frame and play it, unattended */
+  useEffect(() => {
+    if (!promoMode()) return;
+    return runPromo(PROMO_SCAN);
+  }, []);
 
   useEffect(() => {
     player.pause();

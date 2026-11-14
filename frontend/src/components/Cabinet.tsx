@@ -341,6 +341,7 @@ export function Cabinet({
         <button
           onClick={onPlay}
           disabled={!powered}
+          data-guide="needle"
           aria-label={playing ? 'Lift the needle (pause)' : 'Drop the needle (play)'}
           title={playing ? 'Pause' : 'Play'}
           className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#fff0c4] disabled:cursor-not-allowed"
@@ -392,6 +393,7 @@ export function Cabinet({
         <button
           onClick={onPower}
           aria-pressed={powered}
+          data-guide="power"
           aria-label={powered ? 'Turn the jukebox off' : 'Turn the jukebox on'}
           title={powered ? 'Power off' : 'Power on'}
           className="group absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-full outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#fff0c4]"
