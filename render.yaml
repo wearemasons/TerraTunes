@@ -1,0 +1,16 @@
+# TerraTunes on Render as one web service: the sonification API serves the built
+# site too, so there is no second host, no proxy and no CORS configuration.
+services:
+  - type: web
+    name: terratunes
+    runtime: docker
+    repoRootPath: /
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: TERRATUNES_DATA_DIR
+        value: /srv/app/backend/data
+      - key: PYTHONUNBUFFERED
+        value: "1"

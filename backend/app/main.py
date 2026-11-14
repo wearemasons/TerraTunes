@@ -4,6 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+import os
+from pathlib import Path
+
 from app import __version__
 from app.api.routes import router
 from app.api.uploads import router as uploads_router
@@ -50,7 +53,28 @@ async def validation_error(_: Request, exc: RequestValidationError) -> JSONRespo
 
 app.include_router(router)
 app.include_router(uploads_router)
+# The site asks for /api/*; exposing both spellings keeps one image usable as a
+# browser dev proxy target and as a single-origin production host.
+app.include_router(router, prefix="/api")
+app.include_router(uploads_router, prefix="/api")
 # Recorded orchestral notes for the browser's Orchestra sound (`python -m app.cli samples`).
 app.mount(
     "/samples", StaticFiles(directory=settings.data_dir / "samples" / "web", check_dir=False), name="samples"
 )
+
+
+class SPAStaticFiles(StaticFiles):
+    """Static site with an index.html fallback, so client routes resolve."""
+
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if getattr(response, "status_code", 200) == 404 and "." not in path.rsplit("/", 1)[-1]:
+            return await super().get_response("index.html", scope)
+        return response
+
+
+# Production single origin: `TERRATUNES_WEB_DIR=frontend/dist` makes the API serve
+# the built site too, so Railway runs one service with no CORS and no second host.
+_web = os.environ.get("TERRATUNES_WEB_DIR", "")
+if _web and Path(_web).is_dir():
+    app.mount("/", SPAStaticFiles(directory=Path(_web), html=True), name="web")
