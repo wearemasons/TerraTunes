@@ -1,13 +1,15 @@
+import os
+from pathlib import Path
+from typing import ClassVar
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
-import os
-from pathlib import Path
-from typing import ClassVar
+from starlette.responses import Response
+from starlette.types import Scope
 
 from app import __version__
 from app.api.routes import router
@@ -64,7 +66,12 @@ app.include_router(uploads_router, prefix="/api")
 # treats as "fall back to the synthesised tone", not a 500 in the middle of page load.
 _samples = settings.data_dir / "samples" / "web"
 if (_samples / "manifest.json").is_file():
+    # The browser engine asks for samples through the same /api base as every other
+    # request, so both spellings have to resolve: the bare one for a direct hit on the
+    # engine, the /api one for the built site (and for the dev proxy, which forwards
+    # /api/* to the root of this app).
     app.mount("/samples", StaticFiles(directory=_samples), name="samples")
+    app.mount("/api/samples", StaticFiles(directory=_samples), name="samples-api")
 
 
 class SPAStaticFiles(StaticFiles):
@@ -80,7 +87,7 @@ class SPAStaticFiles(StaticFiles):
         "girl-": "public, max-age=604800",
     }
 
-    async def get_response(self, path: str, scope):
+    async def get_response(self, path: str, scope: Scope) -> Response:
         try:
             response = await super().get_response(path, scope)
         except StarletteHTTPException as exc:

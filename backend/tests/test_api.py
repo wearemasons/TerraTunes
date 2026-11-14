@@ -106,3 +106,42 @@ def test_orchestra_preset_plays_the_clear_tone_notes(client: TestClient) -> None
     assert body["preset"] == "orchestra"
     assert [f["column_notes"] for f in body["frames"]] == [f["column_notes"] for f in clear["frames"]]
     assert body["key"] == clear["key"]
+
+
+def test_orchestra_samples_reachable_under_both_spellings(tmp_path, monkeypatch):
+    """The browser's Orchestra sound fetches `/api/samples/...`.
+
+    A single-origin deploy that only answers `/samples/...` plays the synthesised
+    tone and reports no instruments, so both spellings have to resolve. Built with a
+    throwaway data directory so the check runs whether or not the real library is
+    provisioned: the bug is the route table, not the audio.
+    """
+    import importlib
+    import json
+
+    from app.core import config as core_config
+
+    library = tmp_path / "samples" / "web"
+    library.mkdir(parents=True)
+    (library / "manifest.json").write_text(json.dumps({"license": "CC0", "instruments": {"flute": []}}))
+    (library / "flute").mkdir()
+    (library / "flute" / "60.00.mp3").write_bytes(b"ID3\x00fake")
+
+    monkeypatch.setenv("TERRATUNES_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("TERRATUNES_WEB_DIR", "")
+    core_config.get_settings.cache_clear()
+    import app.main as main_module
+
+    reloaded = importlib.reload(main_module)
+    try:
+        probe = TestClient(reloaded.app)
+        for path in ("/samples/manifest.json", "/api/samples/manifest.json"):
+            response = probe.get(path)
+            assert response.status_code == 200, path
+            assert response.json()["instruments"] == {"flute": []}, path
+        # and a sample itself, which is what actually plays
+        assert probe.get("/api/samples/flute/60.00.mp3").status_code == 200
+    finally:
+        monkeypatch.undo()
+        core_config.get_settings.cache_clear()
+        importlib.reload(main_module)
