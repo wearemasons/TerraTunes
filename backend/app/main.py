@@ -3,6 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 import os
 from pathlib import Path
@@ -67,7 +68,12 @@ class SPAStaticFiles(StaticFiles):
     """Static site with an index.html fallback, so client routes resolve."""
 
     async def get_response(self, path: str, scope):
-        response = await super().get_response(path, scope)
+        try:
+            response = await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code != 404 or "." in path.rsplit("/", 1)[-1]:
+                raise
+            return await super().get_response("index.html", scope)
         if getattr(response, "status_code", 200) == 404 and "." not in path.rsplit("/", 1)[-1]:
             return await super().get_response("index.html", scope)
         return response
